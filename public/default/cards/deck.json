@@ -1,0 +1,165 @@
+{
+  "deckId": "arcana-a",
+  "displayName": "Arcana Set A (Majors)",
+  "defaultScale": "2x",
+  "credits": {},
+  "back": {
+    "2x": "back/2x.png"
+  },
+  "cards": [
+    {
+      "id": "major_00",
+      "slug": "the_fool",
+      "images": {
+        "2x": "cards/major_00/2x.png"
+      }
+    },
+    {
+      "id": "major_01",
+      "slug": "the_magician",
+      "images": {
+        "2x": "cards/major_01/2x.png"
+      }
+    },
+    {
+      "id": "major_02",
+      "slug": "the_high_priestess",
+      "images": {
+        "2x": "cards/major_02/2x.png"
+      }
+    },
+    {
+      "id": "major_03",
+      "slug": "the_empress",
+      "images": {
+        "2x": "cards/major_03/2x.png"
+      }
+    },
+    {
+      "id": "major_04",
+      "slug": "the_emperor",
+      "images": {
+        "2x": "cards/major_04/2x.png"
+      }
+    },
+    {
+      "id": "major_05",
+      "slug": "the_hierophant",
+      "images": {
+        "2x": "cards/major_05/2x.png"
+      }
+    },
+    {
+      "id": "major_06",
+      "slug": "the_lovers",
+      "images": {
+        "2x": "cards/major_06/2x.png"
+      }
+    },
+    {
+      "id": "major_07",
+      "slug": "the_chariot",
+      "images": {
+        "2x": "cards/major_07/2x.png"
+      }
+    },
+    {
+      "id": "major_08",
+      "slug": "strength",
+      "images": {
+        "2x": "cards/major_08/2x.png"
+      }
+    },
+    {
+      "id": "major_09",
+      "slug": "the_hermit",
+      "images": {
+        "2x": "cards/major_09/2x.png"
+      }
+    },
+    {
+      "id": "major_10",
+      "slug": "wheel_of_fortune",
+      "images": {
+        "2x": "cards/major_10/2x.png"
+      }
+    },
+    {
+      "id": "major_11",
+      "slug": "justice",
+      "images": {
+        "2x": "cards/major_11/2x.png"
+      }
+    },
+    {
+      "id": "major_12",
+      "slug": "the_hanged_man",
+      "images": {
+        "2x": "cards/major_12/2x.png"
+      }
+    },
+    {
+      "id": "major_13",
+      "slug": "death",
+      "images": {
+        "2x": "cards/major_13/2x.png"
+      }
+    },
+    {
+      "id": "major_14",
+      "slug": "temperance",
+      "images": {
+        "2x": "cards/major_14/2x.png"
+      }
+    },
+    {
+      "id": "major_15",
+      "slug": "the_devil",
+      "images": {
+        "2x": "cards/major_15/2x.png"
+      }
+    },
+    {
+      "id": "major_16",
+      "slug": "the_tower",
+      "images": {
+        "2x": "cards/major_16/2x.png"
+      }
+    },
+    {
+      "id": "major_17",
+      "slug": "the_star",
+      "images": {
+        "2x": "cards/major_17/2x.png"
+      }
+    },
+    {
+      "id": "major_18",
+      "slug": "the_moon",
+      "images": {
+        "2x": "cards/major_18/2x.png"
+      }
+    },
+    {
+      "id": "major_19",
+      "slug": "the_sun",
+      "images": {
+        "2x": "cards/major_19/2x.png"
+      }
+    },
+    {
+      "id": "major_20",
+      "slug": "judgement",
+      "images": {
+        "2x": "cards/major_20/2x.png"
+      }
+    },
+    {
+      "id": "major_21",
+      "slug": "the_world",
+      "images": {
+        "2x": "cards/major_21/2x.png"
+      }
+    }
+  ]
+}
