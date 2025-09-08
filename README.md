@@ -1,36 +1,70 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tarot Trading Card Game
 
-## Getting Started
+A turn-based card battler built with Next.js, React, and TypeScript. Inspired by games like Legends of Runeterra, featuring lane-based combat with mystical tarot-themed cards.
 
-First, run the development server:
+## 🎮 Game Features
+
+- **Turn-based combat** with alternating attack tokens between players
+- **Lane-based battlefield** with 6 combat lanes for strategic positioning
+- **Mana system** with spell mana banking (unused mana converts to spell mana, max 3)
+- **Unit cards** with attack/health stats and unique abilities
+- **Combat phases**: Main → Declare Attackers → Declare Defenders → Combat Resolution
+- **AI opponent** for single-player gameplay
+
+## 🚀 Getting Started
+
+Install dependencies and start the development server:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) to play the game.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 🛠️ Development Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+# Start development server
+npm run dev
 
-## Learn More
+# Build for production
+npm run build
 
-To learn more about Next.js, take a look at the following resources:
+# Start production server
+npm run start
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+# Run linting
+npm run lint
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🏗️ Tech Stack
 
-## Deploy on Vercel
+- **Framework**: Next.js 15.5.2 with App Router
+- **UI Library**: React 19.1.0
+- **Styling**: Tailwind CSS v4 with shadcn/ui components
+- **Type Safety**: TypeScript with strict mode
+- **Icons**: Lucide React
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📁 Project Structure
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```
+src/
+├── app/           # Next.js app router pages
+├── components/    # React components (GameBoard, GameCard, ui/)
+├── lib/           # Utilities and game logic
+└── types/         # TypeScript type definitions
+```
+
+## 🎯 Game Mechanics
+
+The game implements a sophisticated turn-based combat system:
+
+1. **Mana Management**: Players gain mana each turn, with unused mana converting to spell mana
+2. **Lane Strategy**: Position units across 6 lanes to control the battlefield
+3. **Combat Resolution**: Declare attackers and defenders before automatic combat resolution
+4. **Victory Conditions**: Reduce opponent's Nexus health to 0
+
+## 🤝 Contributing
+
+This project follows standard React/TypeScript patterns with pure functions for game state management. Feel free to submit issues and pull requests!
