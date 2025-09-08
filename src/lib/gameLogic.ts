@@ -1,5 +1,6 @@
 import { GameState, Card, Player } from '@/types/game';
 import { getAllCards, createRandomDeck, createZodiacDeck } from '@/lib/cardLoader';
+import { GameLogger } from '@/lib/gameLogger';
 
 // Game Constants
 const GAME_CONFIG = {
@@ -80,6 +81,10 @@ export function createInitialGameState(useZodiacDeck?: string): GameState {
     deck: player1Cards.slice(GAME_CONFIG.STARTING_HAND_SIZE),
     bench: [],
     hasAttackToken: true, // Player 1 starts with attack token
+    mulliganComplete: false,
+    selectedForMulligan: [],
+    hasPassed: false,
+    actionsThisTurn: 0,
   };
 
   const player2: Player = {
@@ -93,6 +98,10 @@ export function createInitialGameState(useZodiacDeck?: string): GameState {
     deck: player2Cards.slice(GAME_CONFIG.STARTING_HAND_SIZE),
     bench: [],
     hasAttackToken: false,
+    mulliganComplete: false,
+    selectedForMulligan: [],
+    hasPassed: false,
+    actionsThisTurn: 0,
   };
 
   return {
@@ -103,9 +112,9 @@ export function createInitialGameState(useZodiacDeck?: string): GameState {
     player1,
     player2,
     lanes: Array.from({ length: GAME_CONFIG.LANE_COUNT }, (_, id) => ({ id, attacker: null, defender: null })),
-    phase: 'main',
+    phase: 'mulligan',
+    waitingForAction: false,
     combatResolved: false,
-    canRearrangeCards: true,
   };
 }
 
@@ -136,6 +145,14 @@ export function playCard(state: GameState, card: Card): GameState {
   player.mana -= manaToUse;
   player.spellMana -= spellManaToUse;
   player.hand = player.hand.filter(c => c.id !== card.id);
+
+  GameLogger.action(`${state.activePlayer} plays ${card.name}`, {
+    cost: manaCost,
+    manaUsed: manaToUse,
+    spellManaUsed: spellManaToUse,
+    remainingMana: player.mana,
+    remainingSpellMana: player.spellMana
+  });
 
   if (card.type === 'unit') {
     const newCard = { ...card, currentHealth: card.health, position: 'bench' as const };
@@ -190,15 +207,7 @@ function executeSpellEffects(state: GameState, effects: { name?: string; descrip
       state[castingPlayer].mana += mana;
     }
 
-    // Check for positioning-prevention effects
-    if (description.includes('lock') && description.includes('position') ||
-      description.includes('prevent') && description.includes('rearrange') ||
-      description.includes('freeze') && description.includes('formation') ||
-      effectName.includes('binding') || effectName.includes('paralyze') ||
-      effectName.includes('stun')) {
-      // Prevent card rearrangement for the current combat
-      state.canRearrangeCards = false;
-    }
+    // Spell effects that could affect combat (future enhancement)
   });
 }
 
@@ -228,10 +237,10 @@ function executeAbilities(state: GameState, abilities: { name?: string; descript
   });
 }
 
-export function declareAttackers(state: GameState, attackerIds: string[]): GameState {
+export function declareAttackers(state: GameState, attackerArrangement: { attackerId: string; laneId: number }[]): GameState {
   if (!state[state.activePlayer].hasAttackToken) return state;
-  if (state.phase !== 'main') return state;
-  if (attackerIds.length > GAME_CONFIG.LANE_COUNT) return state; // Max attackers (one per lane)
+  if (state.phase !== 'action') return state;
+  if (attackerArrangement.length > GAME_CONFIG.LANE_COUNT) return state;
 
   const newState = { ...state };
   const player = { ...newState[state.activePlayer] };
@@ -239,42 +248,60 @@ export function declareAttackers(state: GameState, attackerIds: string[]): GameS
   // Clear lanes
   newState.lanes = newState.lanes.map(lane => ({ ...lane, attacker: null, defender: null }));
 
-  // Place attackers in lanes
-  attackerIds.forEach((id, index) => {
-    const unit = player.bench.find(u => u.id === id);
-    if (unit && index < GAME_CONFIG.LANE_COUNT) {
-      newState.lanes[index].attacker = { ...unit, position: 'attacking' };
+  const attackerNames: string[] = [];
+  // Place attackers in specific lanes (LoR style)
+  attackerArrangement.forEach(({ attackerId, laneId }) => {
+    const unit = player.bench.find(u => u.id === attackerId);
+    if (unit && laneId < GAME_CONFIG.LANE_COUNT) {
+      newState.lanes[laneId].attacker = { ...unit, position: 'attacking' };
+      attackerNames.push(`${unit.name} (Lane ${laneId + 1})`);
     }
   });
 
-  newState.phase = 'position_attackers';
+  GameLogger.combat(`${state.activePlayer} declares attack`, {
+    attackers: attackerNames,
+    totalAttackers: attackerArrangement.length
+  });
+
+  newState.phase = 'combat';
   newState.attackingPlayer = state.activePlayer;
   return newState;
 }
 
 export function declareDefenders(state: GameState, defenderAssignments: { defenderId: string; laneId: number }[]): GameState {
-  if (state.phase !== 'position_defenders') return state;
+  if (state.phase !== 'combat') return state;
 
   const newState = { ...state };
   const defendingPlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
   const player = { ...newState[defendingPlayer] };
 
-  // Assign defenders to lanes
+  // Clear existing defenders
+  newState.lanes = newState.lanes.map(lane => ({ ...lane, defender: null }));
+
+  const defenderNames: string[] = [];
+  // Assign defenders to specific lanes (LoR style)
   defenderAssignments.forEach(({ defenderId, laneId }) => {
     const unit = player.bench.find(u => u.id === defenderId);
-    if (unit && laneId < 6 && newState.lanes[laneId].attacker) {
+    if (unit && laneId < GAME_CONFIG.LANE_COUNT && newState.lanes[laneId].attacker) {
       newState.lanes[laneId].defender = { ...unit, position: 'defending' };
+      defenderNames.push(`${unit.name} blocks Lane ${laneId + 1}`);
     }
   });
 
-  newState.phase = 'position_defenders';
+  GameLogger.combat(`${defendingPlayer} declares defense`, {
+    defenders: defenderNames,
+    unblockedLanes: newState.lanes.filter(l => l.attacker && !l.defender).length
+  });
+
+  // Immediately resolve combat after defenders are set
+  newState.phase = 'combat';
   return newState;
 }
 
-// New function to rearrange attackers in lanes
+// Function to rearrange attackers during declare phase (LoR style)
 export function rearrangeAttackers(state: GameState, newArrangement: { attackerId: string; laneId: number }[]): GameState {
-  if (state.phase !== 'position_attackers') return state;
-  if (!state.canRearrangeCards) return state;
+  if (state.phase !== 'action') return state;
+  if (state.attackingPlayer !== state.activePlayer) return state;
 
   const newState = { ...state };
   const attackingPlayer = state.attackingPlayer!;
@@ -293,10 +320,9 @@ export function rearrangeAttackers(state: GameState, newArrangement: { attackerI
   return newState;
 }
 
-// New function to rearrange defenders in lanes  
+// Function to rearrange defenders during declare phase (LoR style)
 export function rearrangeDefenders(state: GameState, newArrangement: { defenderId: string; laneId: number }[]): GameState {
-  if (state.phase !== 'position_defenders') return state;
-  if (!state.canRearrangeCards) return state;
+  if (state.phase !== 'combat') return state;
 
   const newState = { ...state };
   const defendingPlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
@@ -315,31 +341,15 @@ export function rearrangeDefenders(state: GameState, newArrangement: { defenderI
   return newState;
 }
 
-// Commit to combat from attacker positioning
-export function commitAttackersToPosition(state: GameState): GameState {
-  if (state.phase !== 'position_attackers') return state;
-
-  const newState = { ...state };
-  newState.phase = 'declare_defenders';
-  return newState;
-}
-
-// Commit to combat from defender positioning  
-export function commitDefendersToPosition(state: GameState): GameState {
-  if (state.phase !== 'position_defenders') return state;
-
-  const newState = { ...state };
-  newState.phase = 'commit_combat';
-  return newState;
-}
-
-// Final commit to combat - triggers combat resolution
+// Commit to combat - used by both attacker and defender
 export function commitToCombat(state: GameState): GameState {
-  if (state.phase !== 'commit_combat') return state;
-
-  const newState = { ...state };
-  newState.phase = 'combat';
-  return newState;
+  if (state.phase === 'combat') {
+    // Defender commits, trigger combat
+    const newState = { ...state };
+    newState.phase = 'combat';
+    return newState;
+  }
+  return state;
 }
 
 export function resolveCombat(state: GameState): GameState {
@@ -349,13 +359,23 @@ export function resolveCombat(state: GameState): GameState {
   const attackingPlayer = newState.attackingPlayer!;
   const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1';
 
+  let totalNexusDamage = 0;
+  const combatResults: { lane?: number; type?: string; attacker: string; defender?: string; result?: string; damage?: number }[] = [];
+
   // Resolve combat lane by lane (left to right)
-  newState.lanes.forEach((lane) => {
+  newState.lanes.forEach((lane, index) => {
     if (lane.attacker) {
       if (lane.defender) {
         // Unit vs Unit combat
         const attackerNewHealth = (lane.attacker.currentHealth || lane.attacker.health) - lane.defender.attack;
         const defenderNewHealth = (lane.defender.currentHealth || lane.defender.health) - lane.attacker.attack;
+
+        combatResults.push({
+          lane: index + 1,
+          type: 'trade',
+          attacker: `${lane.attacker.name} (${attackerNewHealth <= 0 ? 'dies' : `survives ${attackerNewHealth}hp`})`,
+          defender: `${lane.defender.name} (${defenderNewHealth <= 0 ? 'dies' : `survives ${defenderNewHealth}hp`})`
+        });
 
         // Remove dead units
         if (attackerNewHealth <= 0) {
@@ -378,14 +398,27 @@ export function resolveCombat(state: GameState): GameState {
       } else {
         // Direct nexus damage
         newState[defendingPlayer].health -= lane.attacker.attack;
+        totalNexusDamage += lane.attacker.attack;
+        combatResults.push({
+          lane: index + 1,
+          type: 'nexus',
+          attacker: lane.attacker.name,
+          damage: lane.attacker.attack
+        });
       }
     }
+  });
+
+  GameLogger.combat('Combat resolved', {
+    results: combatResults,
+    totalNexusDamage,
+    defenderHealth: newState[defendingPlayer].health
   });
 
   // Clear lanes
   newState.lanes = newState.lanes.map(lane => ({ ...lane, attacker: null, defender: null }));
   newState.combatResolved = true;
-  newState.phase = 'main';
+  newState.phase = 'action';
   newState.attackingPlayer = null;
 
   return newState;
@@ -406,6 +439,11 @@ export function endTurn(state: GameState): GameState {
   newState[state.activePlayer].spellMana = Math.min(GAME_CONFIG.MAX_SPELL_MANA,
     newState[state.activePlayer].spellMana + unspentMana
   );
+
+  GameLogger.state(`${state.activePlayer} ends turn`, {
+    unspentMana,
+    newSpellMana: newState[state.activePlayer].spellMana
+  });
 
   // Switch active player
   const nextPlayer = state.activePlayer === 'player1' ? 'player2' : 'player1';
@@ -428,14 +466,15 @@ export function endTurn(state: GameState): GameState {
 
   // Draw a card
   if (currentPlayer.deck.length > 0) {
+    const drawnCard = currentPlayer.deck[0];
     currentPlayer.hand.push(currentPlayer.deck.shift()!);
+    GameLogger.action(`${nextPlayer} draws ${drawnCard.name}`);
   }
 
-  newState.phase = 'main';
-  newState.combatResolved = false;
+  GameLogger.turnStart(nextPlayer, newState.turn, newState.round, currentPlayer.hasAttackToken);
 
-  // Reset card rearrangement ability at the start of each turn
-  newState.canRearrangeCards = true;
+  newState.phase = 'action';
+  newState.combatResolved = false;
 
   return newState;
 }
@@ -445,6 +484,8 @@ export function aiTurn(state: GameState): GameState {
   let newState = { ...state };
 
   if (newState.activePlayer !== 'player2') return newState;
+
+  GameLogger.ai('AI turn started');
 
   const ai = newState.player2;
   const opponent = newState.player1;
@@ -460,11 +501,17 @@ export function aiTurn(state: GameState): GameState {
     });
 
   // Play units until bench is full or mana is depleted
+  const cardsPlayed: string[] = [];
   for (const card of playableCards) {
     if (ai.bench.length >= GAME_CONFIG.MAX_BENCH_SIZE) break;
     if (canPlayCard(newState, card)) {
       newState = playCard(newState, card);
+      cardsPlayed.push(card.name);
     }
+  }
+
+  if (cardsPlayed.length > 0) {
+    GameLogger.ai('AI played cards', cardsPlayed);
   }
 
   // Phase 2: Attack if has attack token
@@ -476,15 +523,13 @@ export function aiTurn(state: GameState): GameState {
       .map(u => u.id);
 
     if (attackers.length > 0) {
-      newState = declareAttackers(newState, attackers);
-
-      // AI auto-commits attackers to position and moves to defender phase
-      if (newState.phase === 'position_attackers') {
-        newState = commitAttackersToPosition(newState);
-      }
+      // Declare attackers with lane positions
+      const attackerArrangement = attackers.map((id, index) => ({ attackerId: id, laneId: index }));
+      GameLogger.ai('AI declaring attack', { attackerCount: attackers.length });
+      newState = declareAttackers(newState, attackerArrangement);
 
       // AI auto-assigns defenders (simplified for tutorial)
-      if (newState.phase === 'declare_defenders') {
+      if (newState.phase === 'combat') {
         const defenderAssignments: { defenderId: string; laneId: number }[] = [];
 
         // Simple defensive strategy: block strongest attackers first
@@ -510,16 +555,8 @@ export function aiTurn(state: GameState): GameState {
           }
         });
 
+        GameLogger.ai('AI assigning defenders', { defenderCount: defenderAssignments.length });
         newState = declareDefenders(newState, defenderAssignments);
-
-        // AI auto-commits defenders and moves to combat
-        if (newState.phase === 'position_defenders') {
-          newState = commitDefendersToPosition(newState);
-        }
-
-        if (newState.phase === 'commit_combat') {
-          newState = commitToCombat(newState);
-        }
 
         if (newState.phase === 'combat') {
           newState = resolveCombat(newState);
@@ -530,4 +567,134 @@ export function aiTurn(state: GameState): GameState {
 
   // End turn
   return endTurn(newState);
+}
+
+// Mulligan Functions
+export function toggleMulliganCard(state: GameState, cardId: string): GameState {
+  if (state.phase !== 'mulligan') return state;
+
+  const newState = { ...state };
+  const player = { ...newState[state.activePlayer] };
+
+  if (player.selectedForMulligan.includes(cardId)) {
+    // Remove from selection
+    player.selectedForMulligan = player.selectedForMulligan.filter(id => id !== cardId);
+  } else {
+    // Add to selection
+    player.selectedForMulligan = [...player.selectedForMulligan, cardId];
+  }
+
+  newState[state.activePlayer] = player;
+  return newState;
+}
+
+export function completeMulligan(state: GameState): GameState {
+  if (state.phase !== 'mulligan') return state;
+
+  const newState = { ...state };
+  const player = { ...newState[state.activePlayer] };
+
+  if (player.selectedForMulligan.length > 0) {
+    // Shuffle selected cards back into deck
+    const cardsToShuffle = player.hand.filter(card =>
+      player.selectedForMulligan.includes(card.id)
+    );
+    const keptCards = player.hand.filter(card =>
+      !player.selectedForMulligan.includes(card.id)
+    );
+
+    // Add discarded cards back to deck and shuffle
+    player.deck = [...player.deck, ...cardsToShuffle];
+    shuffleDeck(player);
+
+    // Draw replacement cards
+    const cardsToDraw = cardsToShuffle.length;
+    const newCards = player.deck.splice(0, cardsToDraw);
+    player.hand = [...keptCards, ...newCards];
+
+    GameLogger.action(`${state.activePlayer} mulliganed ${cardsToDraw} cards`);
+  }
+
+  player.mulliganComplete = true;
+  player.selectedForMulligan = [];
+  newState[state.activePlayer] = player;
+
+  // Check if both players completed mulligan
+  if (newState.player1.mulliganComplete && newState.player2.mulliganComplete) {
+    newState.phase = 'action';
+    newState.waitingForAction = true;
+    GameLogger.state('Game phase: Mulligan complete, starting action phase');
+  }
+
+  return newState;
+}
+
+export function aiMulligan(state: GameState, difficulty: 'easy' | 'medium' | 'hard' = 'medium'): GameState {
+  if (state.phase !== 'mulligan' || state.activePlayer !== 'player2') return state;
+
+  const newState = { ...state };
+  const ai = { ...newState.player2 };
+
+  // AI mulligan strategy based on difficulty
+  let cardsToMulligan: string[] = [];
+
+  switch (difficulty) {
+    case 'easy':
+      // Random mulligan - 0-2 cards
+      const randomCount = Math.floor(Math.random() * 3);
+      cardsToMulligan = ai.hand
+        .sort(() => Math.random() - 0.5)
+        .slice(0, randomCount)
+        .map(card => card.id);
+      break;
+
+    case 'medium':
+      // Strategic mulligan - remove high cost cards and duplicates
+      cardsToMulligan = ai.hand
+        .filter(card => {
+          // Remove cards costing 4+ mana (too expensive for early game)
+          if (card.cost >= 4) return true;
+          // Remove duplicate cards (keep diversity)
+          const duplicateCount = ai.hand.filter(c => c.name === card.name).length;
+          return duplicateCount > 1 && Math.random() < 0.5;
+        })
+        .map(card => card.id);
+      break;
+
+    case 'hard':
+      // Optimal mulligan - complex curve and synergy analysis
+      const manaCurve = [0, 0, 0, 0, 0]; // Count cards by mana cost
+      ai.hand.forEach(card => {
+        if (card.cost <= 4) manaCurve[card.cost]++;
+      });
+
+      cardsToMulligan = ai.hand
+        .filter(card => {
+          // Keep 1-2 cost cards for early game
+          if (card.cost <= 2) return false;
+          // Remove expensive cards without good early game
+          if (card.cost >= 4) return true;
+          // Remove cards that break curve
+          if (card.cost === 3 && manaCurve[3] > 1) return Math.random() < 0.6;
+          return false;
+        })
+        .map(card => card.id);
+      break;
+  }
+
+  ai.selectedForMulligan = cardsToMulligan;
+  newState.player2 = ai;
+
+  GameLogger.ai(`AI selected ${cardsToMulligan.length} cards for mulligan (${difficulty} difficulty)`);
+
+  // Auto-complete AI mulligan
+  return completeMulligan(newState);
+}
+
+// Utility function to shuffle a player's deck
+function shuffleDeck(player: Player): void {
+  for (let i = player.deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]];
+  }
 }

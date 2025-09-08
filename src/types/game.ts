@@ -104,6 +104,10 @@ export interface Player {
   deck: Card[];
   bench: Card[]; // Units on field but not in combat (max 6)
   hasAttackToken: boolean;
+  mulliganComplete: boolean;
+  selectedForMulligan: string[]; // Card IDs selected for discard
+  hasPassed: boolean; // Has passed this action phase
+  actionsThisTurn: number; // Number of actions taken this turn
 }
 
 export interface GameState {
@@ -114,7 +118,7 @@ export interface GameState {
   player1: Player;
   player2: Player;
   lanes: Lane[];
-  phase: 'main' | 'declare_attackers' | 'declare_defenders' | 'position_attackers' | 'position_defenders' | 'commit_combat' | 'combat' | 'end';
+  phase: 'mulligan' | 'action' | 'combat' | 'end_round';
+  waitingForAction: boolean; // Is the game waiting for a player action
   combatResolved: boolean;
-  canRearrangeCards: boolean; // Can be disabled by spell effects
 }
