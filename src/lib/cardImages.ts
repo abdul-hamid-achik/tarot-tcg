@@ -1,4 +1,4 @@
-import { Card } from '@/types/game';
+import { Card } from '@/schemas/gameSchemas';
 
 /**
  * Static mapping of card names and IDs to their image paths
@@ -288,12 +288,4 @@ function mapCardNameToImagePath(cardName: string, cardId?: string): string | nul
  */
 export function getCardBackImagePath(): string {
   return '/default/back/2x.png';
-}
-
-/**
- * Check if a card image exists (for development/debugging)
- */
-export function logCardImageMapping(card: Card): void {
-  const path = getCardImagePath(card);
-  console.log(`Card "${card.name}" (ID: ${card.id}) -> ${path}`);
 }

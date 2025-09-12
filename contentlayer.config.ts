@@ -1,5 +1,5 @@
 import { defineDocumentType, makeSource } from 'contentlayer2/source-files'
-import type { ZodiacClass as ZodiacClassType, Element, Rarity } from './src/types/game'
+import type { ZodiacClass as ZodiacClassType, Element, Rarity } from './src/schemas/gameSchemas'
 
 export const Card = defineDocumentType(() => ({
   name: 'Card',
@@ -43,12 +43,32 @@ export const Card = defineDocumentType(() => ({
     },
     rarity: {
       type: 'enum',
-      options: ['common', 'uncommon', 'rare', 'legendary'] as const,
+      options: ['common', 'uncommon', 'rare', 'legendary', 'mythic'] as const,
       required: true,
+    },
+    tarotNumber: {
+      type: 'string',
+      required: false,
     },
     tarotSymbol: {
       type: 'string',
       required: true,
+    },
+    description: {
+      type: 'string',
+      required: false,
+    },
+    reversedDescription: {
+      type: 'string',
+      required: false,
+    },
+    orientation: {
+      type: 'string',
+      required: false,
+    },
+    suitSymbol: {
+      type: 'string',
+      required: false,
     },
     keywords: {
       type: 'list',
@@ -72,7 +92,7 @@ export const Card = defineDocumentType(() => ({
   computedFields: {
     url: {
       type: 'string',
-      resolve: (card) => `/cards/${card._raw.flattenedPath}`,
+      resolve: (card) => `/${card._raw.flattenedPath}`,
     },
     zodiacPath: {
       type: 'string', 
@@ -111,9 +131,31 @@ export const ZodiacClass = defineDocumentType(() => ({
   },
 }))
 
+export const MetaGuide = defineDocumentType(() => ({
+  name: 'MetaGuide',
+  filePathPattern: '*-meta.mdx',
+  contentType: 'mdx',
+  fields: {
+    title: {
+      type: 'string',
+      required: true,
+    },
+    description: {
+      type: 'string',
+      required: true,
+    },
+  },
+  computedFields: {
+    url: {
+      type: 'string',
+      resolve: (doc) => `/meta/${doc._raw.flattenedPath.replace('-meta', '')}`,
+    },
+  },
+}))
+
 export default makeSource({
   contentDirPath: './content',
-  documentTypes: [Card, ZodiacClass],
+  documentTypes: [Card, ZodiacClass, MetaGuide],
   mdx: {
     remarkPlugins: [],
     rehypePlugins: [],

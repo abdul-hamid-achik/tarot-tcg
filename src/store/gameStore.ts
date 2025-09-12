@@ -1,6 +1,12 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
-import { GameState, Card as GameCard } from '@/types/game'
+import { GameState, Card as GameCard } from '@/schemas/gameSchemas'
+import { 
+    CellPositionSchema,
+    GameStateSchema,
+    type CellPosition as ZodCellPosition 
+} from '@/schemas/gameSchemas'
+
 // Grid positioning types
 export const GRID_ROWS = {
     ENEMY_BENCH: 0,
@@ -18,10 +24,7 @@ export const GRID_COLS = {
     COL_5: 5
 } as const
 
-export interface CellPosition {
-    row: typeof GRID_ROWS[keyof typeof GRID_ROWS]
-    col: typeof GRID_COLS[keyof typeof GRID_COLS]
-}
+export type CellPosition = ZodCellPosition
 
 export type CellType = 'enemy_bench' | 'enemy_attack' | 'player_attack' | 'player_bench'
 
@@ -124,10 +127,12 @@ export const createCellKey = (position: CellPosition): string => `${position.row
 // Helper to parse cell key
 export const parseCellKey = (cellKey: string): CellPosition => {
     const [row, col] = cellKey.split('-').map(Number)
-    return {
-        row: row as typeof GRID_ROWS[keyof typeof GRID_ROWS],
-        col: col as typeof GRID_COLS[keyof typeof GRID_COLS]
+    const result = CellPositionSchema.safeParse({ row, col })
+    if (result.success) {
+        return result.data
     }
+    // Fallback for invalid positions (should not happen in practice)
+    throw new Error(`Invalid cell key: ${cellKey}`)
 }
 
 // Helper to get cell type from position
@@ -144,7 +149,7 @@ export const useGameStore = create<GameStore>()(
     devtools(
         (set, get) => ({
             // Initial state
-            gameState: {} as GameState, // Will be set by game initialization
+            gameState: null as unknown as GameState, // Will be set by game initialization
 
             grid: {
                 cells: new Map(),
@@ -175,12 +180,27 @@ export const useGameStore = create<GameStore>()(
 
             // Core actions
             setGameState: (gameState: GameState) => {
-                set({ gameState }, false, 'setGameState')
+                // Validate gameState with Zod before setting
+                const result = GameStateSchema.safeParse(gameState)
+                if (result.success) {
+                    set({ gameState: result.data }, false, 'setGameState')
+                } else {
+                    console.warn('GameState validation warnings:', result.error.errors)
+                    // In development, allow invalid states but warn about them
+                    set({ gameState }, false, 'setGameState')
+                }
             },
 
             // Grid actions
             setCellContent: (position: CellPosition, card: GameCard | null) => {
-                const cellKey = createCellKey(position)
+                // Validate position
+                const validatedPosition = CellPositionSchema.safeParse(position)
+                if (!validatedPosition.success) {
+                    console.error('Invalid cell position:', position)
+                    return
+                }
+                
+                const cellKey = createCellKey(validatedPosition.data)
                 set((state: GameStore) => {
                     const newCells = new Map(state.grid.cells)
                     newCells.set(cellKey, card)

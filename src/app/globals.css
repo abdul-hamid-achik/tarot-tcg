@@ -5,135 +5,137 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(0.15 0.02 240);
-  /* Deep navy background */
-  --foreground: oklch(0.98 0 0);
-  /* Pure white text */
-  --card: oklch(0.25 0.02 240);
-  /* Dark card backgrounds */
-  --card-foreground: oklch(0.95 0 0);
-  /* Light card text */
-  --popover: oklch(0.12 0.02 240);
-  /* Dark popover */
-  --popover-foreground: oklch(0.98 0 0);
-  /* White popover text */
-  --primary: oklch(0.65 0.15 200);
-  /* Mystical cyan */
-  --primary-foreground: oklch(0.98 0 0);
+  /* Light newspaper theme */
+  --background: oklch(1.0 0 0);
+  /* Pure white background */
+  --foreground: oklch(0.1 0 0);
+  /* Near-black text */
+  --card: oklch(0.98 0 0);
+  /* Very light gray card backgrounds */
+  --card-foreground: oklch(0.1 0 0);
+  /* Dark text on cards */
+  --popover: oklch(1.0 0 0);
+  /* White popover */
+  --popover-foreground: oklch(0.1 0 0);
+  /* Black popover text */
+  --primary: oklch(0.1 0 0);
+  /* Black primary */
+  --primary-foreground: oklch(1.0 0 0);
   /* White on primary */
-  --secondary: oklch(0.55 0.18 35);
-  /* Mystical orange */
-  --secondary-foreground: oklch(0.98 0 0);
+  --secondary: oklch(0.3 0 0);
+  /* Dark gray secondary */
+  --secondary-foreground: oklch(1.0 0 0);
   /* White on secondary */
-  --muted: oklch(0.3 0.02 240);
-  /* Muted dark */
-  --muted-foreground: oklch(0.7 0 0);
-  /* Muted text */
-  --accent: oklch(0.6 0.16 45);
-  /* Golden amber accent */
-  --accent-foreground: oklch(0.98 0 0);
+  --muted: oklch(0.95 0 0);
+  /* Light gray muted */
+  --muted-foreground: oklch(0.4 0 0);
+  /* Medium gray text */
+  --accent: oklch(0.2 0 0);
+  /* Dark gray accent */
+  --accent-foreground: oklch(1.0 0 0);
   /* White on accent */
-  --destructive: oklch(0.55 0.2 15);
-  /* Mystical red */
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive: oklch(0.5 0.2 15);
+  /* Red for destructive */
+  --destructive-foreground: oklch(1.0 0 0);
   /* White on destructive */
-  --border: oklch(0.35 0.02 240);
-  /* Dark borders */
-  --input: oklch(0.2 0.02 240);
-  /* Dark input backgrounds */
-  --ring: oklch(0.65 0.15 200 / 0.5);
-  /* Glowing cyan ring */
-  --chart-1: oklch(0.65 0.15 200);
-  /* Primary chart - cyan */
-  --chart-2: oklch(0.55 0.18 35);
-  /* Secondary chart - orange */
-  --chart-3: oklch(0.6 0.16 45);
-  /* Tertiary chart - amber */
-  --chart-4: oklch(0.45 0.12 280);
-  /* Quaternary chart - purple */
-  --chart-5: oklch(0.75 0.1 160);
-  /* Quinary chart - green */
-  --radius: 0.75rem;
-  /* Slightly more rounded for mystical feel */
-  --sidebar: oklch(0.18 0.02 240);
-  /* Sidebar background */
-  --sidebar-foreground: oklch(0.95 0 0);
-  /* Sidebar text */
-  --sidebar-primary: oklch(0.65 0.15 200);
-  /* Primary sidebar - cyan */
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  /* Text on primary sidebar */
-  --sidebar-accent: oklch(0.55 0.18 35);
-  /* Accent sidebar - orange */
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  /* Text on sidebar accent */
-  --sidebar-border: oklch(0.35 0.02 240);
-  /* Sidebar border */
-  --sidebar-ring: oklch(0.65 0.15 200 / 0.3);
-  /* Glowing sidebar effect */
+  --border: oklch(0.8 0 0);
+  /* Light gray borders */
+  --input: oklch(0.98 0 0);
+  /* Light input backgrounds */
+  --ring: oklch(0.3 0 0 / 0.5);
+  /* Dark ring */
+  --chart-1: oklch(0.2 0 0);
+  /* Primary chart - dark gray */
+  --chart-2: oklch(0.4 0 0);
+  /* Secondary chart - medium gray */
+  --chart-3: oklch(0.6 0 0);
+  /* Tertiary chart - light gray */
+  --chart-4: oklch(0.3 0 0);
+  /* Quaternary chart - dark gray */
+  --chart-5: oklch(0.5 0 0);
+  /* Quinary chart - medium gray */
+  --radius: 0.5rem;
+  /* Moderate rounding for newspaper feel */
+  --sidebar: oklch(0.96 0 0);
+  /* Light sidebar background */
+  --sidebar-foreground: oklch(0.1 0 0);
+  /* Dark sidebar text */
+  --sidebar-primary: oklch(0.1 0 0);
+  /* Dark primary sidebar */
+  --sidebar-primary-foreground: oklch(1.0 0 0);
+  /* White text on primary sidebar */
+  --sidebar-accent: oklch(0.3 0 0);
+  /* Dark gray accent sidebar */
+  --sidebar-accent-foreground: oklch(1.0 0 0);
+  /* White text on sidebar accent */
+  --sidebar-border: oklch(0.8 0 0);
+  /* Light gray sidebar border */
+  --sidebar-ring: oklch(0.3 0 0 / 0.3);
+  /* Dark sidebar effect */
 }
 
 .dark {
-  --background: oklch(0.08 0.02 240);
-  /* Even deeper background */
-  --foreground: oklch(0.98 0 0);
-  /* Bright white text */
-  --card: oklch(0.15 0.02 240);
-  /* Darker cards */
-  --card-foreground: oklch(0.95 0 0);
-  /* Light card text */
-  --popover: oklch(0.05 0.02 240);
-  /* Very dark popover */
-  --popover-foreground: oklch(0.98 0 0);
-  /* White popover text */
-  --primary: oklch(0.7 0.18 200);
-  /* Brighter mystical cyan */
-  --primary-foreground: oklch(0.05 0.02 240);
-  /* Dark text on bright primary */
-  --secondary: oklch(0.6 0.2 35);
-  /* Brighter orange */
-  --secondary-foreground: oklch(0.98 0 0);
-  /* White on secondary */
-  --muted: oklch(0.2 0.02 240);
-  /* Darker muted */
+  /* Dark newspaper theme */
+  --background: oklch(0.12 0 0);
+  /* Very dark gray background */
+  --foreground: oklch(0.95 0 0);
+  /* Light gray text */
+  --card: oklch(0.18 0 0);
+  /* Dark gray cards */
+  --card-foreground: oklch(0.9 0 0);
+  /* Light text on cards */
+  --popover: oklch(0.15 0 0);
+  /* Dark popover */
+  --popover-foreground: oklch(0.95 0 0);
+  /* Light popover text */
+  --primary: oklch(0.9 0 0);
+  /* Light primary */
+  --primary-foreground: oklch(0.12 0 0);
+  /* Dark text on light primary */
+  --secondary: oklch(0.7 0 0);
+  /* Light gray secondary */
+  --secondary-foreground: oklch(0.12 0 0);
+  /* Dark text on secondary */
+  --muted: oklch(0.25 0 0);
+  /* Dark muted */
   --muted-foreground: oklch(0.6 0 0);
-  /* Muted text */
-  --accent: oklch(0.65 0.18 45);
-  /* Brighter golden accent */
-  --accent-foreground: oklch(0.05 0.02 240);
-  /* Dark text on bright accent */
-  --destructive: oklch(0.6 0.22 15);
-  /* Brighter red */
-  --destructive-foreground: oklch(0.98 0 0);
+  /* Medium gray text */
+  --accent: oklch(0.8 0 0);
+  /* Light gray accent */
+  --accent-foreground: oklch(0.12 0 0);
+  /* Dark text on accent */
+  --destructive: oklch(0.5 0.2 15);
+  /* Red for destructive */
+  --destructive-foreground: oklch(1.0 0 0);
   /* White on destructive */
-  --border: oklch(0.25 0.02 240);
-  /* Lighter borders for contrast */
-  --input: oklch(0.12 0.02 240);
-  /* Dark input */
-  --ring: oklch(0.7 0.18 200 / 0.6);
-  /* Brighter glowing ring */
-  --chart-1: oklch(0.7 0.18 200);
-  /* Brighter chart colors */
-  --chart-2: oklch(0.6 0.2 35);
-  --chart-3: oklch(0.65 0.18 45);
-  --chart-4: oklch(0.5 0.15 280);
-  --chart-5: oklch(0.8 0.12 160);
-  --sidebar: oklch(0.1 0.02 240);
-  /* Darker sidebar */
-  --sidebar-foreground: oklch(0.95 0 0);
+  --border: oklch(0.3 0 0);
+  /* Medium gray borders */
+  --input: oklch(0.2 0 0);
+  /* Dark input backgrounds */
+  --ring: oklch(0.7 0 0 / 0.5);
+  /* Light ring */
+  --chart-1: oklch(0.8 0 0);
+  /* Light gray chart colors */
+  --chart-2: oklch(0.6 0 0);
+  --chart-3: oklch(0.4 0 0);
+  --chart-4: oklch(0.7 0 0);
+  --chart-5: oklch(0.5 0 0);
+  --sidebar: oklch(0.16 0 0);
+  /* Dark sidebar */
+  --sidebar-foreground: oklch(0.9 0 0);
   /* Light sidebar text */
-  --sidebar-primary: oklch(0.7 0.18 200);
-  /* Bright primary */
-  --sidebar-primary-foreground: oklch(0.05 0.02 240);
+  --sidebar-primary: oklch(0.8 0 0);
+  /* Light primary */
+  --sidebar-primary-foreground: oklch(0.12 0 0);
   /* Dark on bright */
-  --sidebar-accent: oklch(0.6 0.2 35);
-  /* Bright accent */
-  --sidebar-accent-foreground: oklch(0.98 0 0);
-  /* White on accent */
-  --sidebar-border: oklch(0.25 0.02 240);
-  /* Lighter border */
-  --sidebar-ring: oklch(0.7 0.18 200 / 0.4);
-  /* Brighter glow */
+  --sidebar-accent: oklch(0.6 0 0);
+  /* Medium gray accent */
+  --sidebar-accent-foreground: oklch(0.9 0 0);
+  /* Light on accent */
+  --sidebar-border: oklch(0.3 0 0);
+  /* Medium gray border */
+  --sidebar-ring: oklch(0.7 0 0 / 0.4);
+  /* Light glow */
 }
 
 @theme inline {

@@ -4,7 +4,7 @@ import React from "react"
 import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Sparkles, Sword } from "lucide-react"
-import { Card as GameCard } from '@/types/game'
+import { Card as GameCard } from '@/schemas/gameSchemas'
 import { getCardImagePath, getCardBackImagePath } from '@/lib/cardImages'
 
 interface TarotCardProps {
@@ -12,11 +12,12 @@ interface TarotCardProps {
   isHidden?: boolean
   isSelected?: boolean
   isDamaged?: boolean
-  size?: 'small' | 'medium' | 'large'
+  size?: 'small' | 'medium' | 'large' | 'battlefield'
   className?: string
   onClick?: () => void
   onDragStart?: (e: React.DragEvent) => void
   draggable?: boolean
+  showReversedEffects?: boolean // Whether to show reversed description
 }
 
 export default function TarotCard({
@@ -28,15 +29,34 @@ export default function TarotCard({
   className = '',
   onClick,
   onDragStart,
-  draggable = false
+  draggable = false,
+  showReversedEffects = true
 }: TarotCardProps) {
   const sizeClasses = {
-    small: 'w-20 h-32',
-    medium: 'w-32 h-48',
-    large: 'w-40 h-60'
+    small: 'w-24 h-36',     // Increased from w-20 h-32 for better readability
+    medium: 'w-32 h-48',    // Standard size
+    large: 'w-40 h-60',     // Enlarged for detailed view
+    battlefield: 'w-20 h-28' // Optimized specifically for battlefield grid
   }
 
   const imagePath = isHidden || !card ? getCardBackImagePath() : getCardImagePath(card)
+
+  // Get effective stats considering reversed state
+  const getEffectiveStats = () => {
+    if (!card || !showReversedEffects) return { attack: card?.attack || 0, health: card?.health || 0, description: card?.description || '' }
+
+    if (card.isReversed) {
+      return {
+        attack: Math.max(0, Math.floor(card.attack * 0.7)), // Reversed attack reduction
+        health: card.health + 1, // Reversed health increase
+        description: card.reversedDescription || `Reversed: ${card.description}` || ''
+      }
+    }
+
+    return { attack: card.attack, health: card.health, description: card.description || '' }
+  }
+
+  const effectiveStats = getEffectiveStats()
 
   const getTypeIcon = (type?: string) => {
     switch (type) {
@@ -74,6 +94,7 @@ export default function TarotCard({
         relative overflow-hidden cursor-pointer transition-all duration-200
         ${isSelected ? 'ring-2 ring-amber-400 shadow-lg shadow-amber-400/20' : ''}
         ${isDamaged ? 'animate-pulse ring-1 ring-red-500/50' : ''}
+        ${card?.isReversed ? 'ring-2 ring-red-400/60 shadow-lg shadow-red-400/30' : ''}
         ${className}
         hover:scale-105 hover:shadow-lg
         bg-slate-900 border-2 border-slate-700
@@ -81,6 +102,10 @@ export default function TarotCard({
       onClick={onClick}
       onDragStart={onDragStart}
       draggable={draggable}
+      style={{
+        transformOrigin: 'center',
+        transform: card?.isReversed ? 'rotate(180deg)' : undefined
+      }}
     >
       {/* Card Image */}
       <div className="absolute inset-0">
@@ -117,20 +142,25 @@ export default function TarotCard({
               {/* Card Name */}
               <div className="text-white text-xs font-semibold truncate mb-1 flex items-center gap-1">
                 {getTypeIcon(card.type)}
-                <span>{card.name}</span>
+                <span className={card.isReversed ? 'text-red-300' : 'text-white'}>
+                  {card.name}
+                  {card.isReversed && <span className="text-red-400 ml-1">⤊</span>}
+                </span>
               </div>
 
               {/* Stats for units */}
               {card.type === 'unit' && (
                 <div className="flex justify-between items-center">
                   <div className="flex items-center gap-1 text-xs">
-                    <Sword className="w-3 h-3 text-red-400" />
-                    <span className="text-white font-bold">{card.attack}</span>
+                    <Sword className={`w-3 h-3 ${card.isReversed ? 'text-orange-400' : 'text-red-400'}`} />
+                    <span className={`font-bold ${card.isReversed ? 'text-orange-300' : 'text-white'}`}>
+                      {effectiveStats.attack}
+                    </span>
                   </div>
                   <div className="flex items-center gap-1 text-xs">
-                    <div className="w-3 h-3 rounded-full bg-red-500" />
-                    <span className="text-white font-bold">
-                      {isDamaged && card.currentHealth !== undefined ? card.currentHealth : card.health}
+                    <div className={`w-3 h-3 rounded-full ${card.isReversed ? 'bg-orange-500' : 'bg-red-500'}`} />
+                    <span className={`font-bold ${card.isReversed ? 'text-orange-300' : 'text-white'}`}>
+                      {isDamaged && card.currentHealth !== undefined ? card.currentHealth : effectiveStats.health}
                     </span>
                   </div>
                 </div>

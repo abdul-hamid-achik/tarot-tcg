@@ -9,7 +9,7 @@ interface GameLayoutProps {
 
 export default function GameLayout({ children, className = '' }: GameLayoutProps) {
   return (
-    <div className={`h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 p-2 overflow-hidden relative ${className}`}>
+    <div className={`h-screen bg-white dark:bg-gray-900 p-2 overflow-hidden relative transition-colors ${className}`}>
       {children}
     </div>
   )

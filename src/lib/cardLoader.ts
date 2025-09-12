@@ -1,12 +1,14 @@
 import { allCards } from 'contentlayer/generated'
-import type { Card } from '@/types/game'
+import type { Card } from '@/schemas/gameSchemas'
 import type { Card as ContentlayerCard } from 'contentlayer/generated'
+import { CardSchema } from '@/schemas/gameSchemas'
 
 /**
  * Convert a Contentlayer card to a game Card
  */
 export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card {
-  return {
+  // Clean and validate the data before creating the card
+  const rawCard = {
     id: contentCard.id,
     name: contentCard.name,
     cost: contentCard.cost,
@@ -20,16 +22,35 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
     zodiacClass: contentCard.zodiacClass,
     element: contentCard.element,
     rarity: contentCard.rarity,
-    keywords: contentCard.keywords || [],
-    abilities: contentCard.abilities || [],
+    keywords: Array.isArray(contentCard.keywords) ? contentCard.keywords : [],
+    abilities: Array.isArray(contentCard.abilities) ? contentCard.abilities : [],
     
-    // Spell-specific properties
-    spellType: contentCard.spellType,
-    effects: contentCard.effects || [],
+    // Spell-specific properties - only set if valid
+    spellType: contentCard.cardType === 'spell' && 
+               ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType) 
+               ? contentCard.spellType 
+               : undefined,
+    effects: Array.isArray(contentCard.effects) ? contentCard.effects : [],
     
     // Runtime state (initialized empty)
     statusEffects: [],
     counters: {},
+  }
+
+  // Use Zod to validate and clean the data
+  const result = CardSchema.safeParse(rawCard)
+  if (result.success) {
+    return result.data
+  } else {
+    console.warn(`Card validation failed for ${contentCard.id}:`, result.error.errors)
+    // Return a fallback valid card
+    return CardSchema.parse({
+      ...rawCard,
+      abilities: [],
+      keywords: [],
+      effects: [],
+      spellType: undefined
+    })
   }
 }
 
@@ -46,33 +67,6 @@ export function getAllCards(): Card[] {
 export function getCardsByZodiacClass(zodiacClass: string): Card[] {
   return allCards
     .filter(card => card.zodiacClass === zodiacClass)
-    .map(contentlayerCardToGameCard)
-}
-
-/**
- * Get cards by element
- */
-export function getCardsByElement(element: string): Card[] {
-  return allCards
-    .filter(card => card.element === element)
-    .map(contentlayerCardToGameCard)
-}
-
-/**
- * Get cards by rarity
- */
-export function getCardsByRarity(rarity: string): Card[] {
-  return allCards
-    .filter(card => card.rarity === rarity)
-    .map(contentlayerCardToGameCard)
-}
-
-/**
- * Get cards by type (unit or spell)
- */
-export function getCardsByType(type: 'unit' | 'spell'): Card[] {
-  return allCards
-    .filter(card => card.cardType === type)
     .map(contentlayerCardToGameCard)
 }
 

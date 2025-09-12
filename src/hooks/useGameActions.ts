@@ -1,7 +1,10 @@
 import { useCallback } from 'react'
 import { useGameStore } from '@/store/gameStore'
 import { gridManagerService } from '@/services/GridManagerService'
-import type { Card as GameCard } from '@/types/game'
+import { animationService } from '@/services/AnimationService'
+import { combatService } from '@/services/CombatService'
+import { aiService } from '@/services/AIService'
+import type { Card as GameCard } from '@/schemas/gameSchemas'
 import type { CellPosition } from '@/store/gameStore'
 
 export const useGameActions = () => {
@@ -51,11 +54,19 @@ export const useGameActions = () => {
             // Add to appropriate position
             if (targetPosition) {
                 // Place directly on grid (handled by GridManagerService)
-                gridManagerService.setCellContent(targetPosition, { ...card, currentHealth: card.health })
+                const cardInstance = { ...card, currentHealth: card.health }
+                gridManagerService.setCellContent(targetPosition, cardInstance)
             } else {
                 // Add to bench
                 if (player.bench.length < 6) {
-                    player.bench.push({ ...card, currentHealth: card.health, position: 'bench' })
+                    const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
+                    player.bench.push(cardInstance)
+
+                    // Register card abilities and trigger enter bench event
+                    newGameState.player1 = player
+                    const updatedState = combatService.registerCardAbilities(cardInstance, newGameState)
+                    setGameState(updatedState)
+                    return
                 }
             }
 
@@ -90,21 +101,38 @@ export const useGameActions = () => {
             // Place attackers in lanes
             const attackerArrangements = attackerIds.map((id, index) => ({ attackerId: id, laneId: index }))
 
+            // Animate attackers moving to attack positions
+            const animationPromises: Promise<void>[] = []
+
             attackerArrangements.forEach(({ attackerId, laneId }) => {
                 const unit = newGameState.player1.bench.find(u => u.id === attackerId)
                 if (unit && laneId < 6) {
                     newGameState.lanes[laneId].attacker = { ...unit, position: 'attacking' }
+
+                    // Get card element and animate to attack position
+                    const cardElement = document.querySelector(`[data-card-id="${attackerId}"]`) as HTMLElement
+                    if (cardElement) {
+                        const targetPosition: CellPosition = { row: 2, col: laneId as 0 | 1 | 2 | 3 | 4 | 5 }
+                        animationPromises.push(
+                            animationService.animateCardMove(cardElement, { row: 3, col: laneId as 0 | 1 | 2 | 3 | 4 | 5 }, targetPosition)
+                        )
+                    }
                 }
             })
 
-            newGameState.phase = 'combat' // Skip declare_defenders phase for simplified flow
-            newGameState.attackingPlayer = 'player1'
+            // Wait for attack animations to complete
+            if (animationPromises.length > 0) {
+                await Promise.all(animationPromises)
+            }
+
+            newGameState.phase = 'declare_defenders' // Now go to defend phase
+            newGameState.attackingPlayer = gameState?.activePlayer
+
+            // Switch active player to defender for defend phase
+            newGameState.activePlayer = gameState?.activePlayer === 'player1' ? 'player2' : 'player1'
 
             setGameState(newGameState)
             clearAttackers()
-
-            // Animate attackers moving to combat positions
-            // This would be handled by the calling component
 
         } catch (error) {
             console.error('Error declaring attack:', error)
@@ -113,58 +141,57 @@ export const useGameActions = () => {
         }
     }, [gameState, setGameState, setAnimationState, clearAttackers])
 
-    const endTurn = useCallback(async () => {
-        if (!gameState) return
+    const declareDefenders = useCallback(async (defenderAssignments: { defenderId: string; laneId: number }[]) => {
+        if (!gameState || gameState.phase !== 'declare_defenders') return
 
         try {
             setAnimationState(true)
 
             const newGameState = { ...gameState }
+            const defendingPlayer = gameState?.activePlayer
+            const attackingPlayer = newGameState.attackingPlayer!
 
-            // Store unspent mana as spell mana
-            const unspentMana = newGameState.player1.mana
-            newGameState.player1.spellMana = Math.min(3, newGameState.player1.spellMana + unspentMana)
+            // Animate defenders moving to defense positions
+            const animationPromises: Promise<void>[] = []
 
-            // Switch active player
-            const nextPlayer = gameState.activePlayer === 'player1' ? 'player2' : 'player1'
-            newGameState.activePlayer = nextPlayer
-            newGameState.turn++
+            defenderAssignments.forEach(({ defenderId, laneId }) => {
+                const unit = newGameState[defendingPlayer].bench.find(u => u.id === defenderId)
+                if (unit && laneId < 6 && newGameState.lanes[laneId].attacker) {
+                    newGameState.lanes[laneId].defender = { ...unit, position: 'defending' }
 
-            // Every 2 turns = new round
-            if (newGameState.turn % 2 === 1) {
-                newGameState.round++
+                    // Get card element and animate to defend position
+                    const cardElement = document.querySelector(`[data-card-id="${defenderId}"]`) as HTMLElement
+                    if (cardElement) {
+                        const targetPosition: CellPosition = {
+                            row: defendingPlayer === 'player1' ? 2 : 1,
+                            col: laneId as 0 | 1 | 2 | 3 | 4 | 5
+                        }
+                        const fromPosition: CellPosition = {
+                            row: defendingPlayer === 'player1' ? 3 : 0,
+                            col: laneId as 0 | 1 | 2 | 3 | 4 | 5
+                        }
+                        animationPromises.push(
+                            animationService.animateCardMove(cardElement, fromPosition, targetPosition)
+                        )
+                    }
+                }
+            })
 
-                // Switch attack token
-                newGameState.player1.hasAttackToken = !newGameState.player1.hasAttackToken
-                newGameState.player2.hasAttackToken = !newGameState.player2.hasAttackToken
+            // Wait for defense animations to complete
+            if (animationPromises.length > 0) {
+                await Promise.all(animationPromises)
             }
 
-            // Refill mana for next player
-            const currentPlayer = newGameState[nextPlayer]
-            currentPlayer.maxMana = Math.min(10, newGameState.round)
-            currentPlayer.mana = currentPlayer.maxMana
-
-            // Draw a card
-            if (currentPlayer.deck.length > 0) {
-                const drawnCard = currentPlayer.deck.shift()!
-                currentPlayer.hand.push(drawnCard)
-            }
-
-            newGameState.phase = 'action'
-            newGameState.combatResolved = false
-
+            newGameState.phase = 'combat'
             setGameState(newGameState)
-
-            // Clear interaction states
-            clearAttackers()
             clearDefenderAssignments()
 
         } catch (error) {
-            console.error('Error ending turn:', error)
+            console.error('Error declaring defenders:', error)
         } finally {
             setAnimationState(false)
         }
-    }, [gameState, setGameState, setAnimationState, clearAttackers, clearDefenderAssignments])
+    }, [gameState, setGameState, setAnimationState, clearDefenderAssignments])
 
     const resolveCombat = useCallback(async () => {
         if (!gameState || gameState.phase !== 'combat') return
@@ -172,58 +199,9 @@ export const useGameActions = () => {
         try {
             setAnimationState(true)
 
-            const newGameState = { ...gameState }
-            const attackingPlayer = newGameState.attackingPlayer!
-            const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1'
-
-            // Resolve combat lane by lane
-            newGameState.lanes.forEach((lane) => {
-                if (lane.attacker) {
-                    if (lane.defender) {
-                        // Unit vs Unit combat
-                        const attackerNewHealth = (lane.attacker.currentHealth || lane.attacker.health) - lane.defender.attack
-                        const defenderNewHealth = (lane.defender.currentHealth || lane.defender.health) - lane.attacker.attack
-
-                        // Remove dead units
-                        if (attackerNewHealth <= 0) {
-                            newGameState[attackingPlayer].bench = newGameState[attackingPlayer].bench.filter(
-                                u => u.id !== lane.attacker!.id
-                            )
-                        } else {
-                            const benchUnit = newGameState[attackingPlayer].bench.find(u => u.id === lane.attacker!.id)
-                            if (benchUnit) benchUnit.currentHealth = attackerNewHealth
-                        }
-
-                        if (defenderNewHealth <= 0) {
-                            newGameState[defendingPlayer].bench = newGameState[defendingPlayer].bench.filter(
-                                u => u.id !== lane.defender!.id
-                            )
-                        } else {
-                            const benchUnit = newGameState[defendingPlayer].bench.find(u => u.id === lane.defender!.id)
-                            if (benchUnit) benchUnit.currentHealth = defenderNewHealth
-                        }
-                    } else {
-                        // Direct nexus damage
-                        newGameState[defendingPlayer].health -= lane.attacker.attack
-                    }
-                }
-            })
-
-            // Clear lanes
-            newGameState.lanes = newGameState.lanes.map(lane => ({
-                ...lane,
-                attacker: null,
-                defender: null
-            }))
-
-            newGameState.combatResolved = true
-            newGameState.phase = 'action'
-            newGameState.attackingPlayer = null
-
+            // Use the dedicated CombatService for all combat resolution
+            const newGameState = await combatService.resolveCombatPhase(gameState)
             setGameState(newGameState)
-
-            // Animate combat resolution
-            // This would be handled by the calling component
 
         } catch (error) {
             console.error('Error resolving combat:', error)
@@ -259,9 +237,10 @@ export const useGameActions = () => {
                         ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
                 }
 
-                // Draw replacement cards
+                // Draw replacement cards with reversal chance
                 const cardsToDraw = cardsToShuffle.length
                 const newCards = player.deck.splice(0, cardsToDraw)
+                    .map(card => combatService.applyDrawReversalChance(card))
                 player.hand = [...keptCards, ...newCards]
             }
 
@@ -283,11 +262,189 @@ export const useGameActions = () => {
         }
     }, [gameState, setGameState, setAnimationState])
 
+    const reverseCard = useCallback(async (cardId: string) => {
+        if (!gameState) return
+
+        try {
+            setAnimationState(true)
+
+            // Use CombatService to handle reversal with all side effects
+            const newGameState = combatService.reverseCard(gameState, cardId)
+            setGameState(newGameState)
+
+        } catch (error) {
+            console.error('Error reversing card:', error)
+        } finally {
+            setAnimationState(false)
+        }
+    }, [gameState, setGameState, setAnimationState])
+
+    const executeAITurn = useCallback(async () => {
+        if (!gameState || gameState.activePlayer !== 'player2') return
+
+        try {
+            setAnimationState(true)
+            let currentState = { ...gameState }
+            const ai = currentState.player2
+            const personality = aiService.getCurrentPersonality()
+
+            // Phase 1: Play cards
+            const maxCardsToPlay = Math.min(3, ai.hand.length) // Play up to 3 cards per turn
+            let cardsPlayed = 0
+
+            for (let i = 0; i < maxCardsToPlay; i++) {
+                const { card, shouldPlay } = aiService.selectCardToPlay(currentState)
+                if (card && shouldPlay && ai.bench.length < 6) {
+                    // Simulate AI playing the card
+                    const totalMana = ai.mana + ai.spellMana
+                    if (card.cost <= totalMana) {
+                        // Calculate mana payment
+                        const manaToUse = Math.min(ai.mana, card.cost)
+                        const spellManaToUse = Math.max(0, card.cost - manaToUse)
+
+                        // Update AI state
+                        currentState.player2.mana -= manaToUse
+                        currentState.player2.spellMana -= spellManaToUse
+                        currentState.player2.hand = ai.hand.filter(c => c.id !== card.id)
+
+                        if (card.type === 'unit') {
+                            const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
+                            currentState.player2.bench.push(cardInstance)
+                            cardsPlayed++
+                        }
+                    }
+                }
+            }
+
+            if (cardsPlayed > 0) {
+                console.log(`AI played ${cardsPlayed} card(s)`)
+                setGameState(currentState)
+                await new Promise(resolve => setTimeout(resolve, 500)) // Small delay between actions
+            }
+
+            // Phase 2: Attack if has attack token
+            if (ai.hasAttackToken && ai.bench.length > 0) {
+                const attackerIds = aiService.selectAttackers(currentState)
+                
+                if (attackerIds.length > 0) {
+                    // Clear lanes first
+                    currentState.lanes = currentState.lanes.map(lane => ({
+                        ...lane,
+                        attacker: null,
+                        defender: null
+                    }))
+
+                    // Place attackers in lanes
+                    attackerIds.forEach((attackerId, index) => {
+                        if (index < 6) {
+                            const unit = currentState.player2.bench.find(u => u.id === attackerId)
+                            if (unit) {
+                                currentState.lanes[index].attacker = { ...unit, position: 'attacking' }
+                            }
+                        }
+                    })
+
+                    currentState.phase = 'declare_defenders'
+                    currentState.attackingPlayer = 'player2'
+                    currentState.activePlayer = 'player1' // Switch to player1 for defense
+                    
+                    console.log(`AI declared attack with ${attackerIds.length} unit(s)`)
+                    setGameState(currentState)
+                    return // Let player1 decide defenders
+                }
+            }
+
+            // Phase 3: End turn if nothing to do
+            console.log('AI ending turn')
+            await new Promise(resolve => setTimeout(resolve, 500))
+            // The turn will be ended by the calling component
+
+        } catch (error) {
+            console.error('Error executing AI turn:', error)
+        } finally {
+            setAnimationState(false)
+        }
+    }, [gameState, setGameState, setAnimationState])
+
+    const endTurn = useCallback(async () => {
+        if (!gameState) return
+
+        try {
+            setAnimationState(true)
+
+            const newGameState = { ...gameState }
+            const currentPlayer = gameState.activePlayer
+
+            // Store unspent mana as spell mana for current player
+            const unspentMana = newGameState[currentPlayer].mana
+            newGameState[currentPlayer].spellMana = Math.min(3, newGameState[currentPlayer].spellMana + unspentMana)
+
+            // Switch active player
+            const nextPlayer = currentPlayer === 'player1' ? 'player2' : 'player1'
+            newGameState.activePlayer = nextPlayer
+            newGameState.turn++
+
+            // Every 2 turns = new round
+            if (newGameState.turn % 2 === 1) {
+                newGameState.round++
+
+                // Switch attack token
+                newGameState.player1.hasAttackToken = !newGameState.player1.hasAttackToken
+                newGameState.player2.hasAttackToken = !newGameState.player2.hasAttackToken
+            }
+
+            // Refill mana for next player
+            const nextPlayerData = newGameState[nextPlayer]
+            nextPlayerData.maxMana = Math.min(10, newGameState.round)
+            nextPlayerData.mana = nextPlayerData.maxMana
+
+            // Draw a card with reversal chance
+            if (nextPlayerData.deck.length > 0) {
+                const drawnCard = nextPlayerData.deck.shift()!
+                // Apply reversal chance when drawing (fundamental tarot mechanic)
+                const processedCard = combatService.applyDrawReversalChance(drawnCard)
+                nextPlayerData.hand.push(processedCard)
+
+                if (processedCard.isReversed) {
+                    console.log(`${processedCard.name} was drawn reversed!`)
+                }
+            }
+
+            newGameState.phase = 'action'
+            newGameState.combatResolved = false
+
+            // Process end-of-turn effects and triggered abilities
+            let finalState = combatService.processEndOfTurnEffects(newGameState)
+
+            // Clear interaction states
+            clearAttackers()
+            clearDefenderAssignments()
+
+            // If switching to AI player, execute AI turn after a delay
+            if (nextPlayer === 'player2') {
+                setGameState(finalState)
+                setTimeout(() => {
+                    executeAITurn()
+                }, aiService.getCurrentPersonality().thinkingTime)
+            } else {
+                setGameState(finalState)
+            }
+
+        } catch (error) {
+            console.error('Error ending turn:', error)
+        } finally {
+            setAnimationState(false)
+        }
+    }, [gameState, setGameState, setAnimationState, clearAttackers, clearDefenderAssignments, executeAITurn])
+
     return {
         playCard,
         declareAttack,
+        declareDefenders,
         endTurn,
         resolveCombat,
-        completeMulligan
+        completeMulligan,
+        reverseCard,
+        executeAITurn
     }
 }

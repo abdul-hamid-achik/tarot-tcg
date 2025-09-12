@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { BookOpen, Swords, Shield, Package, Gift, Settings, Star, Moon, Sun, Sparkles } from "lucide-react"
+import { BookOpen, Swords, Shield, Package, Gift, Settings, Star, Moon, Sun, Sparkles, Scroll } from "lucide-react"
 
 interface MenuOption {
     id: string
@@ -27,6 +27,15 @@ const menuOptions: MenuOption[] = [
         color: "text-accent",
         available: true,
         route: "/tutorial",
+    },
+    {
+        id: "codex",
+        title: "Tarot Codex",
+        description: "Cards, lore & strategy",
+        icon: <Scroll className="w-8 h-8" />,
+        color: "text-primary",
+        available: true,
+        route: "/content",
     },
     {
         id: "pvp",
@@ -85,39 +94,39 @@ export function GameHUD() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-background via-background to-card relative overflow-hidden">
+        <div className="min-h-screen bg-white dark:bg-gray-900 relative overflow-hidden transition-colors">
             {/* Mystical Background Elements */}
-            <div className="absolute inset-0 opacity-20">
+            <div className="absolute inset-0 opacity-10">
                 <div className="absolute top-10 left-10 animate-pulse">
-                    <Star className="w-6 h-6 text-primary" />
+                    <Star className="w-6 h-6 text-gray-400" />
                 </div>
                 <div className="absolute top-32 right-20 animate-pulse delay-1000">
-                    <Moon className="w-8 h-8 text-accent" />
+                    <Moon className="w-8 h-8 text-gray-500" />
                 </div>
                 <div className="absolute bottom-20 left-32 animate-pulse delay-500">
-                    <Sun className="w-7 h-7 text-secondary" />
+                    <Sun className="w-7 h-7 text-gray-400" />
                 </div>
                 <div className="absolute bottom-40 right-10 animate-pulse delay-700">
-                    <Sparkles className="w-5 h-5 text-primary" />
+                    <Sparkles className="w-5 h-5 text-gray-500" />
                 </div>
                 <div className="absolute top-1/2 left-1/4 animate-pulse delay-300">
-                    <Star className="w-4 h-4 text-accent" />
+                    <Star className="w-4 h-4 text-gray-400" />
                 </div>
                 <div className="absolute top-1/3 right-1/3 animate-pulse delay-1200">
-                    <Moon className="w-5 h-5 text-secondary" />
+                    <Moon className="w-5 h-5 text-gray-500" />
                 </div>
             </div>
 
             {/* Header */}
             <header className="relative z-10 p-6 text-center">
-                <h1 className="text-4xl font-bold text-foreground mb-2 text-balance">Mystic Tarot Arena</h1>
-                <p className="text-muted-foreground text-lg">Unveil the secrets of the cards</p>
+                <h1 className="text-4xl font-bold text-black dark:text-white mb-2 text-balance transition-colors">Mystic Tarot Arena</h1>
+                <p className="text-gray-800 dark:text-gray-200 text-lg transition-colors">Unveil the secrets of the cards</p>
                 <div className="flex justify-center items-center gap-4 mt-4">
-                    <Badge variant="secondary" className="px-3 py-1">
+                    <Badge variant="secondary" className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-600 transition-colors">
                         <Sparkles className="w-4 h-4 mr-1" />
                         Level 12 Mystic
                     </Badge>
-                    <Badge variant="outline" className="px-3 py-1">
+                    <Badge variant="outline" className="px-3 py-1 border-gray-400 dark:border-gray-500 text-black dark:text-white transition-colors">
                         <Star className="w-4 h-4 mr-1" />
                         1,247 Essence
                     </Badge>
@@ -135,7 +144,7 @@ export function GameHUD() {
                 ${hoveredOption === option.id ? "scale-105 shadow-2xl" : "hover:scale-102"}
                 ${selectedOption === option.id ? "ring-2 ring-primary shadow-primary/25" : ""}
                 ${!option.available ? "opacity-50 cursor-not-allowed" : ""}
-                bg-card/80 backdrop-blur-sm border-border/50
+                bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 shadow-sm transition-colors
               `}
                             onMouseEnter={() => setHoveredOption(option.id)}
                             onMouseLeave={() => setHoveredOption(null)}
@@ -146,7 +155,7 @@ export function GameHUD() {
                                 <div
                                     className={`
                   mx-auto w-16 h-16 rounded-full flex items-center justify-center
-                  bg-gradient-to-br from-card to-muted
+                  bg-gradient-to-br from-gray-50 to-gray-100
                   ${hoveredOption === option.id ? "shadow-lg shadow-primary/25" : ""}
                   transition-all duration-300
                 `}
@@ -156,13 +165,13 @@ export function GameHUD() {
 
                                 {/* Title and Description */}
                                 <div className="space-y-2">
-                                    <h3 className="text-xl font-semibold text-foreground">{option.title}</h3>
-                                    <p className="text-sm text-muted-foreground text-pretty">{option.description}</p>
+                                    <h3 className="text-xl font-semibold text-black dark:text-white transition-colors">{option.title}</h3>
+                                    <p className="text-sm text-gray-800 dark:text-gray-200 text-pretty transition-colors">{option.description}</p>
                                 </div>
 
                                 {/* Availability indicator */}
                                 {!option.available && (
-                                    <Badge variant="outline" className="text-xs">
+                                    <Badge variant="outline" className="text-xs border-gray-400 dark:border-gray-500 text-gray-800 dark:text-gray-200 transition-colors">
                                         Coming Soon
                                     </Badge>
                                 )}
@@ -171,7 +180,7 @@ export function GameHUD() {
                                 <div
                                     className={`
                   absolute inset-0 rounded-lg border-2 border-transparent
-                  ${hoveredOption === option.id ? "border-primary/30" : ""}
+                  ${hoveredOption === option.id ? "border-gray-400" : ""}
                   transition-all duration-300 pointer-events-none
                 `}
                                 />
@@ -186,9 +195,8 @@ export function GameHUD() {
                 <div className="relative z-10 text-center pb-8">
                     <Button
                         size="lg"
-                        className="px-8 py-3 text-lg font-semibold bg-primary hover:bg-primary/90 shadow-lg shadow-primary/25"
-                        onClick={handleEnterAction}
-                    >
+                        className="px-8 py-3 text-lg font-semibold bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 shadow-lg transition-colors"
+                        onClick={handleEnterAction}>
                         <Sparkles className="w-5 h-5 mr-2" />
                         Enter {menuOptions.find((opt) => opt.id === selectedOption)?.title}
                     </Button>
@@ -196,7 +204,7 @@ export function GameHUD() {
             )}
 
             {/* Mystical footer */}
-            <footer className="relative z-10 text-center p-4 text-muted-foreground text-sm">
+            <footer className="relative z-10 text-center p-4 text-gray-800 dark:text-gray-200 text-sm transition-colors">
                 <p>The cards hold infinite wisdom • Choose your path wisely</p>
             </footer>
         </div>

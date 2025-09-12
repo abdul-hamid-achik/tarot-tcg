@@ -4,7 +4,8 @@ import React, { useRef } from 'react'
 import { useGameStore } from '@/store/gameStore'
 import { interactionService } from '@/services/InteractionService'
 import TarotCard from '@/components/TarotCard'
-import type { Card as GameCard } from '@/types/game'
+import type { Card as GameCard } from '@/schemas/gameSchemas'
+import { gridManagerService } from '@/services/GridManagerService'
 
 interface HandFanProps {
     cards: GameCard[]
@@ -24,7 +25,7 @@ export default function HandFan({
     className = ''
 }: HandFanProps) {
     const fanRef = useRef<HTMLDivElement>(null)
-    const { interaction, showCardDetail } = useGameStore()
+    const { interaction, showCardDetail, gameState } = useGameStore()
 
     // Position-specific styles
     const positionStyles = {
@@ -42,21 +43,26 @@ export default function HandFan({
 
     const positionConfig = positionStyles[position]
 
-    // Calculate fan positioning for each card
+    // Calculate fan positioning for each card - Improved for better UX
     const calculateCardPosition = (index: number, totalCards: number) => {
-        const maxAngle = totalCards > 1 ? Math.min(isCurrentPlayer ? 60 : 50, totalCards * 12) : 0
+        // Adaptive angle calculation based on card count for optimal readability
+        const maxAngle = totalCards > 1 ? Math.min(isCurrentPlayer ? 80 : 60, Math.max(40, totalCards * 8)) : 0
         const angleStep = totalCards > 1 ? maxAngle / Math.max(1, totalCards - 1) : 0
         const angle = totalCards > 1 ? (index - (totalCards - 1) / 2) * angleStep * positionConfig.fanDirection : 0
 
-        // More pronounced curve for current player, subtle for opponent
-        const curveIntensity = isCurrentPlayer ? 0.8 : 0.3
+        // Responsive curve intensity based on screen size and card count
+        const baseCurveIntensity = isCurrentPlayer ? 1.0 : 0.4
+        const cardCountAdjustment = Math.min(1.0, totalCards / 8) // Reduce curve for many cards
+        const curveIntensity = baseCurveIntensity * cardCountAdjustment
         const translateY = Math.abs(angle) * curveIntensity
 
-        // Z-index management - current player increases with index, enemy decreases
-        const zIndex = isCurrentPlayer ? index : totalCards - index
+        // Smart z-index for better card visibility
+        const zIndex = isCurrentPlayer ? index + 10 : totalCards - index + 10
 
-        // Overlap amount
-        const overlapAmount = isCurrentPlayer ? -12 : -8
+        // Dynamic overlap based on card count - less overlap with more cards
+        const baseOverlap = isCurrentPlayer ? -16 : -12
+        const overlapAdjustment = Math.min(0, Math.max(-8, (8 - totalCards) * 2))
+        const overlapAmount = baseOverlap + overlapAdjustment
 
         return {
             angle,
@@ -68,9 +74,27 @@ export default function HandFan({
 
     // Handle card interactions
     const handleCardClick = (card: GameCard) => {
-        if (isCurrentPlayer) {
-            onCardPlay?.(card)
+        if (!isCurrentPlayer) return
+        if (!gameState) return
+
+        // Only quick-play if it's our action phase and we can afford the card
+        const isOurTurn = gameState.activePlayer === 'player1'
+        const isAction = gameState.phase === 'action'
+        const totalMana = gameState.player1.mana + gameState.player1.spellMana
+        const canAfford = card.cost <= totalMana
+
+        if (isOurTurn && isAction && canAfford) {
+            const valid = gridManagerService.getValidDropZones(card, 'hand', gameState)
+            if (valid.length > 0) {
+                // Defer to GameBoard to pick a sensible target position
+                onCardPlay?.(card)
+                return
+            }
         }
+
+        // Otherwise open details/selection instead of attempting an invalid play
+        onCardDetail?.(card)
+        showCardDetail(card)
     }
 
     const handleCardRightClick = (card: GameCard, event: React.MouseEvent) => {
@@ -89,39 +113,67 @@ export default function HandFan({
     ) => {
         if (!isCurrentPlayer) return
 
+        event.preventDefault()
+        event.stopPropagation()
+
         // Convert React PointerEvent to native PointerEvent for InteractionService
         const nativeEvent = new PointerEvent('pointerdown', {
             clientX: event.clientX,
             clientY: event.clientY,
             pointerId: event.pointerId,
-            pointerType: event.pointerType as "mouse" | "pen" | "touch"
+            pointerType: event.pointerType as "mouse" | "pen" | "touch",
+            bubbles: true,
+            cancelable: true
         })
 
-        // Handle drag initiation through InteractionService
+        // Handle drag initiation through InteractionService (it will gate by phase/turn)
         interactionService.handlePointerDown(nativeEvent, card, 'hand', cardElement)
     }
 
-    // Handle card hover effects
+    // Handle card hover effects - Enhanced for better UX with drag awareness
     const handleCardMouseEnter = (cardElement: HTMLElement, cardPosition: { angle: number; translateY: number; zIndex: number }) => {
-        if (!isCurrentPlayer) return
+        if (!isCurrentPlayer || interactionService.isDragging()) return
 
         const { translateY } = cardPosition
 
-        // Animate to hover state
-        cardElement.style.transform = `rotate(0deg) translateY(-${translateY + 30}px) scale(1.15)`
-        cardElement.style.zIndex = '100'
-        cardElement.style.transition = 'transform 0.2s ease-out'
+        // Store original values for restoration
+        cardElement.dataset.originalTransform = cardElement.style.transform
+        cardElement.dataset.originalZIndex = cardElement.style.zIndex
+        cardElement.dataset.originalFilter = cardElement.style.filter
+        cardElement.dataset.originalBoxShadow = cardElement.style.boxShadow
+
+        // Enhanced hover state with better visibility and smooth animation
+        cardElement.style.transform = `rotate(0deg) translateY(-${translateY + 40}px) scale(1.2)`
+        cardElement.style.zIndex = '1000' // Ensure it's above everything
+        cardElement.style.transition = 'transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.15s ease-out, box-shadow 0.15s ease-out'
+        cardElement.style.filter = 'brightness(1.1) saturate(1.1) drop-shadow(0 4px 8px rgba(255,255,255,0.1))' // Subtle highlight
+        cardElement.style.boxShadow = '0 10px 25px rgba(0,0,0,0.5)' // Enhanced shadow
+        cardElement.style.cursor = 'grab'
     }
 
     const handleCardMouseLeave = (cardElement: HTMLElement, cardPosition: { angle: number; translateY: number; zIndex: number }) => {
-        if (!isCurrentPlayer) return
+        if (!isCurrentPlayer || interactionService.isDragging()) return
 
         const { angle, translateY } = cardPosition
 
-        // Return to original position
-        cardElement.style.transform = `rotate(${angle}deg) translateY(-${translateY}px) scale(1)`
-        cardElement.style.zIndex = String(cardPosition.zIndex)
-        cardElement.style.transition = 'transform 0.2s ease-out'
+        // Smooth return to original position using stored values
+        const originalTransform = cardElement.dataset.originalTransform || `rotate(${angle}deg) translateY(-${translateY}px) scale(1)`
+        const originalZIndex = cardElement.dataset.originalZIndex || String(cardPosition.zIndex)
+        const originalFilter = cardElement.dataset.originalFilter || 'none'
+        const originalBoxShadow = cardElement.dataset.originalBoxShadow || '0 4px 8px rgba(0,0,0,0.3)'
+
+        cardElement.style.transform = originalTransform
+        cardElement.style.zIndex = originalZIndex
+        cardElement.style.transition = 'transform 0.25s cubic-bezier(0.4, 0.0, 0.2, 1), filter 0.15s ease-out, box-shadow 0.15s ease-out'
+        cardElement.style.filter = originalFilter
+        cardElement.style.boxShadow = originalBoxShadow
+        cardElement.style.cursor = 'pointer'
+
+        // Clean up stored values
+        delete cardElement.dataset.originalTransform
+        delete cardElement.dataset.originalZIndex
+        delete cardElement.dataset.originalFilter
+        delete cardElement.dataset.originalBoxShadow
     }
 
     // Check if card is selected for mulligan
@@ -152,6 +204,19 @@ export default function HandFan({
                     const cardElement = e.currentTarget as HTMLElement
                     handleCardPointerDown(card, index, cardElement, e)
                 }}
+                onPointerMove={(e) => {
+                    // Prevent default to avoid triggering drag on other elements
+                    if (interactionService.isDragging()) {
+                        e.preventDefault()
+                    }
+                }}
+                onPointerUp={(e) => {
+                    // Clean up any hover states when pointer is released
+                    if (!interactionService.isDragging()) {
+                        const cardElement = e.currentTarget as HTMLElement
+                        handleCardMouseLeave(cardElement, cardPosition)
+                    }
+                }}
                 onMouseEnter={(e) => {
                     const cardElement = e.currentTarget as HTMLElement
                     handleCardMouseEnter(cardElement, cardPosition)
@@ -168,6 +233,7 @@ export default function HandFan({
                         size="small"
                         isSelected={isSelected}
                         draggable={false} // We handle drag through PointerEvents
+                        className={`transition-all duration-200 ${interaction.draggedCard?.id === card.id ? 'opacity-50' : ''}`}
                     />
                 ) : (
                     /* Enemy card back */
@@ -202,13 +268,6 @@ export default function HandFan({
             >
                 {cards.map((card, index) => renderCard(card, index))}
             </div>
-
-            {/* Hand count indicator for current player */}
-            {isCurrentPlayer && cards.length > 0 && (
-                <div className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 bg-slate-700/90 text-slate-300 text-xs px-2 py-1 rounded">
-                    {cards.length} cards
-                </div>
-            )}
 
             {/* Drag preview placeholder */}
             {interaction.draggedCard && isCurrentPlayer && (

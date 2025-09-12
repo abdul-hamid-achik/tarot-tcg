@@ -1,4 +1,4 @@
-import { GameState, Card, Player } from '@/types/game';
+import { GameState, Card, Player } from '@/schemas/gameSchemas';
 import { getAllCards, createRandomDeck, createZodiacDeck } from '@/lib/cardLoader';
 import { GameLogger } from '@/lib/gameLogger';
 
@@ -61,13 +61,15 @@ export function createInitialGameState(useZodiacDeck?: string): GameState {
   const player1Cards = player1Deck.map(card => ({
     ...card,
     id: `p1_${card.id}_${++cardCounter}`,
-    currentHealth: card.health
+    currentHealth: card.health,
+    isReversed: false // Initialize all cards as upright
   }));
 
   const player2Cards = player2Deck.map(card => ({
     ...card,
     id: `p2_${card.id}_${++cardCounter}`,
-    currentHealth: card.health
+    currentHealth: card.health,
+    isReversed: false // Initialize all cards as upright
   }));
 
   const player1: Player = {

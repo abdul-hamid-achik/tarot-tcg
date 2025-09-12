@@ -1,4 +1,5 @@
 import type { CellPosition, CellType } from '@/store/gameStore'
+import { CellPositionSchema } from '@/schemas/gameSchemas'
 
 export interface GridDimensions {
     cellWidth: number
@@ -49,7 +50,8 @@ export class GridMathService {
         // Validate bounds
         if (col < 0 || col > 5 || row < 0 || row > 3) return null
 
-        return { row: row as 0 | 1 | 2 | 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 }
+        const result = CellPositionSchema.safeParse({ row, col })
+        return result.success ? result.data : null
     }
 
     /**
@@ -85,18 +87,22 @@ export class GridMathService {
 
         // Horizontal adjacent
         if (position.col > 0) {
-            adjacent.push({ row: position.row, col: (position.col - 1) as 0 | 1 | 2 | 3 | 4 | 5 })
+            const leftCell = CellPositionSchema.safeParse({ row: position.row, col: position.col - 1 })
+            if (leftCell.success) adjacent.push(leftCell.data)
         }
         if (position.col < 5) {
-            adjacent.push({ row: position.row, col: (position.col + 1) as 0 | 1 | 2 | 3 | 4 | 5 })
+            const rightCell = CellPositionSchema.safeParse({ row: position.row, col: position.col + 1 })
+            if (rightCell.success) adjacent.push(rightCell.data)
         }
 
         // Vertical adjacent
         if (position.row > 0) {
-            adjacent.push({ row: (position.row - 1) as 0 | 1 | 2 | 3, col: position.col })
+            const upCell = CellPositionSchema.safeParse({ row: position.row - 1, col: position.col })
+            if (upCell.success) adjacent.push(upCell.data)
         }
         if (position.row < 3) {
-            adjacent.push({ row: (position.row + 1) as 0 | 1 | 2 | 3, col: position.col })
+            const downCell = CellPositionSchema.safeParse({ row: position.row + 1, col: position.col })
+            if (downCell.success) adjacent.push(downCell.data)
         }
 
         return adjacent
@@ -106,12 +112,12 @@ export class GridMathService {
      * Get cells in the same column (for column-based strategies)
      */
     getColumnCells(col: number): CellPosition[] {
-        return [
-            { row: 0, col: col as 0 | 1 | 2 | 3 | 4 | 5 },
-            { row: 1, col: col as 0 | 1 | 2 | 3 | 4 | 5 },
-            { row: 2, col: col as 0 | 1 | 2 | 3 | 4 | 5 },
-            { row: 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 }
-        ]
+        const cells: CellPosition[] = []
+        for (let row = 0; row < 4; row++) {
+            const cell = CellPositionSchema.safeParse({ row, col })
+            if (cell.success) cells.push(cell.data)
+        }
+        return cells
     }
 
     /**
@@ -122,7 +128,8 @@ export class GridMathService {
         const row = this.getCellTypeRow(type)
 
         for (let col = 0; col < 6; col++) {
-            cells.push({ row, col: col as 0 | 1 | 2 | 3 | 4 | 5 })
+            const cell = CellPositionSchema.safeParse({ row, col })
+            if (cell.success) cells.push(cell.data)
         }
 
         return cells
@@ -142,12 +149,14 @@ export class GridMathService {
         // Move row first, then column (could be customized)
         while (currentRow !== to.row) {
             currentRow += currentRow < to.row ? 1 : -1
-            path.push({ row: currentRow as 0 | 1 | 2 | 3, col: currentCol })
+            const cell = CellPositionSchema.safeParse({ row: currentRow, col: currentCol })
+            if (cell.success) path.push(cell.data)
         }
 
         while (currentCol !== to.col) {
             currentCol += currentCol < to.col ? 1 : -1
-            path.push({ row: currentRow, col: currentCol as 0 | 1 | 2 | 3 | 4 | 5 })
+            const cell = CellPositionSchema.safeParse({ row: currentRow, col: currentCol })
+            if (cell.success) path.push(cell.data)
         }
 
         return path
@@ -214,7 +223,8 @@ export class GridMathService {
 
         for (let row = topLeft.row; row <= bottomRight.row; row++) {
             for (let col = topLeft.col; col <= bottomRight.col; col++) {
-                positions.push({ row: row as 0 | 1 | 2 | 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 })
+                const cell = CellPositionSchema.safeParse({ row, col })
+                if (cell.success) positions.push(cell.data)
             }
         }
 

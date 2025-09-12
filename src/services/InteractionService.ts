@@ -1,7 +1,10 @@
+"use client"
+
 import type { CellPosition } from '@/store/gameStore'
-import type { Card as GameCard } from '@/types/game'
+import type { Card as GameCard } from '@/schemas/gameSchemas'
 import { gridMathService } from './GridMathService'
 import { animationService } from './AnimationService'
+import { CellPositionSchema } from '@/schemas/gameSchemas'
 
 export type InteractionMode = 'click' | 'drag' | 'hybrid'
 
@@ -28,6 +31,12 @@ export interface InteractionCallbacks {
   onClearHighlights?: () => void
   onShowTooltip?: (message: string, position: { x: number; y: number }) => void
   onHideTooltip?: () => void
+  /** Provide dynamic, rules-validated drop zones given current game state */
+  getValidDropZones?: (card: GameCard, from: CellPosition | 'hand') => CellPosition[]
+  /** Optional guard to control whether a drag can begin */
+  canDragCard?: (card: GameCard, from: CellPosition | 'hand') => boolean
+  /** Optional validator for whether a target position is allowed */
+  canDropOn?: (to: CellPosition, card: GameCard, from: CellPosition | 'hand') => boolean
 }
 
 class InteractionService {
@@ -64,7 +73,8 @@ class InteractionService {
     element: HTMLElement
   ): void {
     event.preventDefault()
-    
+    event.stopPropagation()
+
     const clientX = event.clientX
     const clientY = event.clientY
 
@@ -72,6 +82,15 @@ class InteractionService {
       this.handleClickInteraction(card, position)
       return
     }
+
+    // External gating (e.g., phase/turn checks)
+    if (this.callbacks.canDragCard && !this.callbacks.canDragCard(card, position)) {
+      this.callbacks.onShowTooltip?.('Cannot drag right now', { x: clientX, y: clientY })
+      return
+    }
+
+    // Capture pointer to prevent interference with other elements
+    element.setPointerCapture(event.pointerId)
 
     // For drag and hybrid modes, start tracking for potential drag
     this.dragState = {
@@ -83,6 +102,9 @@ class InteractionService {
       sourcePosition: position
     }
 
+    // Store original element styles for restoration
+    this.storeOriginalStyles(element)
+
     // Set up long press for touch devices
     if (event.pointerType === 'touch') {
       this.longPressTimeout = window.setTimeout(() => {
@@ -91,7 +113,7 @@ class InteractionService {
     }
 
     // Add global listeners for drag tracking
-    document.addEventListener('pointermove', this.handlePointerMove)
+    document.addEventListener('pointermove', this.handlePointerMove, { passive: false })
     document.addEventListener('pointerup', this.handlePointerUp)
     document.addEventListener('pointercancel', this.handlePointerCancel)
   }
@@ -104,7 +126,7 @@ class InteractionService {
 
     const clientX = event.clientX
     const clientY = event.clientY
-    
+
     this.dragState.currentPosition = { x: clientX, y: clientY }
 
     // Clear long press timeout on movement
@@ -167,8 +189,8 @@ class InteractionService {
         this.dragState.draggedCard,
         this.dragState.sourcePosition!
       )
-      
-      const isValid = validPositions.some(pos => 
+
+      const isValid = validPositions.some(pos =>
         pos.row === position.row && pos.col === position.col
       )
 
@@ -192,22 +214,26 @@ class InteractionService {
     switch (key) {
       case 'ArrowUp':
         if (currentPosition.row > 0) {
-          newPosition = { ...currentPosition, row: (currentPosition.row - 1) as 0 | 1 | 2 | 3 }
+          const parsed = CellPositionSchema.safeParse({ ...currentPosition, row: currentPosition.row - 1 })
+          if (parsed.success) newPosition = parsed.data
         }
         break
       case 'ArrowDown':
         if (currentPosition.row < 3) {
-          newPosition = { ...currentPosition, row: (currentPosition.row + 1) as 0 | 1 | 2 | 3 }
+          const parsed = CellPositionSchema.safeParse({ ...currentPosition, row: currentPosition.row + 1 })
+          if (parsed.success) newPosition = parsed.data
         }
         break
       case 'ArrowLeft':
         if (currentPosition.col > 0) {
-          newPosition = { ...currentPosition, col: (currentPosition.col - 1) as 0 | 1 | 2 | 3 | 4 | 5 }
+          const parsed = CellPositionSchema.safeParse({ ...currentPosition, col: currentPosition.col - 1 })
+          if (parsed.success) newPosition = parsed.data
         }
         break
       case 'ArrowRight':
         if (currentPosition.col < 5) {
-          newPosition = { ...currentPosition, col: (currentPosition.col + 1) as 0 | 1 | 2 | 3 | 4 | 5 }
+          const parsed = CellPositionSchema.safeParse({ ...currentPosition, col: currentPosition.col + 1 })
+          if (parsed.success) newPosition = parsed.data
         }
         break
       case 'Enter':
@@ -273,10 +299,17 @@ class InteractionService {
 
     this.dragState.isDragging = true
 
-    // Style the dragged element
-    this.dragState.dragElement.style.zIndex = '1000'
-    this.dragState.dragElement.style.pointerEvents = 'none'
-    this.dragState.dragElement.style.transform += ' scale(1.05)'
+    // Style the dragged element with proper transitions
+    const element = this.dragState.dragElement
+    element.style.zIndex = '1000'
+    element.style.pointerEvents = 'none'
+    element.style.transition = 'transform 0.15s ease-out, filter 0.15s ease-out'
+    element.style.transform = 'scale(1.1) rotate(3deg)'
+    element.style.filter = 'brightness(1.1) drop-shadow(0 8px 16px rgba(0,0,0,0.3))'
+    element.style.cursor = 'grabbing'
+
+    // Create drag preview if needed
+    this.createDragPreview()
 
     // Show valid drop zones
     const validPositions = this.getValidDropPositions(
@@ -287,7 +320,11 @@ class InteractionService {
     this.callbacks.onCellHighlight?.(validPositions, 'valid')
 
     // Start animation feedback
-    animationService.animateCellHighlight(this.dragState.dragElement, 'selected')
+    animationService.animateCellHighlight(element, 'selected')
+
+    // Add body class to prevent text selection during drag
+    document.body.classList.add('dragging-card')
+    document.body.style.userSelect = 'none'
   }
 
   /**
@@ -299,15 +336,16 @@ class InteractionService {
     const dx = x - this.dragState.dragStartPosition.x
     const dy = y - this.dragState.dragStartPosition.y
 
-    this.dragState.dragElement.style.transform = 
-      this.dragState.dragElement.style.transform.replace(/translate\([^)]*\)/, '') +
-      ` translate(${dx}px, ${dy}px)`
+    // Calculate tilt effect based on drag velocity for more natural feel
+    const tiltX = Math.max(-5, Math.min(5, dx * 0.02))
+    const tiltY = Math.max(-5, Math.min(5, dy * 0.02))
 
-    // Update hover feedback
-    const gridPosition = gridMathService.screenToGridCoordinates(x, y)
-    if (gridPosition) {
-      this.handleCellHover(gridPosition)
-    }
+    // Apply smooth transform with tilt effect
+    this.dragState.dragElement.style.transform = 
+      `translate(${dx}px, ${dy}px) scale(1.1) rotateX(${tiltY}deg) rotateY(${tiltX}deg)`
+
+    // Update hover feedback with debouncing for performance
+    this.throttledUpdateHover(x, y)
   }
 
   /**
@@ -316,45 +354,47 @@ class InteractionService {
   private completeDrag(x: number, y: number): void {
     if (!this.dragState.draggedCard || !this.dragState.sourcePosition) return
 
+    // Capture card and position before cleanup to avoid race conditions
+    const draggedCard = this.dragState.draggedCard
+    const sourcePosition = this.dragState.sourcePosition
     const targetPosition = gridMathService.screenToGridCoordinates(x, y)
-    
+
     if (targetPosition) {
       const validPositions = this.getValidDropPositions(
-        this.dragState.draggedCard,
-        this.dragState.sourcePosition
+        draggedCard,
+        sourcePosition
       )
 
-      const isValidDrop = validPositions.some(pos =>
+      let isValidDrop = validPositions.some(pos =>
         pos.row === targetPosition.row && pos.col === targetPosition.col
       )
 
-      if (isValidDrop) {
-        // Execute the move
-        this.callbacks.onCardMove?.(
-          this.dragState.draggedCard,
-          this.dragState.sourcePosition,
-          targetPosition
-        )
+      if (isValidDrop && this.callbacks.canDropOn) {
+        isValidDrop = this.callbacks.canDropOn(targetPosition, draggedCard, sourcePosition)
+      }
 
-        // Animate card to final position
-        if (this.dragState.dragElement) {
-          const targetCoords = gridMathService.gridToScreenCoordinates(targetPosition)
-          animationService.animateCardMove(
-            this.dragState.dragElement,
-            { x, y },
-            targetCoords
+      if (isValidDrop) {
+        // Valid drop - execute the move with success animation
+        this.animateSuccessfulDrop(targetPosition, () => {
+          this.callbacks.onCardMove?.(
+            draggedCard,
+            sourcePosition,
+            targetPosition
           )
-        }
+        })
       } else {
-        // Invalid drop - animate back to source
-        this.animateCardBack()
+        // Invalid drop - show rejection feedback
+        this.animateInvalidDrop()
       }
     } else {
-      // Dropped outside grid - animate back
+      // Dropped outside grid - animate back with bounce
       this.animateCardBack()
     }
 
+    // Clean up highlights and reset drag state
     this.callbacks.onClearHighlights?.()
+    this.cleanupDragState()
+    this.dragState = this.createEmptyDragState()
   }
 
   /**
@@ -388,31 +428,19 @@ class InteractionService {
     card: GameCard,
     from: CellPosition | 'hand'
   ): CellPosition[] {
-    // This would integrate with the GridManagerService in the real implementation
-    // For now, return sample valid positions based on basic rules
-    const validPositions: CellPosition[] = []
-
-    if (from === 'hand') {
-      // Can play to player bench (row 3) or attack positions (row 2)
-      for (let col = 0; col < 6; col++) {
-        validPositions.push({ row: 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 }) // Bench
-        validPositions.push({ row: 2, col: col as 0 | 1 | 2 | 3 | 4 | 5 }) // Attack
-      }
-    } else {
-      // Moving within grid - can move between player-controlled positions
-      if (from.row === 3) {
-        // From bench, can move to attack positions
-        for (let col = 0; col < 6; col++) {
-          validPositions.push({ row: 2, col: col as 0 | 1 | 2 | 3 | 4 | 5 })
-        }
-      } else if (from.row === 2) {
-        // From attack, can move back to bench
-        for (let col = 0; col < 6; col++) {
-          validPositions.push({ row: 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 })
-        }
-      }
+    // Delegate to host if available
+    if (this.callbacks.getValidDropZones) {
+      return this.callbacks.getValidDropZones(card, from)
     }
 
+    // Fallback: allow only bench from hand
+    const validPositions: CellPosition[] = []
+    if (from === 'hand') {
+      for (let col = 0; col < 6; col++) {
+        const benchPos = CellPositionSchema.safeParse({ row: 3, col })
+        if (benchPos.success) validPositions.push(benchPos.data)
+      }
+    }
     return validPositions
   }
 
@@ -420,25 +448,73 @@ class InteractionService {
    * Animate card back to original position
    */
   private animateCardBack(): void {
-    if (this.dragState.dragElement && this.dragState.sourcePosition && this.dragState.sourcePosition !== 'hand') {
-      const sourceCoords = gridMathService.gridToScreenCoordinates(this.dragState.sourcePosition)
-      animationService.animateCardMove(
-        this.dragState.dragElement,
-        this.dragState.currentPosition || { x: 0, y: 0 },
-        sourceCoords
-      )
-    }
+    if (!this.dragState.dragElement) return
 
-    // Reset drag element styles
-    if (this.dragState.dragElement) {
-      setTimeout(() => {
-        if (this.dragState.dragElement) {
-          this.dragState.dragElement.style.transform = ''
-          this.dragState.dragElement.style.zIndex = ''
-          this.dragState.dragElement.style.pointerEvents = ''
-        }
-      }, 300) // Wait for animation
+    const element = this.dragState.dragElement
+    
+    // Animate back with bounce effect
+    element.style.transition = 'transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), filter 0.3s ease-out'
+    element.style.transform = this.originalStyles?.transform || ''
+    element.style.filter = 'none'
+
+    // Reset other styles after animation
+    setTimeout(() => {
+      this.restoreOriginalStyles()
+    }, 400)
+  }
+
+  /**
+   * Animate successful drop
+   */
+  private animateSuccessfulDrop(targetPosition: CellPosition, onComplete: () => void): void {
+    if (!this.dragState.dragElement) return
+
+    const element = this.dragState.dragElement
+    const targetCoords = gridMathService.gridToScreenCoordinates(targetPosition)
+    
+    // Calculate relative position to target
+    const rect = element.getBoundingClientRect()
+    const dx = targetCoords.x - rect.left
+    const dy = targetCoords.y - rect.top
+
+    // Animate to target with satisfying ease
+    element.style.transition = 'transform 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94)'
+    element.style.transform = `translate(${dx}px, ${dy}px) scale(1)`
+    
+    setTimeout(() => {
+      onComplete()
+      this.restoreOriginalStyles()
+    }, 300)
+  }
+
+  /**
+   * Animate invalid drop with shake effect
+   */
+  private animateInvalidDrop(): void {
+    if (!this.dragState.dragElement) return
+
+    const element = this.dragState.dragElement
+    
+    // Shake animation for invalid drop
+    element.style.transition = 'transform 0.1s ease-in-out'
+    element.style.filter = 'brightness(1.2) hue-rotate(340deg)' // Red tint
+    
+    // Shake sequence
+    const shakeSequence = ['translateX(-10px)', 'translateX(10px)', 'translateX(-5px)', 'translateX(5px)', 'translateX(0px)']
+    let shakeIndex = 0
+    
+    const doShake = () => {
+      if (shakeIndex < shakeSequence.length) {
+        element.style.transform = shakeSequence[shakeIndex] + ' scale(1.1)'
+        shakeIndex++
+        setTimeout(doShake, 50)
+      } else {
+        // Return to original position
+        this.animateCardBack()
+      }
     }
+    
+    doShake()
   }
 
   /**
@@ -496,6 +572,82 @@ class InteractionService {
       selectedPosition: null,
       targetMode: 'none'
     }
+  }
+
+  // Additional helper methods for improved drag and drop
+  private originalStyles: Record<string, string> = {}
+  private throttledUpdateHover: (x: number, y: number) => void = this.throttle((x: number, y: number) => {
+    const gridPosition = gridMathService.screenToGridCoordinates(x, y)
+    if (gridPosition) {
+      this.handleCellHover(gridPosition)
+    }
+  }, 16) // ~60fps
+
+  /**
+   * Store original element styles for restoration
+   */
+  private storeOriginalStyles(element: HTMLElement): void {
+    this.originalStyles = {
+      transform: element.style.transform,
+      zIndex: element.style.zIndex,
+      pointerEvents: element.style.pointerEvents,
+      transition: element.style.transition,
+      filter: element.style.filter,
+      cursor: element.style.cursor
+    }
+  }
+
+  /**
+   * Restore original element styles
+   */
+  private restoreOriginalStyles(): void {
+    if (this.dragState.dragElement && this.originalStyles) {
+      const element = this.dragState.dragElement
+      Object.assign(element.style, this.originalStyles)
+    }
+    this.originalStyles = {}
+  }
+
+  /**
+   * Clean up drag state and global effects
+   */
+  private cleanupDragState(): void {
+    document.body.classList.remove('dragging-card')
+    document.body.style.userSelect = ''
+    this.removeDragPreview()
+  }
+
+  /**
+   * Create visual drag preview
+   */
+  private createDragPreview(): void {
+    // Implementation for creating a ghost image during drag
+    // This would create a semi-transparent copy following the cursor
+  }
+
+  /**
+   * Remove drag preview
+   */
+  private removeDragPreview(): void {
+    // Clean up any drag preview elements
+    const preview = document.querySelector('.drag-preview')
+    if (preview) {
+      preview.remove()
+    }
+  }
+
+  /**
+   * Throttle function for performance
+   */
+  private throttle<T extends (...args: unknown[]) => unknown>(func: T, limit: number): T {
+    let inThrottle: boolean
+    return ((...args: unknown[]) => {
+      if (!inThrottle) {
+        func.apply(this, args)
+        inThrottle = true
+        setTimeout(() => inThrottle = false, limit)
+      }
+    }) as T
   }
 }
 

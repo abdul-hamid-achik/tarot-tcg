@@ -42,13 +42,10 @@ export default function GameOutcomeScreen({
     ? "The mystical forces bow to your mastery!" 
     : "The cosmos has claimed another soul..."
 
-  const bgGradient = isVictory 
-    ? "from-amber-900/95 via-yellow-900/95 to-amber-900/95"
-    : "from-red-900/95 via-black/95 to-purple-900/95"
-
-  const borderColor = isVictory ? "border-amber-500/50" : "border-red-500/50"
-  const textColor = isVictory ? "text-amber-100" : "text-red-100"
-  const accentColor = isVictory ? "text-amber-400" : "text-red-400"
+  const bgGradient = "bg-white"
+  const borderColor = "border-gray-400"
+  const textColor = "text-black"
+  const accentColor = isVictory ? "text-gray-800" : "text-gray-700"
 
   const MainIcon = isVictory ? Trophy : Skull
 
@@ -59,7 +56,7 @@ export default function GameOutcomeScreen({
         {Array.from({ length: 20 }).map((_, i) => (
           <div
             key={i}
-            className={`absolute animate-float ${isVictory ? 'text-amber-400' : 'text-red-400'}`}
+            className={`absolute animate-float text-gray-600`}
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -79,7 +76,7 @@ export default function GameOutcomeScreen({
       {/* Main outcome card */}
       <Card 
         className={`
-          max-w-md w-full mx-auto bg-gradient-to-br ${bgGradient} 
+          max-w-md w-full mx-auto ${bgGradient} 
           border-2 ${borderColor} shadow-2xl
           animate-in zoom-in-50 duration-700 ease-out
         `}
@@ -88,9 +85,8 @@ export default function GameOutcomeScreen({
           {/* Main Icon with glow effect */}
           <div className={`
             mx-auto w-20 h-20 rounded-full flex items-center justify-center
-            bg-gradient-to-br from-black/20 to-transparent
-            shadow-2xl animate-pulse
-            ${isVictory ? 'shadow-amber-500/50' : 'shadow-red-500/50'}
+            bg-gray-100 border-2 border-gray-300
+            shadow-lg animate-pulse
           `}>
             <MainIcon className={`w-12 h-12 ${accentColor} animate-bounce`} />
           </div>
@@ -115,24 +111,24 @@ export default function GameOutcomeScreen({
 
           {/* Game stats */}
           <div className={`
-            space-y-3 p-4 rounded-lg bg-black/30 border border-white/10
+            space-y-3 p-4 rounded-lg bg-gray-100 border border-gray-300
             animate-in slide-in-from-bottom-4 duration-1000 delay-700
           `}>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-300">Final Health:</span>
+              <span className="text-sm text-gray-700">Final Health:</span>
               <div className="flex gap-4">
-                <Badge variant={isVictory ? "default" : "destructive"} className="text-xs">
+                <Badge className={`text-xs ${isVictory ? 'bg-gray-800 text-white' : 'bg-gray-600 text-white'}`}>
                   You: {playerHealth}
                 </Badge>
-                <Badge variant={isVictory ? "destructive" : "default"} className="text-xs">
+                <Badge className={`text-xs ${isVictory ? 'bg-gray-600 text-white' : 'bg-gray-800 text-white'}`}>
                   AI: {opponentHealth}
                 </Badge>
               </div>
             </div>
             
             <div className="flex justify-between items-center">
-              <span className="text-sm text-slate-300">Game Length:</span>
-              <div className="flex items-center gap-1 text-xs text-slate-200">
+              <span className="text-sm text-gray-700">Game Length:</span>
+              <div className="flex items-center gap-1 text-xs text-gray-600">
                 <Zap className="w-3 h-3" />
                 Round {round} • Turn {turn}
               </div>
@@ -142,10 +138,10 @@ export default function GameOutcomeScreen({
           {/* Victory rewards (only show on win) */}
           {isVictory && (
             <div className={`
-              p-3 rounded-lg bg-amber-900/30 border border-amber-500/30
+              p-3 rounded-lg bg-gray-50 border border-gray-300
               animate-in slide-in-from-bottom-4 duration-1000 delay-900
             `}>
-              <div className="flex items-center justify-center gap-2 text-amber-300 text-sm">
+              <div className="flex items-center justify-center gap-2 text-gray-800 text-sm">
                 <Crown className="w-4 h-4" />
                 <span>+50 Essence • +1 Victory</span>
                 <Crown className="w-4 h-4" />
@@ -162,10 +158,7 @@ export default function GameOutcomeScreen({
               onClick={onPlayAgain}
               className={`
                 flex-1 gap-2 font-semibold
-                ${isVictory 
-                  ? 'bg-amber-700 hover:bg-amber-600 text-amber-100' 
-                  : 'bg-red-700 hover:bg-red-600 text-red-100'
-                }
+                bg-black hover:bg-gray-900 text-white
                 transition-all duration-300 hover:scale-105
               `}
             >
@@ -178,8 +171,8 @@ export default function GameOutcomeScreen({
               variant="outline"
               className={`
                 flex-1 gap-2 font-semibold
-                border-slate-600 text-slate-200 hover:text-slate-100
-                hover:bg-slate-800 hover:border-slate-500
+                border-gray-400 text-gray-700 hover:text-black
+                hover:bg-gray-100 hover:border-gray-600
                 transition-all duration-300 hover:scale-105
               `}
             >

@@ -1,6 +1,6 @@
 'use client';
 
-import { Card } from '@/types/game';
+import { Card } from '@/schemas/gameSchemas';
 import { Card as CardUI, CardContent, CardHeader } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 

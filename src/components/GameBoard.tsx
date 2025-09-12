@@ -1,10 +1,10 @@
 "use client"
 
-import React, { useEffect } from 'react'
+import React from 'react'
 import { useGameStore } from '@/store/gameStore'
 import { useGameActions } from '@/hooks/useGameActions'
-import { gridManagerService } from '@/services/GridManagerService'
-import { interactionService } from '@/services/InteractionService'
+import { useGameEffects } from '@/hooks/useGameEffects'
+import { useGameClock } from '@/hooks/useGameClock'
 
 // Layout Components
 import GameLayout from '@/components/layout/GameLayout'
@@ -23,7 +23,14 @@ import CardDetailOverlay from '@/components/CardDetailOverlay'
 import MulliganOverlay from '@/components/MulliganOverlay'
 
 // Types
-import type { GameState, Card as GameCard } from '@/types/game'
+import type { GameState, Card as GameCard } from '@/schemas/gameSchemas'
+import {
+    isDefendersPhase,
+    isMulliganPhase,
+    getPlayerHand,
+    getPlayer,
+    isMulliganComplete
+} from '@/schemas/gameSchemas'
 
 interface GameBoardProps {
     gameState: GameState
@@ -34,7 +41,7 @@ interface GameBoardProps {
 }
 
 export default function GameBoard({
-    gameState,
+    gameState: initialGameState,
     onCardPlay,
     onAttack,
     onEndTurn,
@@ -44,74 +51,47 @@ export default function GameBoard({
         ui,
         interaction,
         hideCardDetail,
-        setGameState,
-        highlightCells,
-        clearHighlights
+        setGameState
     } = useGameStore()
 
     const {
         playCard,
         declareAttack,
-        endTurn: handleEndTurn,
-        resolveCombat,
-        completeMulligan
+        declareDefenders,
+        endTurn,
+        completeMulligan,
+        reverseCard
     } = useGameActions()
 
-    // Initialize game state and services
-    useEffect(() => {
-        if (gameState) {
-            setGameState(gameState)
-            gridManagerService.initializeFromGameState(gameState)
+    // Use centralized game effects
+    const { gameState } = useGameEffects()
+
+    // Use game clock for timing
+    const { 
+        timeRemaining, 
+        isWarning, 
+        getTurnTime, 
+        getMatchTime,
+        isTimerExpired 
+    } = useGameClock({
+        turnTimeLimit: 90,
+        warningTime: 15,
+        autoEndTurn: true
+    })
+
+    // Initialize game state
+    React.useEffect(() => {
+        if (initialGameState) {
+            setGameState(initialGameState)
         }
-    }, [gameState, setGameState])
+    }, [initialGameState, setGameState])
 
-    // Setup interaction service callbacks
-    useEffect(() => {
-        interactionService.setCallbacks({
-            onCardSelect: (card, position) => {
-                console.log('Card selected:', card.name, 'at', position)
-            },
-
-            onCardMove: async (card, from, to) => {
-                console.log('Moving card:', card.name, 'from', from, 'to', to)
-
-                // Handle different move types
-                if (from === 'hand') {
-                    await playCard(card, to)
-                    onCardPlay?.(card)
-                } else {
-                    // Grid to grid movement
-                    gridManagerService.executeMove({
-                        card,
-                        from,
-                        to,
-                        cost: 0
-                    })
-                }
-            },
-
-            onCardAttack: (card, from, to) => {
-                console.log('Card attacking:', card.name, 'from', from, 'to', to)
-            },
-
-            onCellHighlight: (positions) => {
-                highlightCells(positions)
-            },
-
-            onClearHighlights: () => {
-                clearHighlights()
-            },
-
-            onShowTooltip: (message, position) => {
-                // Could implement tooltip system here
-                console.log('Tooltip:', message, 'at', position)
-            },
-
-            onHideTooltip: () => {
-                // Hide tooltip
-            }
-        })
-    }, [playCard, highlightCells, clearHighlights, onCardPlay])
+    // Auto-end turn when timer expires
+    React.useEffect(() => {
+        if (isTimerExpired && gameState?.activePlayer === 'player1') {
+            endTurn()
+        }
+    }, [isTimerExpired, gameState?.activePlayer, endTurn])
 
     // Handle action bar events
     const handleAttack = async () => {
@@ -120,9 +100,20 @@ export default function GameBoard({
         onAttack?.(attackerIds)
     }
 
+    const handleDefend = async () => {
+        const defenderAssignments = Array.from(interaction.defenderAssignments.entries()).map(
+            ([laneId, defenderId]) => ({ defenderId, laneId })
+        )
+        await declareDefenders(defenderAssignments)
+    }
+
     const handlePass = async () => {
-        await handleEndTurn()
-        onEndTurn?.()
+        if (isDefendersPhase(gameState)) {
+            await declareDefenders([])
+        } else {
+            await endTurn()
+            onEndTurn?.()
+        }
     }
 
     const handleCardPlay = async (card: GameCard) => {
@@ -130,89 +121,98 @@ export default function GameBoard({
         onCardPlay?.(card)
     }
 
-    const handleCardDetail = () => {
-        // Card detail is handled by the store
-    }
-
     const handleMulligan = async (selectedCards: string[]) => {
         await completeMulligan(selectedCards)
         onMulligan?.(selectedCards)
     }
 
-    // Auto-resolve combat when phase changes to combat
-    useEffect(() => {
-        if (gameState.phase === 'combat' && !gameState.combatResolved) {
-            setTimeout(() => {
-                resolveCombat()
-            }, 1000) // Give time for combat animations
-        }
-    }, [gameState.phase, gameState.combatResolved, resolveCombat])
-
     // Calculate derived values
-    const totalPlayerMana = gameState.player1.mana + gameState.player1.spellMana
-    const isPlayerTurn = gameState.activePlayer === 'player1'
+    const totalPlayerMana = (gameState?.player1?.mana || 0) + (gameState?.player1?.spellMana || 0)
+    const isPlayerTurn = gameState?.activePlayer === 'player1'
 
     return (
         <GameLayout>
             {/* Background Effects */}
             <BackgroundEffects />
 
-            {/* Player Info Panels */}
-            <PlayerInfoPanel
-                player={gameState.player2}
-                isCurrentPlayer={false}
-                position="top-left"
-            />
+            {/* Timer Display */}
+            <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
+                <div className="bg-black/80 text-white px-3 py-1 rounded-lg text-sm">
+                    Match: {getMatchTime()}
+                </div>
+                {isPlayerTurn && gameState?.phase === 'action' && (
+                    <div className={`px-3 py-1 rounded-lg text-sm ${
+                        isWarning 
+                            ? 'bg-red-600 text-white animate-pulse' 
+                            : 'bg-black/80 text-white'
+                    }`}>
+                        Turn: {getTurnTime()}
+                    </div>
+                )}
+            </div>
 
-            <PlayerInfoPanel
-                player={gameState.player1}
-                isCurrentPlayer={true}
-                position="bottom-right"
-                onAttack={handleAttack}
-                onEndTurn={handlePass}
-            />
+            {/* Player Info Panels */}
+            {getPlayer(gameState, 'player2') && (
+                <PlayerInfoPanel
+                    player={getPlayer(gameState, 'player2')!}
+                    isCurrentPlayer={false}
+                    position="top-left"
+                />
+            )}
+
+            {getPlayer(gameState, 'player1') && (
+                <PlayerInfoPanel
+                    player={getPlayer(gameState, 'player1')!}
+                    isCurrentPlayer={true}
+                    position="bottom-right"
+                    onAttack={handleAttack}
+                    onEndTurn={handlePass}
+                />
+            )}
 
             {/* Main Game Area */}
-            <div className="flex flex-col justify-between h-full pt-16 pb-16 px-80 relative">
-
+            <div className="flex flex-col justify-between h-full pt-16 pb-16 px-4 sm:px-12 md:px-24 lg:px-48 xl:px-64 2xl:px-80 relative">
                 {/* Battlefield Grid */}
                 <div className="flex-1 flex flex-col justify-center">
                     <BattlefieldGrid />
                 </div>
             </div>
-            
-            {/* Action Bar - Fixed position in center of viewport */}
-            <div className="fixed inset-0 flex items-center justify-center pointer-events-none z-50">
-                <div className="pointer-events-auto">
-                    <ActionBar
-                        onAttack={handleAttack}
-                        onPass={handlePass}
-                        onEndTurn={handlePass}
-                        className="bg-slate-900/95 backdrop-blur-sm border-2 border-slate-600 rounded-lg shadow-2xl p-4"
-                    />
+
+            {/* Action Bar */}
+            {gameState?.phase !== 'mulligan' && (
+                <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 pointer-events-none z-[100]">
+                    <div className="pointer-events-auto">
+                        <ActionBar
+                            onAttack={handleAttack}
+                            onDefend={handleDefend}
+                            onPass={handlePass}
+                            onEndTurn={handlePass}
+                            className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl p-3 min-w-[280px]"
+                        />
+                    </div>
                 </div>
-            </div>
+            )}
 
             {/* Hand Components */}
             <HandFan
-                cards={gameState.player2.hand}
+                cards={getPlayerHand(gameState, 'player2')}
                 position="top-right"
                 isCurrentPlayer={false}
             />
 
             <HandFan
-                cards={gameState.player1.hand}
+                cards={getPlayerHand(gameState, 'player1')}
                 position="bottom-left"
                 isCurrentPlayer={true}
                 onCardPlay={handleCardPlay}
-                onCardDetail={handleCardDetail}
+                onCardDetail={() => {}}
             />
 
             {/* Overlays */}
             <MulliganOverlay
-                hand={gameState.player1.hand}
-                isOpen={gameState.phase === 'mulligan' && !gameState.player1.mulliganComplete}
-                onClose={() => { }}
+                hand={getPlayerHand(gameState, 'player1')}
+                isOpen={isMulliganPhase(gameState) && !isMulliganComplete(gameState, 'player1')}
+                onClose={() => {}}
                 onMulligan={handleMulligan}
             />
 
@@ -221,19 +221,10 @@ export default function GameBoard({
                 isOpen={ui.activeOverlay === 'cardDetail' && ui.cardDetailOverlay !== null}
                 onClose={hideCardDetail}
                 onPlay={() => ui.cardDetailOverlay && handleCardPlay(ui.cardDetailOverlay)}
+                onReverse={(cardId) => reverseCard(cardId)}
                 canPlay={ui.cardDetailOverlay ? (totalPlayerMana >= ui.cardDetailOverlay.cost && isPlayerTurn) : false}
+                canReverse={ui.cardDetailOverlay ? isPlayerTurn : false}
             />
-
-            {/* Debug Info (Development Only) */}
-            {process.env.NODE_ENV === 'development' && (
-                <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 bg-black/80 text-white text-xs p-2 rounded">
-                    <div>Phase: {gameState.phase}</div>
-                    <div>Active: {gameState.activePlayer}</div>
-                    <div>Round: {gameState.round}, Turn: {gameState.turn}</div>
-                    <div>Selected Attackers: {interaction.selectedAttackers.size}</div>
-                    <div>Animations: {ui.isAnimating ? 'Active' : 'Idle'}</div>
-                </div>
-            )}
         </GameLayout>
     )
 }

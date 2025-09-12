@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import TarotGameBoard from '@/components/GameBoard.legacy';
+import TarotGameBoard from '@/components/GameBoard';
 import GameOutcomeScreen from '@/components/GameOutcomeScreen';
-import { GameState, Card, ZodiacClass } from '@/types/game';
+import { GameState, Card, ZodiacClass } from '@/schemas/gameSchemas';
 import {
   createInitialGameState,
   initializeCards,
@@ -23,6 +23,7 @@ import {
 import { GameLogger } from '@/lib/gameLogger';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { aiService, AI_PERSONALITIES, type AILevel } from '@/services/AIService';
 import {
   Sheet,
   SheetContent,
@@ -35,6 +36,7 @@ import { Menu } from 'lucide-react';
 
 export default function Tutorial() {
   const [selectedZodiac, setSelectedZodiac] = useState<ZodiacClass | undefined>(undefined);
+  const [selectedAILevel, setSelectedAILevel] = useState<AILevel>('normal');
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>('ongoing');
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -42,24 +44,49 @@ export default function Tutorial() {
   // Initialize cards and game when component mounts
   useEffect(() => {
     initializeCards();
+    aiService.setPersonality(selectedAILevel);
     const newGame = createInitialGameState(selectedZodiac);
     setGameState(newGame);
-    GameLogger.gameStart('You', 'AI Opponent');
+    GameLogger.gameStart('You', AI_PERSONALITIES[selectedAILevel].name);
     GameLogger.turnStart('player1', 1, 1, true);
-  }, [selectedZodiac]);
+  }, [selectedZodiac, selectedAILevel]);
   const [message, setMessage] = useState<string>('Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.');
+  const [timeRemaining, setTimeRemaining] = useState<number>(180); // 3 minutes in seconds
+
+  // Timer countdown effect
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setTimeRemaining(prev => {
+        if (prev <= 1) {
+          // Reset timer when it reaches 0 (simulating new turn)
+          return 180;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, []);
+
+  // Format time as MM:SS
+  const formatTime = (seconds: number): string => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
 
   useEffect(() => {
     if (!gameState) return;
 
     // Handle AI mulligan phase
     if (gameState.phase === 'mulligan' && !gameState.player2.mulliganComplete && gameState.player1.mulliganComplete) {
+      const personality = aiService.getCurrentPersonality();
       setTimeout(() => {
-        setMessage('🤖 AI is choosing cards...');
-        const newState = aiMulligan(gameState);
+        setMessage(`${personality.icon} ${personality.name} is choosing cards...`);
+        const newState = aiService.performMulligan(gameState);
         setGameState(newState);
         setMessage('✅ Both players ready! Game starting...');
-      }, 1000);
+      }, personality.thinkingTime);
       return;
     }
 
@@ -74,10 +101,11 @@ export default function Tutorial() {
       setMessage('🎉 Victory! You have mastered the tarot powers!');
       return; // Don't continue with AI turn if game is over
     } else if (gameState.activePlayer === 'player2') {
-      // AI Turn
+      // Enhanced AI Turn with personality
+      const personality = aiService.getCurrentPersonality();
       setTimeout(() => {
-        setMessage('🤖 AI is thinking...');
-        const newState = aiTurn(gameState);
+        setMessage(`${personality.icon} ${personality.name} is thinking...`);
+        const newState = performEnhancedAITurn(gameState);
         setGameState(newState);
 
         if (newState.player1.hasAttackToken) {
@@ -85,7 +113,7 @@ export default function Tutorial() {
         } else {
           setMessage('🛡️ Your turn! Prepare your defenses.');
         }
-      }, 1000);
+      }, personality.thinkingTime);
     }
   }, [gameState]);
 
@@ -264,6 +292,66 @@ export default function Tutorial() {
     window.location.href = '/';
   };
 
+  // Enhanced AI turn using AI service
+  const performEnhancedAITurn = (currentState: GameState): GameState => {
+    let newState = { ...currentState };
+
+    // AI card play phase
+    const maxPlays = 3; // Limit AI plays per turn to avoid infinite loops
+    let playsThisTurn = 0;
+    
+    while (playsThisTurn < maxPlays) {
+      const { card, shouldPlay } = aiService.selectCardToPlay(newState);
+      
+      if (!card || !shouldPlay) break;
+      
+      // Play the selected card
+      newState = playCard(newState, card);
+      playsThisTurn++;
+    }
+
+    // AI attack phase (if has attack token)
+    if (newState.player2.hasAttackToken && newState.player2.bench.length > 0) {
+      const attackers = aiService.selectAttackers(newState);
+      
+      if (attackers.length > 0) {
+        // Convert to arrangement format
+        const attackerArrangement = attackers.map((id, index) => ({
+          attackerId: id,
+          laneId: index
+        }));
+        
+        newState = declareAttackers(newState, attackerArrangement);
+        
+        // Simple auto-defend for the player
+        if (newState.phase === 'combat' && newState.player1.bench.length > 0) {
+          const defenderAssignments: { defenderId: string; laneId: number }[] = [];
+          newState.lanes.forEach((lane, index) => {
+            if (lane.attacker) {
+              const availableDefender = newState.player1.bench.find(
+                u => !defenderAssignments.some(d => d.defenderId === u.id)
+              );
+              if (availableDefender) {
+                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index });
+              }
+            }
+          });
+          
+          newState = declareDefenders(newState, defenderAssignments);
+          
+          if (newState.phase === 'combat') {
+            newState = resolveCombat(newState);
+          }
+        }
+      }
+    }
+
+    // End AI turn
+    newState = endTurn(newState);
+    
+    return newState;
+  };
+
   const zodiacSigns: Array<{ name: ZodiacClass; symbol: string; element: string }> = [
     { name: 'aries', symbol: '♈', element: 'fire' },
     { name: 'taurus', symbol: '♉', element: 'earth' },
@@ -301,15 +389,15 @@ export default function Tutorial() {
       />
 
       {/* Floating Tutorial Controls */}
-      <div className="fixed top-4 left-4 z-20 flex items-start gap-2">
+      <div className="fixed top-4 left-1/2 transform -translate-x-1/2 z-[50] flex items-start gap-2">
         <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
           <SheetTrigger asChild>
             <Button
               variant="outline"
-              size="icon"
-              className="bg-black/80 border-purple-600 hover:bg-purple-900/50"
+              className="bg-red-600 border-2 border-yellow-400 hover:bg-red-700 shadow-2xl px-4 py-2 text-white font-bold"
             >
-              <Menu className="h-4 w-4 text-white" />
+              <Menu className="h-4 w-4 mr-2" />
+              Help
             </Button>
           </SheetTrigger>
           <SheetContent side="left" className="w-[400px] bg-slate-900 border-purple-600 text-white overflow-y-auto">
@@ -338,6 +426,38 @@ export default function Tutorial() {
                     Back to Menu
                   </Button>
                 </div>
+              </div>
+
+              {/* AI Opponent Selector */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-purple-300">AI Opponent</h3>
+                <div className="grid grid-cols-1 gap-2">
+                  {(Object.keys(AI_PERSONALITIES) as AILevel[]).map((level) => {
+                    const personality = AI_PERSONALITIES[level];
+                    return (
+                      <Button
+                        key={level}
+                        onClick={() => setSelectedAILevel(level)}
+                        className={`text-left px-3 py-2 h-auto ${
+                          selectedAILevel === level ? 'bg-purple-600' : 'bg-gray-700'
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg">{personality.icon}</span>
+                          <div className="flex-1 min-w-0">
+                            <div className="font-semibold">{personality.name}</div>
+                            <div className="text-xs text-gray-300 truncate">{personality.description}</div>
+                          </div>
+                        </div>
+                      </Button>
+                    );
+                  })}
+                </div>
+                {selectedAILevel && (
+                  <Badge className="bg-purple-600 w-full justify-center py-2">
+                    Fighting {AI_PERSONALITIES[selectedAILevel].name} {AI_PERSONALITIES[selectedAILevel].icon}
+                  </Badge>
+                )}
               </div>
 
               {/* Zodiac Deck Selector */}
@@ -411,27 +531,33 @@ export default function Tutorial() {
 
         {/* Status Badge */}
         <div className="flex items-center gap-2">
-          <Badge className="bg-purple-600/90 px-3 py-1">
-            {gameState?.phase === 'mulligan' && 'Mulligan Phase'}
-            {gameState?.phase === 'action' && 'Action Phase'}
-            {gameState?.phase === 'combat' && 'Combat!'}
-            {gameState?.phase === 'end_round' && 'Round Ending'}
+          <Badge className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${
+            timeRemaining <= 30 ? 'bg-red-600 animate-pulse' : 
+            timeRemaining <= 60 ? 'bg-orange-600' : 'bg-blue-600'
+          }`}>
+            ⏱️ {formatTime(timeRemaining)}
           </Badge>
+
+          {/* Game Info - Always Visible */}
+          <Badge className="bg-gray-800 border border-gray-600 px-3 py-1 text-xs text-white">
+            R{gameState?.round || 1} • T{gameState?.turn || 1} • {gameState?.activePlayer === 'player1' ? 'You' : 'AI'}
+          </Badge>
+
 
           {/* Mulligan Quick Actions */}
           {gameState?.phase === 'mulligan' && !gameState?.player1.mulliganComplete && (
             <div className="flex gap-1">
               <Button
                 onClick={() => handleMulligan([])}
-                size="sm"
-                className="bg-green-600 hover:bg-green-700 text-xs px-2 py-1"
+                size="lg"
+                className="bg-green-600 hover:bg-green-700 border-2 border-white text-sm px-4 py-2 shadow-lg font-bold"
               >
                 Keep All
               </Button>
               <Button
                 onClick={() => handleMulligan(gameState?.player1.hand.map(c => c.id) || [])}
-                size="sm"
-                className="bg-orange-600 hover:bg-orange-700 text-xs px-2 py-1"
+                size="lg"
+                className="bg-orange-600 hover:bg-orange-700 border-2 border-white text-sm px-4 py-2 shadow-lg font-bold"
               >
                 Mulligan All
               </Button>
@@ -439,6 +565,7 @@ export default function Tutorial() {
           )}
         </div>
       </div>
+
 
       <div>
         <TarotGameBoard

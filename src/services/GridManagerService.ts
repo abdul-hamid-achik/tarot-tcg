@@ -1,6 +1,7 @@
 import type { CellPosition, CellType } from '@/store/gameStore'
-import type { Card as GameCard, GameState } from '@/types/game'
+import type { Card as GameCard, GameState } from '@/schemas/gameSchemas'
 import { gridMathService } from './GridMathService'
+import { CellPositionSchema } from '@/schemas/gameSchemas'
 
 export interface MoveValidationResult {
   valid: boolean
@@ -27,7 +28,7 @@ export class GridManagerService {
     // Map player1 bench to player bench positions (row 3)
     gameState.player1.bench.forEach((unit, index) => {
       if (index < 6) {
-        const position: CellPosition = { row: 3, col: index as 0 | 1 | 2 | 3 | 4 | 5 }
+        const position = CellPositionSchema.parse({ row: 3, col: index })
         this.gridState.set(this.createCellKey(position), unit)
       }
     })
@@ -35,7 +36,7 @@ export class GridManagerService {
     // Map player2 bench to enemy bench positions (row 0)
     gameState.player2.bench.forEach((unit, index) => {
       if (index < 6) {
-        const position: CellPosition = { row: 0, col: index as 0 | 1 | 2 | 3 | 4 | 5 }
+        const position = CellPositionSchema.parse({ row: 0, col: index })
         this.gridState.set(this.createCellKey(position), unit)
       }
     })
@@ -45,13 +46,13 @@ export class GridManagerService {
       if (index < 6) {
         // Player attacks in row 2
         if (lane.attacker) {
-          const playerAttackPos: CellPosition = { row: 2, col: index as 0 | 1 | 2 | 3 | 4 | 5 }
+          const playerAttackPos = CellPositionSchema.parse({ row: 2, col: index })
           this.gridState.set(this.createCellKey(playerAttackPos), lane.attacker)
         }
 
         // Enemy attacks in row 1 
         if (lane.defender) {
-          const enemyAttackPos: CellPosition = { row: 1, col: index as 0 | 1 | 2 | 3 | 4 | 5 }
+          const enemyAttackPos = CellPositionSchema.parse({ row: 1, col: index })
           this.gridState.set(this.createCellKey(enemyAttackPos), lane.defender)
         }
       }
@@ -92,7 +93,7 @@ export class GridManagerService {
     }
 
     const toType = gridMathService.getCellType(to)
-    
+
     // From hand validations
     if (from === 'hand') {
       return this.validateHandToGridMove(card, to, toType, gameState)
@@ -112,10 +113,13 @@ export class GridManagerService {
     // Check all grid positions
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col < 6; col++) {
-        const position: CellPosition = { row: row as 0 | 1 | 2 | 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 }
-        const validation = this.validateMove(card, from, position, gameState)
-        if (validation.valid) {
-          validPositions.push(position)
+        const parseResult = CellPositionSchema.safeParse({ row, col })
+        if (parseResult.success) {
+          const position = parseResult.data
+          const validation = this.validateMove(card, from, position, gameState)
+          if (validation.valid) {
+            validPositions.push(position)
+          }
         }
       }
     }
@@ -143,10 +147,13 @@ export class GridManagerService {
     const units: { position: CellPosition; card: GameCard }[] = []
 
     for (let col = 0; col < 6; col++) {
-      const position: CellPosition = { row, col: col as 0 | 1 | 2 | 3 | 4 | 5 }
-      const card = this.getCellContent(position)
-      if (card) {
-        units.push({ position, card })
+      const parseResult = CellPositionSchema.safeParse({ row, col })
+      if (parseResult.success) {
+        const position = parseResult.data
+        const card = this.getCellContent(position)
+        if (card) {
+          units.push({ position, card })
+        }
       }
     }
 
@@ -160,10 +167,13 @@ export class GridManagerService {
     const units: { position: CellPosition; card: GameCard }[] = []
 
     for (let row = 0; row < 4; row++) {
-      const position: CellPosition = { row: row as 0 | 1 | 2 | 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 }
-      const card = this.getCellContent(position)
-      if (card) {
-        units.push({ position, card })
+      const parseResult = CellPositionSchema.safeParse({ row, col })
+      if (parseResult.success) {
+        const position = parseResult.data
+        const card = this.getCellContent(position)
+        if (card) {
+          units.push({ position, card })
+        }
       }
     }
 
@@ -175,7 +185,7 @@ export class GridManagerService {
    */
   getAttackingUnits(player: 'player1' | 'player2'): { position: CellPosition; card: GameCard }[] {
     const attackRow = player === 'player1' ? 2 : 1
-    return this.getRowUnits(attackRow as 0 | 1 | 2 | 3)
+    return this.getRowUnits(attackRow)
   }
 
   /**
@@ -183,7 +193,7 @@ export class GridManagerService {
    */
   getBenchUnits(player: 'player1' | 'player2'): { position: CellPosition; card: GameCard }[] {
     const benchRow = player === 'player1' ? 3 : 0
-    return this.getRowUnits(benchRow as 0 | 1 | 2 | 3)
+    return this.getRowUnits(benchRow)
   }
 
   /**
@@ -192,12 +202,14 @@ export class GridManagerService {
   clearAttackPositions(): void {
     // Clear player attack row (2)
     for (let col = 0; col < 6; col++) {
-      this.setCellContent({ row: 2, col: col as 0 | 1 | 2 | 3 | 4 | 5 }, null)
+      const position = CellPositionSchema.parse({ row: 2, col })
+      this.setCellContent(position, null)
     }
 
     // Clear enemy attack row (1)
     for (let col = 0; col < 6; col++) {
-      this.setCellContent({ row: 1, col: col as 0 | 1 | 2 | 3 | 4 | 5 }, null)
+      const position = CellPositionSchema.parse({ row: 1, col })
+      this.setCellContent(position, null)
     }
   }
 
@@ -216,14 +228,17 @@ export class GridManagerService {
 
     for (let row = 0; row < 4; row++) {
       for (let col = 0; col < 6; col++) {
-        const position: CellPosition = { row: row as 0 | 1 | 2 | 3, col: col as 0 | 1 | 2 | 3 | 4 | 5 }
-        
-        if (cellType && gridMathService.getCellType(position) !== cellType) {
-          continue
-        }
+        const parseResult = CellPositionSchema.safeParse({ row, col })
+        if (parseResult.success) {
+          const position = parseResult.data
 
-        if (!this.getCellContent(position)) {
-          emptyPositions.push(position)
+          if (cellType && gridMathService.getCellType(position) !== cellType) {
+            continue
+          }
+
+          if (!this.getCellContent(position)) {
+            emptyPositions.push(position)
+          }
         }
       }
     }
@@ -257,7 +272,7 @@ export class GridManagerService {
    */
   private validateHandToGridMove(card: GameCard, to: CellPosition, toType: CellType, gameState: GameState): MoveValidationResult {
     // Check if it's player's turn
-    if (gameState.activePlayer !== 'player1') {
+    if (gameState?.activePlayer !== 'player1') {
       return { valid: false, reason: 'Not your turn' }
     }
 
@@ -280,7 +295,7 @@ export class GridManagerService {
     // Units can only be played to bench unless attacking
     if (card.type === 'unit' && toType === 'player_attack') {
       // Can play directly to attack if has attack token and it's an attack action
-      if (!gameState.player1.hasAttackToken) {
+      if (!gameState?.player1?.hasAttackToken) {
         return { valid: false, reason: 'Need attack token to play to attack position' }
       }
     }
@@ -293,7 +308,7 @@ export class GridManagerService {
    */
   private validateGridToGridMove(card: GameCard, fromType: CellType, toType: CellType, gameState: GameState): MoveValidationResult {
     // Check if it's player's turn
-    if (gameState.activePlayer !== 'player1') {
+    if (gameState?.activePlayer !== 'player1') {
       return { valid: false, reason: 'Not your turn' }
     }
 
@@ -314,7 +329,7 @@ export class GridManagerService {
 
     // Movement from bench to attack requires attack token
     if (fromType === 'player_bench' && toType === 'player_attack') {
-      if (!gameState.player1.hasAttackToken) {
+      if (!gameState?.player1?.hasAttackToken) {
         return { valid: false, reason: 'Need attack token to move to attack position' }
       }
     }

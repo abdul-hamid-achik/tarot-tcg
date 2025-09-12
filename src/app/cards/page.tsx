@@ -1,11 +1,14 @@
 "use client"
 
-import { getAllCards, getCardsByZodiacClass, getCardsByElement } from '@/lib/cardLoader'
-import { Card as GameCard } from '@/types/game'
+import { getAllCards } from '@/lib/cardLoader'
+import { Card as GameCard } from '@/schemas/gameSchemas'
 import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { useState } from 'react'
+import { Breadcrumb } from '@/components/ui/Breadcrumb'
+import { CardSearch, type SearchFilters } from '@/components/ui/CardSearch'
+import { useState, useMemo } from 'react'
+import Link from 'next/link'
 
 const zodiacSigns = [
   { name: 'aries', symbol: '♈', element: 'fire' },
@@ -23,13 +26,17 @@ const zodiacSigns = [
 ]
 
 function CardDisplay({ card }: { card: GameCard }) {
+  // Generate card URL from the card data
+  const cardUrl = card.type === 'unit' 
+    ? `/cards/${card.zodiacClass}/${card.id}` 
+    : `/cards/spells/${card.id}`
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
-      case 'common': return 'bg-gray-100 text-gray-800'
+      case 'common': return 'bg-gray-100 text-gray-800 dark:text-gray-200'
       case 'uncommon': return 'bg-green-100 text-green-800'
       case 'rare': return 'bg-blue-100 text-blue-800'
       case 'legendary': return 'bg-purple-100 text-purple-800'
-      default: return 'bg-gray-100 text-gray-800'
+      default: return 'bg-gray-100 text-gray-800 dark:text-gray-200'
     }
   }
 
@@ -44,7 +51,8 @@ function CardDisplay({ card }: { card: GameCard }) {
   }
 
   return (
-    <Card className="p-4 space-y-3">
+    <Link href={cardUrl}>
+      <Card className="p-4 space-y-3 hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
       <div className="flex justify-between items-start">
         <h3 className="font-bold text-lg">{card.name}</h3>
         <Badge className={getRarityColor(card.rarity)}>{card.rarity}</Badge>
@@ -98,25 +106,80 @@ function CardDisplay({ card }: { card: GameCard }) {
         </div>
       )}
     </Card>
+    </Link>
   )
 }
 
 export default function CardsPage() {
-  const [selectedZodiac, setSelectedZodiac] = useState<string>('all')
+  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState<SearchFilters>({})
   const [allCards] = useState(() => getAllCards())
 
-  const filteredCards = selectedZodiac === 'all' 
-    ? allCards 
-    : getCardsByZodiacClass(selectedZodiac)
+  // Combined filtering logic
+  const filteredCards = useMemo(() => {
+    let cards = allCards
 
-  const cardsByZodiac = zodiacSigns.reduce((acc, sign) => {
-    acc[sign.name] = getCardsByZodiacClass(sign.name)
-    return acc
-  }, {} as Record<string, GameCard[]>)
+    // Apply search query
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      cards = cards.filter(card => 
+        card.name.toLowerCase().includes(query) ||
+        card.description?.toLowerCase().includes(query) ||
+        card.abilities?.some(ability => 
+          ability.name.toLowerCase().includes(query) ||
+          ability.description?.toLowerCase().includes(query)
+        ) ||
+        card.effects?.some(effect => 
+          effect.name.toLowerCase().includes(query) ||
+          effect.description?.toLowerCase().includes(query)
+        )
+      )
+    }
+
+    // Apply filters
+    if (filters.zodiacClass) {
+      cards = cards.filter(card => card.zodiacClass === filters.zodiacClass)
+    }
+    if (filters.element) {
+      cards = cards.filter(card => card.element === filters.element)
+    }
+    if (filters.type) {
+      cards = cards.filter(card => card.type === filters.type)
+    }
+    if (filters.rarity) {
+      cards = cards.filter(card => card.rarity === filters.rarity)
+    }
+    if (filters.costRange) {
+      cards = cards.filter(card => 
+        card.cost >= filters.costRange!.min && card.cost <= filters.costRange!.max
+      )
+    }
+
+    return cards
+  }, [allCards, searchQuery, filters])
+
+  // Get cards by category for browsing tabs
+  const getCardsByCategory = (category: string, value: string) => {
+    return allCards.filter(card => {
+      switch(category) {
+        case 'zodiac': return card.zodiacClass === value
+        case 'element': return card.element === value
+        case 'type': return card.type === value
+        default: return false
+      }
+    })
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="space-y-6">
+        {/* Breadcrumb */}
+        <Breadcrumb 
+          items={[
+            { label: 'Cards', isCurrentPage: true }
+          ]}
+        />
+        
         <div className="text-center">
           <h1 className="text-4xl font-bold mb-2">Tarot Card Collection</h1>
           <p className="text-gray-600">
@@ -124,25 +187,44 @@ export default function CardsPage() {
           </p>
         </div>
 
-        <Tabs defaultValue="all" className="w-full">
-          <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="all">All Cards ({allCards.length})</TabsTrigger>
+        {/* Search and Filters */}
+        <CardSearch
+          searchQuery={searchQuery}
+          filters={filters}
+          onSearchChange={setSearchQuery}
+          onFilterChange={setFilters}
+          totalResults={filteredCards.length}
+        />
+
+        {/* Card Grid */}
+        <div className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+            {filteredCards.map((card) => (
+              <CardDisplay key={card.id} card={card} />
+            ))}
+          </div>
+          {filteredCards.length === 0 && (
+            <div className="text-center py-12">
+              <p className="text-gray-500 text-lg">No cards found matching your criteria</p>
+              <p className="text-gray-400 text-sm mt-2">Try adjusting your search or filters</p>
+            </div>
+          )}
+        </div>
+
+        {/* Organization tabs for browsing without search */}
+        {!searchQuery.trim() && Object.keys(filters).length === 0 && (
+        <div className="border-t pt-8 mt-8">
+          <h2 className="text-2xl font-bold mb-4">Browse by Category</h2>
+          <Tabs defaultValue="zodiac" className="w-full">
+          <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="zodiac">By Zodiac</TabsTrigger>
             <TabsTrigger value="element">By Element</TabsTrigger>
             <TabsTrigger value="type">By Type</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="all" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {allCards.map((card) => (
-                <CardDisplay key={card.id} card={card} />
-              ))}
-            </div>
-          </TabsContent>
-          
           <TabsContent value="zodiac" className="space-y-6">
             {zodiacSigns.map((sign) => {
-              const cards = cardsByZodiac[sign.name]
+              const cards = getCardsByCategory('zodiac', sign.name)
               return (
                 <div key={sign.name} className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -168,7 +250,7 @@ export default function CardsPage() {
           
           <TabsContent value="element" className="space-y-6">
             {['fire', 'water', 'air', 'earth'].map((element) => {
-              const cards = getCardsByElement(element)
+              const cards = getCardsByCategory('element', element)
               return (
                 <div key={element} className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -187,7 +269,7 @@ export default function CardsPage() {
           
           <TabsContent value="type" className="space-y-6">
             {['unit', 'spell'].map((type) => {
-              const cards = allCards.filter(card => card.type === type)
+              const cards = getCardsByCategory('type', type)
               return (
                 <div key={type} className="space-y-3">
                   <div className="flex items-center gap-3">
@@ -204,6 +286,8 @@ export default function CardsPage() {
             })}
           </TabsContent>
         </Tabs>
+        </div>
+        )}
       </div>
     </div>
   )

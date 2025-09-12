@@ -1,0 +1,198 @@
+/* Drag and Drop Styles for Tarot TCG */
+
+/* Global dragging state */
+.dragging-card {
+    cursor: grabbing !important;
+}
+
+.dragging-card * {
+    cursor: grabbing !important;
+}
+
+/* Card drag states */
+.card-dragging {
+    z-index: 1000 !important;
+    pointer-events: none !important;
+    transform-origin: center !important;
+    transition: transform 0.15s ease-out, filter 0.15s ease-out !important;
+}
+
+.card-drag-preview {
+    position: fixed !important;
+    pointer-events: none !important;
+    z-index: 9999 !important;
+    opacity: 0.8 !important;
+    transform: scale(0.9) !important;
+    filter: drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4)) !important;
+}
+
+/* Drop zone states */
+.valid-drop-target {
+    background-color: rgba(34, 197, 94, 0.15) !important;
+    border-color: rgb(34, 197, 94) !important;
+    box-shadow: 0 0 20px rgba(34, 197, 94, 0.3) !important;
+    animation: pulse-green 1.5s infinite !important;
+}
+
+.invalid-drop-target {
+    background-color: rgba(239, 68, 68, 0.15) !important;
+    border-color: rgb(239, 68, 68) !important;
+    box-shadow: 0 0 20px rgba(239, 68, 68, 0.3) !important;
+    animation: pulse-red 1.5s infinite !important;
+}
+
+.successful-drop {
+    background-color: rgba(34, 197, 94, 0.3) !important;
+    animation: success-flash 0.3s ease-out !important;
+}
+
+/* Hover states for cards */
+.card-hover {
+    transform: translateY(-8px) scale(1.05) !important;
+    filter: brightness(1.1) saturate(1.1) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4) !important;
+    z-index: 100 !important;
+    transition: all 0.2s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+}
+
+/* Hand fan specific styles */
+.hand-card {
+    transition: all 0.25s cubic-bezier(0.4, 0.0, 0.2, 1) !important;
+    cursor: grab !important;
+}
+
+.hand-card:hover {
+    cursor: grab !important;
+}
+
+.hand-card:active {
+    cursor: grabbing !important;
+}
+
+.hand-card.dragging {
+    opacity: 0.5 !important;
+    cursor: grabbing !important;
+}
+
+/* Grid cell specific styles */
+.grid-cell {
+    transition: all 0.2s ease-out !important;
+    cursor: pointer !important;
+}
+
+.grid-cell:hover {
+    transform: scale(1.02) !important;
+}
+
+.grid-cell.player-controlled {
+    cursor: grab !important;
+}
+
+.grid-cell.player-controlled:hover {
+    cursor: grab !important;
+}
+
+.grid-cell.player-controlled:active {
+    cursor: grabbing !important;
+}
+
+/* Animations */
+@keyframes pulse-green {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(34, 197, 94, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(34, 197, 94, 0.6);
+    }
+}
+
+@keyframes pulse-red {
+    0%, 100% {
+        box-shadow: 0 0 20px rgba(239, 68, 68, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+    }
+}
+
+@keyframes success-flash {
+    0% {
+        background-color: rgba(34, 197, 94, 0.6);
+        transform: scale(1.02);
+    }
+    100% {
+        background-color: rgba(34, 197, 94, 0.1);
+        transform: scale(1);
+    }
+}
+
+/* Shake animation for invalid drops */
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.shake-animation {
+    animation: shake 0.4s ease-in-out !important;
+}
+
+/* Bounce animation for card returns */
+@keyframes bounce-back {
+    0% { transform: scale(1.1); }
+    50% { transform: scale(0.95); }
+    100% { transform: scale(1); }
+}
+
+.bounce-back-animation {
+    animation: bounce-back 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) !important;
+}
+
+/* Mobile touch optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .hand-card {
+        cursor: default !important;
+    }
+    
+    .grid-cell {
+        cursor: default !important;
+    }
+    
+    .grid-cell.player-controlled {
+        cursor: default !important;
+    }
+    
+    /* Increase touch targets for mobile */
+    .hand-card {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+    
+    .grid-cell {
+        min-height: 44px !important;
+        min-width: 44px !important;
+    }
+}
+
+/* Accessibility improvements */
+@media (prefers-reduced-motion: reduce) {
+    .card-dragging,
+    .hand-card,
+    .grid-cell,
+    .valid-drop-target,
+    .invalid-drop-target {
+        transition: none !important;
+        animation: none !important;
+    }
+}
+
+/* Focus states for keyboard navigation */
+.grid-cell:focus-visible {
+    outline: 2px solid rgb(59, 130, 246) !important;
+    outline-offset: 2px !important;
+}
+
+.hand-card:focus-visible {
+    outline: 2px solid rgb(59, 130, 246) !important;
+    outline-offset: 2px !important;
+}

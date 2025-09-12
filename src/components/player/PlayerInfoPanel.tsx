@@ -1,10 +1,10 @@
 "use client"
 
 import React from 'react'
-import { Button } from '@/components/ui/button'
-import { Heart, Zap, Sword, Shield, Moon, Sun } from 'lucide-react'
+import { Heart, Zap, Sword, Moon, Sun } from 'lucide-react'
 import { useGameStore } from '@/store/gameStore'
-import type { Player } from '@/types/game'
+import type { Player } from '@/schemas/gameSchemas'
+import { isActionPhase, isCombatPhase } from '@/schemas/gameSchemas'
 
 interface PlayerInfoPanelProps {
     player: Player
@@ -27,7 +27,7 @@ export default function PlayerInfoPanel({
 }: PlayerInfoPanelProps) {
     const { gameState, interaction } = useGameStore()
 
-    const isActive = gameState.activePlayer === player.id
+    const isActive = gameState?.activePlayer === player?.id
     const selectedAttackersCount = interaction.selectedAttackers.size
     const defenderAssignmentsCount = interaction.defenderAssignments.size
 
@@ -41,17 +41,17 @@ export default function PlayerInfoPanel({
     const getPlayerStyles = () => {
         if (isCurrentPlayer) {
             return {
-                avatar: 'bg-amber-800',
-                avatarIcon: 'text-amber-200',
-                health: 'text-amber-300',
-                healthIcon: 'text-amber-400'
+                avatar: 'bg-black',
+                avatarIcon: 'text-white',
+                health: 'text-black',
+                healthIcon: 'text-black'
             }
         } else {
             return {
-                avatar: 'bg-red-900',
-                avatarIcon: 'text-red-200',
-                health: 'text-red-300',
-                healthIcon: 'text-red-400'
+                avatar: 'bg-gray-600',
+                avatarIcon: 'text-white',
+                health: 'text-gray-800',
+                healthIcon: 'text-gray-800'
             }
         }
     }
@@ -60,25 +60,25 @@ export default function PlayerInfoPanel({
 
     // Check if can attack
     const canAttack = isCurrentPlayer &&
-        player.hasAttackToken &&
-        gameState.phase === 'action' &&
+        player?.hasAttackToken &&
+        gameState?.phase === 'action' &&
         selectedAttackersCount > 0
 
     // Check if must defend (simplified - combat phase)
-    const mustDefend = gameState.phase === 'combat' &&
-        gameState.activePlayer === player.id
+    const mustDefend = gameState?.phase === 'combat' &&
+        gameState?.activePlayer === player?.id
 
     // Render mana crystals for current player
     const renderManaDisplay = () => {
         if (!isCurrentPlayer) {
             return (
                 <div className="flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-blue-400" />
-                    <span className="text-blue-300 font-semibold">
+                    <Zap className="w-3 h-3 text-blue-600" />
+                    <span className="text-gray-900 dark:text-white font-semibold">
                         {player.mana}/{player.maxMana}
                     </span>
                     {player.spellMana > 0 && (
-                        <span className="text-purple-400">+{player.spellMana}</span>
+                        <span className="text-blue-600">+{player.spellMana}</span>
                     )}
                 </div>
             )
@@ -91,21 +91,21 @@ export default function PlayerInfoPanel({
                     {Array.from({ length: player.maxMana }, (_, i) => (
                         <Zap
                             key={i}
-                            className={`w-3 h-3 ${i < player.mana ? 'text-blue-400' : 'text-slate-600'
+                            className={`w-3 h-3 ${i < player.mana ? 'text-black' : 'text-gray-400'
                                 }`}
                         />
                     ))}
                 </div>
                 {player.spellMana > 0 && (
-                    <span className="text-purple-400">+{player.spellMana}</span>
+                    <span className="text-gray-600">+{player.spellMana}</span>
                 )}
             </div>
         )
     }
 
     return (
-        <div className={`${positionStyles[position]} z-20 w-64 ${className}`}>
-            <div className="space-y-3 p-3 bg-slate-800/80 rounded-lg border border-slate-600 backdrop-blur-sm">
+        <div className={`${positionStyles[position]} z-[60] w-64 ${className}`}>
+            <div className="space-y-3 p-3 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-400 shadow-2xl">
                 {/* Player Header */}
                 <div className="flex items-center gap-3">
                     <div className="relative">
@@ -118,7 +118,7 @@ export default function PlayerInfoPanel({
                         </div>
 
                         {/* Attack Token Indicator */}
-                        {player.hasAttackToken && (
+                        {player?.hasAttackToken && (
                             <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-1 animate-pulse">
                                 <Sword className="w-2 h-2 text-white" />
                             </div>
@@ -126,10 +126,10 @@ export default function PlayerInfoPanel({
                     </div>
 
                     <div className="flex-1">
-                        <h3 className="font-bold text-sm text-slate-100">
+                        <h3 className="font-bold text-sm text-gray-900 dark:text-white">
                             {player.name}
                         </h3>
-                        {player.hasAttackToken && (
+                        {player?.hasAttackToken && (
                             <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded">
                                 ⚔️ Attack Token
                             </span>
@@ -141,7 +141,7 @@ export default function PlayerInfoPanel({
                 <div className="space-y-2 text-xs">
                     {/* Health */}
                     <div className="flex justify-between">
-                        <span className="text-slate-400">Health:</span>
+                        <span className="text-gray-600 dark:text-gray-300">Health:</span>
                         <div className="flex items-center gap-1">
                             <Heart className={`w-3 h-3 ${playerStyles.healthIcon}`} />
                             <span className={`${playerStyles.health} font-semibold`}>
@@ -152,63 +152,26 @@ export default function PlayerInfoPanel({
 
                     {/* Mana */}
                     <div className="flex justify-between">
-                        <span className="text-slate-400">Mana:</span>
+                        <span className="text-gray-600 dark:text-gray-300">Mana:</span>
                         {renderManaDisplay()}
                     </div>
 
                     {/* Hand Size */}
                     <div className="flex justify-between">
-                        <span className="text-slate-400">Hand:</span>
-                        <span className="text-slate-300 font-semibold">
+                        <span className="text-gray-600 dark:text-gray-300">Hand:</span>
+                        <span className="text-gray-900 dark:text-white font-semibold">
                             {player.hand.length} cards
                         </span>
                     </div>
 
                     {/* Bench Size */}
                     <div className="flex justify-between">
-                        <span className="text-slate-400">Bench:</span>
-                        <span className="text-slate-300 font-semibold">
+                        <span className="text-gray-600 dark:text-gray-300">Bench:</span>
+                        <span className="text-gray-900 dark:text-white font-semibold">
                             {player.bench.length}/6 units
                         </span>
                     </div>
                 </div>
-
-                {/* Game Controls for Current Player */}
-                {isCurrentPlayer && (
-                    <div className="mt-3 space-y-2">
-                        {/* Attack Button */}
-                        {canAttack && (
-                            <Button
-                                onClick={onAttack}
-                                className="w-full bg-orange-600 hover:bg-orange-700 text-xs py-2"
-                            >
-                                <Sword className="w-3 h-3 mr-2" />
-                                Attack ({selectedAttackersCount})
-                            </Button>
-                        )}
-
-                        {/* Defend Button */}
-                        {mustDefend && defenderAssignmentsCount > 0 && (
-                            <Button
-                                onClick={onDefend}
-                                className="w-full bg-blue-600 hover:bg-blue-700 text-xs py-2"
-                            >
-                                <Shield className="w-3 h-3 mr-2" />
-                                Defend ({defenderAssignmentsCount})
-                            </Button>
-                        )}
-
-                        {/* End Turn Button */}
-                        {isActive && gameState.phase === 'action' && !canAttack && (
-                            <Button
-                                onClick={onEndTurn}
-                                className="w-full bg-purple-600 hover:bg-purple-700 text-xs py-2"
-                            >
-                                End Turn
-                            </Button>
-                        )}
-                    </div>
-                )}
 
                 {/* Status Indicators */}
                 <div className="text-xs text-slate-400">
@@ -219,14 +182,14 @@ export default function PlayerInfoPanel({
                         </div>
                     )}
 
-                    {!isActive && gameState.phase === 'action' && (
+                    {!isActive && isActionPhase(gameState) && (
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-slate-400 rounded-full" />
                             <span>Waiting</span>
                         </div>
                     )}
 
-                    {gameState.phase === 'combat' && (
+                    {isCombatPhase(gameState) && (
                         <div className="flex items-center gap-1">
                             <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
                             <span>Combat</span>

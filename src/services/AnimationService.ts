@@ -1,5 +1,7 @@
+"use client"
+
 import type { CellPosition } from '@/store/gameStore'
-import type { Card as GameCard } from '@/types/game'
+import type { Card as GameCard } from '@/schemas/gameSchemas'
 import { gridMathService } from './GridMathService'
 
 export interface AnimationOptions {
@@ -69,10 +71,21 @@ class AnimationService {
     }
 
     /**
-     * Set performance mode to adjust animation quality
+     * Set performance mode to adjust animation quality and duration
      */
     setPerformanceMode(mode: 'high' | 'medium' | 'low'): void {
         this.performanceMode = mode
+    }
+
+    /**
+     * Get performance-adjusted animation duration
+     */
+    private getPerformanceDuration(baseDuration: number): number {
+        switch (this.performanceMode) {
+            case 'high': return baseDuration
+            case 'medium': return baseDuration * 0.75
+            case 'low': return baseDuration * 0.5
+        }
     }
 
     /**
@@ -101,7 +114,7 @@ class AnimationService {
             fromCoords,
             toCoords,
             {
-                duration: 500,
+                duration: this.getPerformanceDuration(options.duration || 500),
                 easing: easingFunctions.easeOutCubic,
                 onStart: () => { },
                 onProgress: () => { },
@@ -125,15 +138,17 @@ class AnimationService {
         const targetCoords = gridMathService.gridToScreenCoordinates(gridPosition)
 
         return this.animateCardMove(cardElement, handPosition, targetCoords, {
-            duration: 600,
+            duration: this.getPerformanceDuration(options.duration || 600),
             easing: easingFunctions.easeOutCubic,
             onStart: () => {
                 cardElement.style.zIndex = '1000' // Bring to front during animation
-                cardElement.style.transform += ' scale(1.1)' // Slight scale up
+                cardElement.style.transform += ' scale(1.05)' // More subtle scale for performance
+                options.onStart?.()
             },
             onComplete: () => {
                 cardElement.style.zIndex = ''
-                cardElement.style.transform = cardElement.style.transform.replace(' scale(1.1)', '')
+                cardElement.style.transform = cardElement.style.transform.replace(' scale(1.05)', '')
+                options.onComplete?.()
             },
             ...options
         })
@@ -390,7 +405,8 @@ class AnimationService {
      */
     private getCellElementAtPosition(position: CellPosition): HTMLElement | null {
         const selector = `[data-grid-cell="${position.row}-${position.col}"]`
-        return document.querySelector(selector) as HTMLElement
+        const element = document.querySelector(selector)
+        return element instanceof HTMLElement ? element : null
     }
 
     /**
@@ -693,5 +709,81 @@ class CellEffectAnimation extends Animation {
     }
 }
 
-// Singleton instance
-export const animationService = new AnimationService()
+// Lazy singleton instance - only created on client side
+let animationServiceInstance: AnimationService | null = null
+
+export const animationService = {
+    getInstance(): AnimationService {
+        if (typeof window === 'undefined') {
+            // Return a no-op service for SSR
+            return {
+                setPerformanceMode: () => { },
+                animateCardMove: () => Promise.resolve(),
+                animateCardPlay: () => Promise.resolve(),
+                animateCombatAttack: () => Promise.resolve(),
+                animateDamage: () => Promise.resolve(),
+                animateCellHighlight: () => Promise.resolve(),
+                animateMultipleCells: () => Promise.resolve([]),
+                animateCardDraw: () => Promise.resolve(),
+                stopAllAnimations: () => { },
+                stopAnimation: () => { },
+                hasActiveAnimations: () => false,
+                getActiveAnimationCount: () => 0,
+            } as unknown as AnimationService
+        }
+
+        if (!animationServiceInstance) {
+            animationServiceInstance = new AnimationService()
+        }
+        return animationServiceInstance
+    },
+
+    // Proxy methods for convenience
+    setPerformanceMode(mode: 'high' | 'medium' | 'low') {
+        return this.getInstance().setPerformanceMode(mode)
+    },
+
+    animateCardMove(cardElement: HTMLElement, from: CellPosition | { x: number; y: number }, to: CellPosition | { x: number; y: number }, options?: AnimationOptions) {
+        return this.getInstance().animateCardMove(cardElement, from, to, options)
+    },
+
+    animateCardPlay(cardElement: HTMLElement, handPosition: { x: number; y: number }, gridPosition: CellPosition, options?: AnimationOptions) {
+        return this.getInstance().animateCardPlay(cardElement, handPosition, gridPosition, options)
+    },
+
+    animateCombatAttack(attackerElement: HTMLElement, attackerPosition: CellPosition, targetPosition?: CellPosition, options?: AnimationOptions) {
+        return this.getInstance().animateCombatAttack(attackerElement, attackerPosition, targetPosition, options)
+    },
+
+    animateDamage(position: CellPosition, damage: number, type: 'damage' | 'heal' = 'damage', options?: AnimationOptions) {
+        return this.getInstance().animateDamage(position, damage, type, options)
+    },
+
+    animateCellHighlight(cellElement: HTMLElement, type?: 'valid' | 'invalid' | 'hover' | 'selected', options?: AnimationOptions) {
+        return this.getInstance().animateCellHighlight(cellElement, type, options)
+    },
+
+    animateMultipleCells(positions: CellPosition[], type: 'shake' | 'glow' | 'pulse', options?: AnimationOptions) {
+        return this.getInstance().animateMultipleCells(positions, type, options)
+    },
+
+    animateCardDraw(cardElement: HTMLElement, deckPosition: { x: number; y: number }, handPosition: { x: number; y: number }, options?: AnimationOptions) {
+        return this.getInstance().animateCardDraw(cardElement, deckPosition, handPosition, options)
+    },
+
+    stopAllAnimations() {
+        return this.getInstance().stopAllAnimations()
+    },
+
+    stopAnimation(animationId: string) {
+        return this.getInstance().stopAnimation(animationId)
+    },
+
+    hasActiveAnimations() {
+        return this.getInstance().hasActiveAnimations()
+    },
+
+    getActiveAnimationCount() {
+        return this.getInstance().getActiveAnimationCount()
+    }
+}
