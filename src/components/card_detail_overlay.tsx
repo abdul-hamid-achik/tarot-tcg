@@ -1,6 +1,7 @@
 'use client'
 
 import { Heart, Sword, X, Zap } from 'lucide-react'
+import ReactMarkdown from 'react-markdown'
 import TarotCard from '@/components/tarot_card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -11,9 +12,7 @@ interface CardDetailOverlayProps {
   isOpen: boolean
   onClose: () => void
   onPlay?: () => void
-  onReverse?: (cardId: string) => void
   canPlay?: boolean
-  canReverse?: boolean
 }
 
 export default function CardDetailOverlay({
@@ -21,9 +20,7 @@ export default function CardDetailOverlay({
   isOpen,
   onClose,
   onPlay,
-  onReverse,
   canPlay = false,
-  canReverse = false,
 }: CardDetailOverlayProps) {
   if (!isOpen) return null
 
@@ -143,26 +140,30 @@ export default function CardDetailOverlay({
                   )}
                 </h4>
                 <div
-                  className={`text-sm leading-relaxed ${card.isReversed ? 'text-gray-700' : 'text-gray-600'}`}
+                  className={`text-sm leading-relaxed prose prose-sm max-w-none ${card.isReversed ? 'text-gray-700 prose-gray' : 'text-gray-600 prose-gray'}`}
                 >
-                  {card.isReversed && card.reversedDescription
-                    ? card.reversedDescription
-                    : card.description || 'A mystical card imbued with ancient tarot power.'}
+                  <ReactMarkdown>
+                    {card.isReversed && card.reversedDescription
+                      ? card.reversedDescription
+                      : card.description || 'A mystical card imbued with ancient tarot power.'}
+                  </ReactMarkdown>
                 </div>
 
                 {/* Show both upright and reversed descriptions if available */}
                 {card.isReversed && card.description && card.reversedDescription && (
                   <div className="mt-3 pt-3 border-t border-gray-300">
                     <h5 className="text-xs font-semibold text-gray-600 mb-1">Upright Effect:</h5>
-                    <div className="text-gray-500 text-xs leading-relaxed">{card.description}</div>
+                    <div className="text-gray-500 text-xs leading-relaxed prose prose-xs max-w-none">
+                      <ReactMarkdown>{card.description}</ReactMarkdown>
+                    </div>
                   </div>
                 )}
 
                 {!card.isReversed && card.reversedDescription && (
                   <div className="mt-3 pt-3 border-t border-gray-300">
                     <h5 className="text-xs font-semibold text-gray-600 mb-1">When Reversed:</h5>
-                    <div className="text-gray-600 text-xs leading-relaxed opacity-70">
-                      {card.reversedDescription}
+                    <div className="text-gray-600 text-xs leading-relaxed opacity-70 prose prose-xs max-w-none">
+                      <ReactMarkdown>{card.reversedDescription}</ReactMarkdown>
                     </div>
                   </div>
                 )}
@@ -179,27 +180,6 @@ export default function CardDetailOverlay({
             >
               Close
             </Button>
-            {onReverse && (
-              <Button
-                onClick={() => {
-                  onReverse(card.id)
-                  onClose()
-                }}
-                disabled={!canReverse}
-                className={`transition-all duration-200 ${
-                  card.isReversed
-                    ? 'bg-gray-700 hover:bg-gray-800 text-white'
-                    : 'bg-gray-800 hover:bg-black text-white'
-                } disabled:opacity-50`}
-                title={
-                  card.isReversed
-                    ? 'Return card to upright position'
-                    : 'Reverse this card (tarot mechanic)'
-                }
-              >
-                {card.isReversed ? '⤋ Upright' : '⤊ Reverse'}
-              </Button>
-            )}
             {onPlay && (
               <Button
                 onClick={() => {

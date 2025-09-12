@@ -78,6 +78,79 @@ export default function Tutorial() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
+  // Enhanced AI turn using AI service - moved here to avoid circular dependency
+  const performEnhancedAITurn = async (currentState: GameState): Promise<GameState> => {
+    let newState = { ...currentState }
+
+    // AI card play phase
+    const maxPlays = 3 // Limit AI plays per turn to avoid infinite loops
+    let playsThisTurn = 0
+
+    while (playsThisTurn < maxPlays) {
+      const { card, shouldPlay } = aiService.selectCardToPlay(newState)
+
+      if (!card || !shouldPlay) break
+
+      try {
+        // Play the selected card
+        newState = await playCard(newState, card)
+        playsThisTurn++
+      } catch (error) {
+        console.error('Error in AI card play:', error)
+        break
+      }
+    }
+
+    // AI attack phase (if has attack token)
+    if (newState.player2.hasAttackToken && newState.player2.bench.length > 0) {
+      const attackers = aiService.selectAttackers(newState)
+
+      if (attackers.length > 0) {
+        // Convert to arrangement format
+        const attackerArrangement = attackers.map((id, index) => ({
+          attackerId: id,
+          laneId: index,
+        }))
+
+        newState = declareAttackers(newState, attackerArrangement)
+
+        // Simple auto-defend for the player
+        if (newState.phase === 'combat' && newState.player1.bench.length > 0) {
+          const defenderAssignments: { defenderId: string; laneId: number }[] = []
+          newState.lanes.forEach((lane, index) => {
+            if (lane.attacker) {
+              const availableDefender = newState.player1.bench.find(
+                u => !defenderAssignments.some(d => d.defenderId === u.id),
+              )
+              if (availableDefender) {
+                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
+              }
+            }
+          })
+
+          newState = declareDefenders(newState, defenderAssignments)
+
+          if (newState.phase === 'combat') {
+            try {
+              newState = await resolveCombat(newState)
+            } catch (error) {
+              console.error('Error in AI combat resolution:', error)
+            }
+          }
+        }
+      }
+    }
+
+    try {
+      // End AI turn
+      newState = await endTurn(newState)
+    } catch (error) {
+      console.error('Error ending AI turn:', error)
+    }
+
+    return newState
+  }
+
   useEffect(() => {
     if (!gameState) return
 
@@ -107,24 +180,29 @@ export default function Tutorial() {
     } else if (outcome === 'player1_wins') {
       setMessage('🎉 Victory! You have mastered the tarot powers!')
       return // Don't continue with AI turn if game is over
-    } else if (gameState.activePlayer === 'player2') {
+    } else if (gameState.activePlayer === 'player2' && gameState.phase === 'action') {
       // Enhanced AI Turn with personality
       const personality = aiService.getCurrentPersonality()
-      setTimeout(() => {
+      setTimeout(async () => {
         setMessage(`${personality.icon} ${personality.name} is thinking...`)
-        const newState = performEnhancedAITurn(gameState)
-        setGameState(newState)
+        try {
+          const newState = await performEnhancedAITurn(gameState)
+          setGameState(newState)
 
-        if (newState.player1.hasAttackToken) {
-          setMessage('⚔️ Your turn! You have the attack token - summon units and attack!')
-        } else {
-          setMessage('🛡️ Your turn! Prepare your defenses.')
+          if (newState.player1?.hasAttackToken) {
+            setMessage('⚔️ Your turn! You have the attack token - summon units and attack!')
+          } else {
+            setMessage('🛡️ Your turn! Prepare your defenses.')
+          }
+        } catch (error) {
+          console.error('Error in AI turn:', error)
+          setMessage('❌ AI turn failed. Please reset the game.')
         }
       }, personality.thinkingTime)
     }
   }, [gameState, performEnhancedAITurn])
 
-  const handleCardPlay = (card: Card) => {
+  const handleCardPlay = async (card: Card) => {
     if (!gameState) return
 
     if (gameState.activePlayer !== 'player1' || gameState.phase !== 'action') {
@@ -143,12 +221,17 @@ export default function Tutorial() {
       return
     }
 
-    const newState = playCard(gameState, card)
-    setGameState(newState)
-    setMessage(`✅ Played ${card.name} (${newState.player1.bench.length}/6 units on bench)`)
+    try {
+      const newState = await playCard(gameState, card)
+      setGameState(newState)
+      setMessage(`✅ Played ${card.name} (${newState.player1?.bench?.length || 0}/6 units on bench)`)
+    } catch (error) {
+      console.error('Error playing card:', error)
+      setMessage('❌ Failed to play card. Please try again.')
+    }
   }
 
-  const handleAttack = (attackerIds: string[]) => {
+  const handleAttack = async (attackerIds: string[]) => {
     if (!gameState) return
 
     if (!gameState.player1.hasAttackToken) {
@@ -170,51 +253,71 @@ export default function Tutorial() {
     if (newState.phase === 'combat') {
       // If AI needs to defend, handle it automatically
       if (newState.player2.bench.length > 0) {
-        setTimeout(() => {
-          // Simple AI defense logic
-          const defenderAssignments: { defenderId: string; laneId: number }[] = []
-          newState.lanes.forEach((lane, index) => {
-            if (lane.attacker) {
-              const availableDefender = newState.player2.bench.find(
-                u => !defenderAssignments.some(d => d.defenderId === u.id),
-              )
-              if (availableDefender) {
-                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
+        setTimeout(async () => {
+          try {
+            // Simple AI defense logic
+            const defenderAssignments: { defenderId: string; laneId: number }[] = []
+            newState.lanes.forEach((lane, index) => {
+              if (lane.attacker) {
+                const availableDefender = newState.player2.bench.find(
+                  u => !defenderAssignments.some(d => d.defenderId === u.id),
+                )
+                if (availableDefender) {
+                  defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
+                }
               }
-            }
-          })
+            })
 
-          let defendedState = declareDefenders(newState, defenderAssignments)
+            setMessage('🛡️ AI is positioning defenders...')
+            let defendedState = declareDefenders(newState, defenderAssignments)
 
-          // Combat should trigger automatically after defenders are declared
-          if (defendedState.phase === 'combat') {
-            defendedState = resolveCombat(defendedState)
+            // Pause before combat for visual feedback
+            setTimeout(async () => {
+              // Combat should trigger automatically after defenders are declared
+              if (defendedState.phase === 'combat') {
+                setMessage('⚔️ Combat beginning...')
+                defendedState = await resolveCombat(defendedState)
+              }
+
+              setGameState(defendedState)
+              setMessage('💥 Combat resolved! Continue your turn.')
+            }, 1500) // Additional delay for combat resolution
+          } catch (error) {
+            console.error('Error in combat resolution:', error)
+            setMessage('❌ Combat failed. Please try again.')
           }
-
-          setGameState(defendedState)
-          setMessage('💥 Combat resolved! Continue your turn.')
-        }, 1000)
+        }, 2000) // Increased delay for defender positioning
       } else {
-        // No defenders available, go straight to combat
-        const combatState = resolveCombat({ ...newState, phase: 'combat' })
-        setGameState(combatState)
-        setMessage('💥 Direct attack! No defenders available.')
+        try {
+          // No defenders available, go straight to combat
+          const combatState = await resolveCombat({ ...newState, phase: 'combat' })
+          setGameState(combatState)
+          setMessage('💥 Direct attack! No defenders available.')
+        } catch (error) {
+          console.error('Error in direct combat:', error)
+          setMessage('❌ Combat failed. Please try again.')
+        }
       }
     }
   }
 
-  const _handleDefend = (assignments: { defenderId: string; laneId: number }[]) => {
+  const _handleDefend = async (assignments: { defenderId: string; laneId: number }[]) => {
     if (!gameState) return
 
     let newState = declareDefenders(gameState, assignments)
 
-    // Combat resolves immediately after declaring defenders
-    if (newState.phase === 'combat') {
-      newState = resolveCombat(newState)
-    }
+    try {
+      // Combat resolves immediately after declaring defenders
+      if (newState.phase === 'combat') {
+        newState = await resolveCombat(newState)
+      }
 
-    setGameState(newState)
-    setMessage('🛡️ Defense set! Combat resolved.')
+      setGameState(newState)
+      setMessage('🛡️ Defense set! Combat resolved.')
+    } catch (error) {
+      console.error('Error in defense combat:', error)
+      setMessage('❌ Defense failed. Please try again.')
+    }
   }
 
   // New handlers for the enhanced combat system
@@ -240,34 +343,49 @@ export default function Tutorial() {
     setMessage('⚔️ Attack confirmed! Waiting for defenders...')
   }
 
-  const _handleCommitDefenders = () => {
+  const _handleCommitDefenders = async () => {
     if (!gameState || gameState.phase !== 'combat') return
 
-    let newState = commitToCombat(gameState)
-    if (newState.phase === 'combat') {
-      newState = resolveCombat(newState)
+    try {
+      let newState = commitToCombat(gameState)
+      if (newState.phase === 'combat') {
+        newState = await resolveCombat(newState)
+      }
+      setGameState(newState)
+      setMessage('🛡️ Defense confirmed! Combat resolved!')
+    } catch (error) {
+      console.error('Error committing defenders:', error)
+      setMessage('❌ Defense commit failed. Please try again.')
     }
-    setGameState(newState)
-    setMessage('🛡️ Defense confirmed! Combat resolved!')
   }
 
-  const _handleCommitToCombat = () => {
+  const _handleCommitToCombat = async () => {
     if (!gameState) return
 
-    let newState = commitToCombat(gameState)
-    if (newState.phase === 'combat') {
-      newState = resolveCombat(newState)
+    try {
+      let newState = commitToCombat(gameState)
+      if (newState.phase === 'combat') {
+        newState = await resolveCombat(newState)
+      }
+      setGameState(newState)
+      setMessage('💥 Combat initiated and resolved!')
+    } catch (error) {
+      console.error('Error committing to combat:', error)
+      setMessage('❌ Combat commit failed. Please try again.')
     }
-    setGameState(newState)
-    setMessage('💥 Combat initiated and resolved!')
   }
 
-  const handleEndTurn = () => {
+  const handleEndTurn = async () => {
     if (!gameState || gameState.activePlayer !== 'player1') return
 
-    const newState = endTurn(gameState)
-    setGameState(newState)
-    setMessage('Turn ended. AI is taking their turn...')
+    try {
+      const newState = await endTurn(gameState)
+      setGameState(newState)
+      setMessage('Turn ended. AI is taking their turn...')
+    } catch (error) {
+      console.error('Error ending turn:', error)
+      setMessage('❌ Failed to end turn. Please try again.')
+    }
   }
 
   const handleMulligan = (selectedCards: string[]) => {
@@ -302,66 +420,6 @@ export default function Tutorial() {
     window.location.href = '/'
   }
 
-  // Enhanced AI turn using AI service
-  const performEnhancedAITurn = (currentState: GameState): GameState => {
-    let newState = { ...currentState }
-
-    // AI card play phase
-    const maxPlays = 3 // Limit AI plays per turn to avoid infinite loops
-    let playsThisTurn = 0
-
-    while (playsThisTurn < maxPlays) {
-      const { card, shouldPlay } = aiService.selectCardToPlay(newState)
-
-      if (!card || !shouldPlay) break
-
-      // Play the selected card
-      newState = playCard(newState, card)
-      playsThisTurn++
-    }
-
-    // AI attack phase (if has attack token)
-    if (newState.player2.hasAttackToken && newState.player2.bench.length > 0) {
-      const attackers = aiService.selectAttackers(newState)
-
-      if (attackers.length > 0) {
-        // Convert to arrangement format
-        const attackerArrangement = attackers.map((id, index) => ({
-          attackerId: id,
-          laneId: index,
-        }))
-
-        newState = declareAttackers(newState, attackerArrangement)
-
-        // Simple auto-defend for the player
-        if (newState.phase === 'combat' && newState.player1.bench.length > 0) {
-          const defenderAssignments: { defenderId: string; laneId: number }[] = []
-          newState.lanes.forEach((lane, index) => {
-            if (lane.attacker) {
-              const availableDefender = newState.player1.bench.find(
-                u => !defenderAssignments.some(d => d.defenderId === u.id),
-              )
-              if (availableDefender) {
-                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
-              }
-            }
-          })
-
-          newState = declareDefenders(newState, defenderAssignments)
-
-          if (newState.phase === 'combat') {
-            newState = resolveCombat(newState)
-          }
-        }
-      }
-    }
-
-    // End AI turn
-    newState = endTurn(newState)
-
-    return newState
-  }
-
   const zodiacSigns: Array<{ name: ZodiacClass; symbol: string; element: string }> = [
     { name: 'aries', symbol: '♈', element: 'fire' },
     { name: 'taurus', symbol: '♉', element: 'earth' },
@@ -390,8 +448,8 @@ export default function Tutorial() {
       {/* Game Outcome Screen Overlay */}
       <GameOutcomeScreen
         outcome={gameOutcome}
-        playerHealth={gameState?.player1.health || 0}
-        opponentHealth={gameState?.player2.health || 0}
+        playerHealth={gameState?.player1?.health || 0}
+        opponentHealth={gameState?.player2?.health || 0}
         round={gameState?.round || 1}
         turn={gameState?.turn || 1}
         onPlayAgain={handleReset}

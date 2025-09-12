@@ -117,7 +117,26 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
     }
 
     if (card && isPlayerControlled()) {
-      // Normal card interaction during other phases
+      // Check if we're in action phase and this is a bench unit that can be selected
+      if (gameState?.phase === 'action' && cellType === 'player_bench' && card.type === 'unit') {
+        // Select/deselect bench unit for movement to attack row
+        const { selectCard, deselectCard, interaction } = useGameStore.getState()
+        const isSelected = interaction.selectedCards.has(card.id)
+        
+        if (isSelected) {
+          deselectCard(card.id)
+          console.log(`Deselected bench unit ${card.name}`)
+        } else {
+          // Clear any other selections and select this card
+          const { clearSelectedCards } = useGameStore.getState()
+          clearSelectedCards()
+          selectCard(card.id)
+          console.log(`Selected bench unit ${card.name} for attack positioning`)
+        }
+        return
+      }
+      
+      // Normal drag interaction for other cases
       const element = cellRef.current?.querySelector('.tarot-card') as HTMLElement
       if (element) {
         interactionService.handlePointerDown(
@@ -132,10 +151,49 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
           element,
         )
       }
-    } else if (!card && isValidDropZone && interaction.selectedCards.size > 0) {
-      // Click on valid drop zone with selected card
-      const _selectedCardId = Array.from(interaction.selectedCards)[0]
-      // Handle card move via click interface
+    } else if (!card && interaction.selectedCards.size > 0) {
+      // Click on empty cell with selected cards - attempt to place the first one
+      const selectedCardId = Array.from(interaction.selectedCards)[0]
+      const selectedCard = gameState?.player1.hand.find(c => c.id === selectedCardId) ||
+                          gameState?.player1.bench.find(c => c.id === selectedCardId)
+      
+      if (selectedCard) {
+        console.log(`Attempting to place selected card ${selectedCard.name} at ${position.row},${position.col}`)
+        
+        // Check if this is a valid placement for units
+        if (selectedCard.type === 'unit') {
+          // For bench placement (player bench only)
+          if (cellType === 'player_bench') {
+            // Use the hooks-based play card action
+            const { playCard } = useGameStore.getState()
+            if (playCard) {
+              playCard(selectedCard).then(() => {
+                // Clear selection after playing
+                const { clearSelectedCards } = useGameStore.getState()
+                clearSelectedCards()
+                console.log(`Successfully played ${selectedCard.name} to bench`)
+              }).catch(error => {
+                console.error('Failed to play card:', error)
+              })
+            } else {
+              console.log('No card play action available')
+            }
+          }
+          // For attack row placement during attack phase
+          else if (cellType === 'player_attack' && gameState?.phase === 'action') {
+            // Check if the selected card is from the bench
+            const benchCard = gameState?.player1.bench.find(c => c.id === selectedCard.id)
+            if (benchCard) {
+              // Move unit from bench to attack position
+              console.log(`Moving ${selectedCard.name} from bench to attack position`)
+              // This would require a new game logic function to move units within the field
+              // For now, log the intent
+              const { clearSelectedCards } = useGameStore.getState()
+              clearSelectedCards()
+            }
+          }
+        }
+      }
     }
   }
 

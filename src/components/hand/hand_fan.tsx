@@ -79,23 +79,38 @@ export default function HandFan({
   const handleCardClick = (card: GameCard) => {
     if (!isCurrentPlayer) return
     if (!gameState) return
+    
+    const { selectCard, deselectCard, interaction } = useGameStore.getState()
+    
+    // Check if card is already selected
+    const isSelected = interaction.selectedCards.has(card.id)
+    
+    if (isSelected) {
+      // Deselect if already selected
+      deselectCard(card.id)
+      return
+    }
 
-    // Only quick-play if it's our action phase and we can afford the card
+    // For action phase, select the card for placement
     const isOurTurn = gameState.activePlayer === 'player1'
     const isAction = gameState.phase === 'action'
     const totalMana = gameState.player1.mana + gameState.player1.spellMana
     const canAfford = card.cost <= totalMana
 
-    if (isOurTurn && isAction && canAfford) {
-      const valid = gridManagerService.getValidDropZones(card, 'hand', gameState)
-      if (valid.length > 0) {
-        // Defer to GameBoard to pick a sensible target position
-        onCardPlay?.(card)
-        return
-      }
+    if (isOurTurn && isAction && canAfford && card.type === 'unit') {
+      // Select the card for click-to-place
+      selectCard(card.id)
+      console.log(`Selected ${card.name} for placement`)
+      return
     }
 
-    // Otherwise open details/selection instead of attempting an invalid play
+    // For spells or unaffordable cards, try to auto-play or show details
+    if (isOurTurn && isAction && canAfford) {
+      onCardPlay?.(card)
+      return
+    }
+
+    // Otherwise open details/selection
     onCardDetail?.(card)
     showCardDetail(card)
   }
@@ -195,18 +210,26 @@ export default function HandFan({
     // This would integrate with mulligan state from the store
     return false
   }
+  
+  // Check if card is selected for placement
+  const isSelectedForPlacement = (cardId: string): boolean => {
+    return interaction.selectedCards.has(cardId)
+  }
 
   // Render individual card
   const renderCard = (card: GameCard, index: number) => {
     const totalCards = cards.length
     const cardPosition = calculateCardPosition(index, totalCards)
-    const isSelected = isSelectedForMulligan()
+    const isMulliganSelected = isSelectedForMulligan()
+    const isPlacementSelected = isSelectedForPlacement(card.id)
 
     return (
       <div
         key={card.id}
         className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${
-          isSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
+          isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
+        } ${
+          isPlacementSelected ? 'ring-2 ring-blue-400 ring-opacity-80 shadow-lg shadow-blue-400/30' : ''
         }`}
         style={{
           transform: `rotate(${cardPosition.angle}deg) translateY(${position.includes('bottom') ? '-' : ''}${cardPosition.translateY}px)`,

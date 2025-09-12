@@ -3,7 +3,8 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
+    "dev": "NODE_OPTIONS='--inspect' next dev",
+    "dev:no-debug": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "biome check .",
@@ -35,6 +36,7 @@
     "next-contentlayer2": "^0.5.8",
     "react": "19.1.0",
     "react-dom": "19.1.0",
+    "react-markdown": "^10.1.0",
     "tailwind-merge": "^3.3.1",
     "zod": "^4.1.5",
     "zustand": "^5.0.8"
