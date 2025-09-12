@@ -1,5 +1,5 @@
-import { GameHUD } from '@/components/GameHUD';
+import { GameHUD } from '@/components/game_hud'
 
 export default function Home() {
-  return <GameHUD />;
+  return <GameHUD />
 }

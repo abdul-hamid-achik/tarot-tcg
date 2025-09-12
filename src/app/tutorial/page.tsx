@@ -1,29 +1,11 @@
-'use client';
+'use client'
 
-import { useState, useEffect } from 'react';
-import TarotGameBoard from '@/components/GameBoard';
-import GameOutcomeScreen from '@/components/GameOutcomeScreen';
-import { GameState, Card, ZodiacClass } from '@/schemas/gameSchemas';
-import {
-  createInitialGameState,
-  initializeCards,
-  playCard,
-  endTurn,
-  resolveCombat,
-  aiTurn,
-  declareAttackers,
-  declareDefenders,
-  rearrangeAttackers,
-  rearrangeDefenders,
-  commitToCombat,
-  checkGameOutcome,
-  completeMulligan,
-  aiMulligan
-} from '@/lib/gameLogic';
-import { GameLogger } from '@/lib/gameLogger';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { aiService, AI_PERSONALITIES, type AILevel } from '@/services/AIService';
+import { Menu } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import TarotGameBoard from '@/components/game_board'
+import GameOutcomeScreen from '@/components/game_outcome_screen'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import {
   Sheet,
   SheetContent,
@@ -31,27 +13,48 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from '@/components/ui/sheet';
-import { Menu } from 'lucide-react';
+} from '@/components/ui/sheet'
+import { GameLogger } from '@/lib/game_logger'
+import {
+  aiMulligan,
+  checkGameOutcome,
+  commitToCombat,
+  completeMulligan,
+  createInitialGameState,
+  declareAttackers,
+  declareDefenders,
+  endTurn,
+  initializeCards,
+  playCard,
+  rearrangeAttackers,
+  rearrangeDefenders,
+  resolveCombat,
+} from '@/lib/game_logic'
+import type { Card, GameState, ZodiacClass } from '@/schemas/schema'
+import { AI_PERSONALITIES, type AILevel, aiService } from '@/services/ai_service'
 
 export default function Tutorial() {
-  const [selectedZodiac, setSelectedZodiac] = useState<ZodiacClass | undefined>(undefined);
-  const [selectedAILevel, setSelectedAILevel] = useState<AILevel>('normal');
-  const [gameState, setGameState] = useState<GameState | null>(null);
-  const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>('ongoing');
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedZodiac, setSelectedZodiac] = useState<ZodiacClass | undefined>(undefined)
+  const [selectedAILevel, setSelectedAILevel] = useState<AILevel>('normal')
+  const [gameState, setGameState] = useState<GameState | null>(null)
+  const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>(
+    'ongoing',
+  )
+  const [sheetOpen, setSheetOpen] = useState(false)
 
   // Initialize cards and game when component mounts
   useEffect(() => {
-    initializeCards();
-    aiService.setPersonality(selectedAILevel);
-    const newGame = createInitialGameState(selectedZodiac);
-    setGameState(newGame);
-    GameLogger.gameStart('You', AI_PERSONALITIES[selectedAILevel].name);
-    GameLogger.turnStart('player1', 1, 1, true);
-  }, [selectedZodiac, selectedAILevel]);
-  const [message, setMessage] = useState<string>('Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.');
-  const [timeRemaining, setTimeRemaining] = useState<number>(180); // 3 minutes in seconds
+    initializeCards()
+    aiService.setPersonality(selectedAILevel)
+    const newGame = createInitialGameState(selectedZodiac)
+    setGameState(newGame)
+    GameLogger.gameStart('You', AI_PERSONALITIES[selectedAILevel].name)
+    GameLogger.turnStart('player1', 1, 1, true)
+  }, [selectedZodiac, selectedAILevel])
+  const [message, setMessage] = useState<string>(
+    'Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.',
+  )
+  const [timeRemaining, setTimeRemaining] = useState<number>(180) // 3 minutes in seconds
 
   // Timer countdown effect
   useEffect(() => {
@@ -59,105 +62,109 @@ export default function Tutorial() {
       setTimeRemaining(prev => {
         if (prev <= 1) {
           // Reset timer when it reaches 0 (simulating new turn)
-          return 180;
+          return 180
         }
-        return prev - 1;
-      });
-    }, 1000);
+        return prev - 1
+      })
+    }, 1000)
 
-    return () => clearInterval(timer);
-  }, []);
+    return () => clearInterval(timer)
+  }, [])
 
   // Format time as MM:SS
   const formatTime = (seconds: number): string => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+    const mins = Math.floor(seconds / 60)
+    const secs = seconds % 60
+    return `${mins}:${secs.toString().padStart(2, '0')}`
+  }
 
   useEffect(() => {
-    if (!gameState) return;
+    if (!gameState) return
 
     // Handle AI mulligan phase
-    if (gameState.phase === 'mulligan' && !gameState.player2.mulliganComplete && gameState.player1.mulliganComplete) {
-      const personality = aiService.getCurrentPersonality();
+    if (
+      gameState.phase === 'mulligan' &&
+      !gameState.player2.mulliganComplete &&
+      gameState.player1.mulliganComplete
+    ) {
+      const personality = aiService.getCurrentPersonality()
       setTimeout(() => {
-        setMessage(`${personality.icon} ${personality.name} is choosing cards...`);
-        const newState = aiService.performMulligan(gameState);
-        setGameState(newState);
-        setMessage('✅ Both players ready! Game starting...');
-      }, personality.thinkingTime);
-      return;
+        setMessage(`${personality.icon} ${personality.name} is choosing cards...`)
+        const newState = aiService.performMulligan(gameState)
+        setGameState(newState)
+        setMessage('✅ Both players ready! Game starting...')
+      }, personality.thinkingTime)
+      return
     }
 
     // Check game outcome
-    const outcome = checkGameOutcome(gameState);
-    setGameOutcome(outcome);
+    const outcome = checkGameOutcome(gameState)
+    setGameOutcome(outcome)
 
     if (outcome === 'player2_wins') {
-      setMessage('❌ Defeat! The mystical forces have overcome you.');
-      return; // Don't continue with AI turn if game is over
+      setMessage('❌ Defeat! The mystical forces have overcome you.')
+      return // Don't continue with AI turn if game is over
     } else if (outcome === 'player1_wins') {
-      setMessage('🎉 Victory! You have mastered the tarot powers!');
-      return; // Don't continue with AI turn if game is over
+      setMessage('🎉 Victory! You have mastered the tarot powers!')
+      return // Don't continue with AI turn if game is over
     } else if (gameState.activePlayer === 'player2') {
       // Enhanced AI Turn with personality
-      const personality = aiService.getCurrentPersonality();
+      const personality = aiService.getCurrentPersonality()
       setTimeout(() => {
-        setMessage(`${personality.icon} ${personality.name} is thinking...`);
-        const newState = performEnhancedAITurn(gameState);
-        setGameState(newState);
+        setMessage(`${personality.icon} ${personality.name} is thinking...`)
+        const newState = performEnhancedAITurn(gameState)
+        setGameState(newState)
 
         if (newState.player1.hasAttackToken) {
-          setMessage('⚔️ Your turn! You have the attack token - summon units and attack!');
+          setMessage('⚔️ Your turn! You have the attack token - summon units and attack!')
         } else {
-          setMessage('🛡️ Your turn! Prepare your defenses.');
+          setMessage('🛡️ Your turn! Prepare your defenses.')
         }
-      }, personality.thinkingTime);
+      }, personality.thinkingTime)
     }
-  }, [gameState]);
+  }, [gameState, performEnhancedAITurn])
 
   const handleCardPlay = (card: Card) => {
-    if (!gameState) return;
+    if (!gameState) return
 
     if (gameState.activePlayer !== 'player1' || gameState.phase !== 'action') {
-      setMessage('⚠️ You can only play cards during your action phase!');
-      return;
+      setMessage('⚠️ You can only play cards during your action phase!')
+      return
     }
 
-    const totalMana = gameState.player1.mana + gameState.player1.spellMana;
+    const totalMana = gameState.player1.mana + gameState.player1.spellMana
     if (card.cost > totalMana) {
-      setMessage(`⚠️ Not enough mana! Need ${card.cost}, have ${totalMana}`);
-      return;
+      setMessage(`⚠️ Not enough mana! Need ${card.cost}, have ${totalMana}`)
+      return
     }
 
     if (card.type === 'unit' && gameState.player1.bench.length >= 6) {
-      setMessage('⚠️ Bench is full! Maximum 6 units allowed.');
-      return;
+      setMessage('⚠️ Bench is full! Maximum 6 units allowed.')
+      return
     }
 
-    const newState = playCard(gameState, card);
-    setGameState(newState);
-    setMessage(`✅ Played ${card.name} (${newState.player1.bench.length}/6 units on bench)`);
-  };
+    const newState = playCard(gameState, card)
+    setGameState(newState)
+    setMessage(`✅ Played ${card.name} (${newState.player1.bench.length}/6 units on bench)`)
+  }
 
   const handleAttack = (attackerIds: string[]) => {
-    if (!gameState) return;
+    if (!gameState) return
 
     if (!gameState.player1.hasAttackToken) {
-      setMessage('⚠️ You need the attack token to declare attacks!');
-      return;
+      setMessage('⚠️ You need the attack token to declare attacks!')
+      return
     }
 
     // Convert simple attacker IDs to arrangement with lanes
     const attackerArrangement = attackerIds.map((id, index) => ({
       attackerId: id,
-      laneId: index
-    }));
+      laneId: index,
+    }))
 
-    const newState = declareAttackers(gameState, attackerArrangement);
-    setGameState(newState);
-    setMessage('⚔️ Attackers declared! AI is choosing defenders...');
+    const newState = declareAttackers(gameState, attackerArrangement)
+    setGameState(newState)
+    setMessage('⚔️ Attackers declared! AI is choosing defenders...')
 
     // New simplified flow - goes straight to combat
     if (newState.phase === 'combat') {
@@ -165,192 +172,195 @@ export default function Tutorial() {
       if (newState.player2.bench.length > 0) {
         setTimeout(() => {
           // Simple AI defense logic
-          const defenderAssignments: { defenderId: string; laneId: number }[] = [];
+          const defenderAssignments: { defenderId: string; laneId: number }[] = []
           newState.lanes.forEach((lane, index) => {
             if (lane.attacker) {
               const availableDefender = newState.player2.bench.find(
-                u => !defenderAssignments.some(d => d.defenderId === u.id)
-              );
+                u => !defenderAssignments.some(d => d.defenderId === u.id),
+              )
               if (availableDefender) {
-                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index });
+                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
               }
             }
-          });
+          })
 
-          let defendedState = declareDefenders(newState, defenderAssignments);
+          let defendedState = declareDefenders(newState, defenderAssignments)
 
           // Combat should trigger automatically after defenders are declared
           if (defendedState.phase === 'combat') {
-            defendedState = resolveCombat(defendedState);
+            defendedState = resolveCombat(defendedState)
           }
 
-          setGameState(defendedState);
-          setMessage('💥 Combat resolved! Continue your turn.');
-        }, 1000);
+          setGameState(defendedState)
+          setMessage('💥 Combat resolved! Continue your turn.')
+        }, 1000)
       } else {
         // No defenders available, go straight to combat
-        const combatState = resolveCombat({ ...newState, phase: 'combat' });
-        setGameState(combatState);
-        setMessage('💥 Direct attack! No defenders available.');
+        const combatState = resolveCombat({ ...newState, phase: 'combat' })
+        setGameState(combatState)
+        setMessage('💥 Direct attack! No defenders available.')
       }
     }
-  };
+  }
 
-  const handleDefend = (assignments: { defenderId: string; laneId: number }[]) => {
-    if (!gameState) return;
+  const _handleDefend = (assignments: { defenderId: string; laneId: number }[]) => {
+    if (!gameState) return
 
-    let newState = declareDefenders(gameState, assignments);
+    let newState = declareDefenders(gameState, assignments)
 
     // Combat resolves immediately after declaring defenders
     if (newState.phase === 'combat') {
-      newState = resolveCombat(newState);
+      newState = resolveCombat(newState)
     }
 
-    setGameState(newState);
-    setMessage('🛡️ Defense set! Combat resolved.');
-  };
+    setGameState(newState)
+    setMessage('🛡️ Defense set! Combat resolved.')
+  }
 
   // New handlers for the enhanced combat system
-  const handleRearrangeAttackers = (arrangements: { attackerId: string; laneId: number }[]) => {
-    if (!gameState) return;
+  const _handleRearrangeAttackers = (arrangements: { attackerId: string; laneId: number }[]) => {
+    if (!gameState) return
 
-    const newState = rearrangeAttackers(gameState, arrangements);
-    setGameState(newState);
-    setMessage('⚔️ Attack formation updated! Commit when ready.');
-  };
+    const newState = rearrangeAttackers(gameState, arrangements)
+    setGameState(newState)
+    setMessage('⚔️ Attack formation updated! Commit when ready.')
+  }
 
-  const handleRearrangeDefenders = (arrangements: { defenderId: string; laneId: number }[]) => {
-    if (!gameState) return;
+  const _handleRearrangeDefenders = (arrangements: { defenderId: string; laneId: number }[]) => {
+    if (!gameState) return
 
-    const newState = rearrangeDefenders(gameState, arrangements);
-    setGameState(newState);
-    setMessage('🛡️ Defense formation updated! Commit when ready.');
-  };
+    const newState = rearrangeDefenders(gameState, arrangements)
+    setGameState(newState)
+    setMessage('🛡️ Defense formation updated! Commit when ready.')
+  }
 
-  const handleCommitAttackers = () => {
-    if (!gameState || gameState.phase !== 'action') return;
+  const _handleCommitAttackers = () => {
+    if (!gameState || gameState.phase !== 'action') return
     // In the simplified system, this confirms the attack arrangement
-    setMessage('⚔️ Attack confirmed! Waiting for defenders...');
-  };
+    setMessage('⚔️ Attack confirmed! Waiting for defenders...')
+  }
 
-  const handleCommitDefenders = () => {
-    if (!gameState || gameState.phase !== 'combat') return;
+  const _handleCommitDefenders = () => {
+    if (!gameState || gameState.phase !== 'combat') return
 
-    let newState = commitToCombat(gameState);
+    let newState = commitToCombat(gameState)
     if (newState.phase === 'combat') {
-      newState = resolveCombat(newState);
+      newState = resolveCombat(newState)
     }
-    setGameState(newState);
-    setMessage('🛡️ Defense confirmed! Combat resolved!');
-  };
+    setGameState(newState)
+    setMessage('🛡️ Defense confirmed! Combat resolved!')
+  }
 
-  const handleCommitToCombat = () => {
-    if (!gameState) return;
+  const _handleCommitToCombat = () => {
+    if (!gameState) return
 
-    let newState = commitToCombat(gameState);
+    let newState = commitToCombat(gameState)
     if (newState.phase === 'combat') {
-      newState = resolveCombat(newState);
+      newState = resolveCombat(newState)
     }
-    setGameState(newState);
-    setMessage('💥 Combat initiated and resolved!');
-  };
+    setGameState(newState)
+    setMessage('💥 Combat initiated and resolved!')
+  }
 
   const handleEndTurn = () => {
-    if (!gameState || gameState.activePlayer !== 'player1') return;
+    if (!gameState || gameState.activePlayer !== 'player1') return
 
-    const newState = endTurn(gameState);
-    setGameState(newState);
-    setMessage('Turn ended. AI is taking their turn...');
-  };
+    const newState = endTurn(gameState)
+    setGameState(newState)
+    setMessage('Turn ended. AI is taking their turn...')
+  }
 
   const handleMulligan = (selectedCards: string[]) => {
-    if (!gameState) return;
+    if (!gameState) return
 
-    let newState = completeMulligan({ ...gameState, player1: { ...gameState.player1, selectedForMulligan: selectedCards } });
+    let newState = completeMulligan({
+      ...gameState,
+      player1: { ...gameState.player1, selectedForMulligan: selectedCards },
+    })
 
     // Check if we need to run AI mulligan
     if (!newState.player2.mulliganComplete) {
-      newState = aiMulligan(newState);
+      newState = aiMulligan(newState)
     }
 
-    setGameState(newState);
+    setGameState(newState)
 
     if (selectedCards.length > 0) {
-      setMessage(`✨ Mulliganed ${selectedCards.length} cards. Game starting!`);
+      setMessage(`✨ Mulliganed ${selectedCards.length} cards. Game starting!`)
     } else {
-      setMessage('✅ Kept starting hand. Game starting!');
+      setMessage('✅ Kept starting hand. Game starting!')
     }
-  };
+  }
 
   const handleReset = () => {
-    setGameState(createInitialGameState(selectedZodiac));
-    setGameOutcome('ongoing');
-    setMessage('🔄 New game started! Choose your starting hand.');
-  };
+    setGameState(createInitialGameState(selectedZodiac))
+    setGameOutcome('ongoing')
+    setMessage('🔄 New game started! Choose your starting hand.')
+  }
 
   const handleBackToMenu = () => {
-    window.location.href = '/';
-  };
+    window.location.href = '/'
+  }
 
   // Enhanced AI turn using AI service
   const performEnhancedAITurn = (currentState: GameState): GameState => {
-    let newState = { ...currentState };
+    let newState = { ...currentState }
 
     // AI card play phase
-    const maxPlays = 3; // Limit AI plays per turn to avoid infinite loops
-    let playsThisTurn = 0;
-    
+    const maxPlays = 3 // Limit AI plays per turn to avoid infinite loops
+    let playsThisTurn = 0
+
     while (playsThisTurn < maxPlays) {
-      const { card, shouldPlay } = aiService.selectCardToPlay(newState);
-      
-      if (!card || !shouldPlay) break;
-      
+      const { card, shouldPlay } = aiService.selectCardToPlay(newState)
+
+      if (!card || !shouldPlay) break
+
       // Play the selected card
-      newState = playCard(newState, card);
-      playsThisTurn++;
+      newState = playCard(newState, card)
+      playsThisTurn++
     }
 
     // AI attack phase (if has attack token)
     if (newState.player2.hasAttackToken && newState.player2.bench.length > 0) {
-      const attackers = aiService.selectAttackers(newState);
-      
+      const attackers = aiService.selectAttackers(newState)
+
       if (attackers.length > 0) {
         // Convert to arrangement format
         const attackerArrangement = attackers.map((id, index) => ({
           attackerId: id,
-          laneId: index
-        }));
-        
-        newState = declareAttackers(newState, attackerArrangement);
-        
+          laneId: index,
+        }))
+
+        newState = declareAttackers(newState, attackerArrangement)
+
         // Simple auto-defend for the player
         if (newState.phase === 'combat' && newState.player1.bench.length > 0) {
-          const defenderAssignments: { defenderId: string; laneId: number }[] = [];
+          const defenderAssignments: { defenderId: string; laneId: number }[] = []
           newState.lanes.forEach((lane, index) => {
             if (lane.attacker) {
               const availableDefender = newState.player1.bench.find(
-                u => !defenderAssignments.some(d => d.defenderId === u.id)
-              );
+                u => !defenderAssignments.some(d => d.defenderId === u.id),
+              )
               if (availableDefender) {
-                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index });
+                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
               }
             }
-          });
-          
-          newState = declareDefenders(newState, defenderAssignments);
-          
+          })
+
+          newState = declareDefenders(newState, defenderAssignments)
+
           if (newState.phase === 'combat') {
-            newState = resolveCombat(newState);
+            newState = resolveCombat(newState)
           }
         }
       }
     }
 
     // End AI turn
-    newState = endTurn(newState);
-    
-    return newState;
-  };
+    newState = endTurn(newState)
+
+    return newState
+  }
 
   const zodiacSigns: Array<{ name: ZodiacClass; symbol: string; element: string }> = [
     { name: 'aries', symbol: '♈', element: 'fire' },
@@ -364,15 +374,15 @@ export default function Tutorial() {
     { name: 'sagittarius', symbol: '♐', element: 'fire' },
     { name: 'capricorn', symbol: '♑', element: 'earth' },
     { name: 'aquarius', symbol: '♒', element: 'air' },
-    { name: 'pisces', symbol: '♓', element: 'water' }
-  ];
+    { name: 'pisces', symbol: '♓', element: 'water' },
+  ]
 
   if (!gameState) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-white">Loading cards...</div>
       </div>
-    );
+    )
   }
 
   return (
@@ -400,12 +410,13 @@ export default function Tutorial() {
               Help
             </Button>
           </SheetTrigger>
-          <SheetContent side="left" className="w-[400px] bg-slate-900 border-purple-600 text-white overflow-y-auto">
+          <SheetContent
+            side="left"
+            className="w-[400px] bg-slate-900 border-purple-600 text-white overflow-y-auto"
+          >
             <SheetHeader>
               <SheetTitle className="text-2xl text-white">Tutorial Mode</SheetTitle>
-              <SheetDescription className="text-gray-300">
-                {message}
-              </SheetDescription>
+              <SheetDescription className="text-gray-300">{message}</SheetDescription>
             </SheetHeader>
 
             <div className="space-y-6 mt-6">
@@ -413,10 +424,7 @@ export default function Tutorial() {
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-purple-300">Game Controls</h3>
                 <div className="flex gap-2">
-                  <Button
-                    onClick={handleReset}
-                    className="bg-red-600 hover:bg-red-700 flex-1"
-                  >
+                  <Button onClick={handleReset} className="bg-red-600 hover:bg-red-700 flex-1">
                     Reset Game
                   </Button>
                   <Button
@@ -432,8 +440,8 @@ export default function Tutorial() {
               <div className="space-y-3">
                 <h3 className="text-lg font-semibold text-purple-300">AI Opponent</h3>
                 <div className="grid grid-cols-1 gap-2">
-                  {(Object.keys(AI_PERSONALITIES) as AILevel[]).map((level) => {
-                    const personality = AI_PERSONALITIES[level];
+                  {(Object.keys(AI_PERSONALITIES) as AILevel[]).map(level => {
+                    const personality = AI_PERSONALITIES[level]
                     return (
                       <Button
                         key={level}
@@ -446,16 +454,19 @@ export default function Tutorial() {
                           <span className="text-lg">{personality.icon}</span>
                           <div className="flex-1 min-w-0">
                             <div className="font-semibold">{personality.name}</div>
-                            <div className="text-xs text-gray-300 truncate">{personality.description}</div>
+                            <div className="text-xs text-gray-300 truncate">
+                              {personality.description}
+                            </div>
                           </div>
                         </div>
                       </Button>
-                    );
+                    )
                   })}
                 </div>
                 {selectedAILevel && (
                   <Badge className="bg-purple-600 w-full justify-center py-2">
-                    Fighting {AI_PERSONALITIES[selectedAILevel].name} {AI_PERSONALITIES[selectedAILevel].icon}
+                    Fighting {AI_PERSONALITIES[selectedAILevel].name}{' '}
+                    {AI_PERSONALITIES[selectedAILevel].icon}
                   </Badge>
                 )}
               </div>
@@ -470,7 +481,7 @@ export default function Tutorial() {
                   >
                     Random
                   </Button>
-                  {zodiacSigns.map((sign) => (
+                  {zodiacSigns.map(sign => (
                     <Button
                       key={sign.name}
                       onClick={() => setSelectedZodiac(sign.name)}
@@ -531,18 +542,23 @@ export default function Tutorial() {
 
         {/* Status Badge */}
         <div className="flex items-center gap-2">
-          <Badge className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${
-            timeRemaining <= 30 ? 'bg-red-600 animate-pulse' : 
-            timeRemaining <= 60 ? 'bg-orange-600' : 'bg-blue-600'
-          }`}>
+          <Badge
+            className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${
+              timeRemaining <= 30
+                ? 'bg-red-600 animate-pulse'
+                : timeRemaining <= 60
+                  ? 'bg-orange-600'
+                  : 'bg-blue-600'
+            }`}
+          >
             ⏱️ {formatTime(timeRemaining)}
           </Badge>
 
           {/* Game Info - Always Visible */}
           <Badge className="bg-gray-800 border border-gray-600 px-3 py-1 text-xs text-white">
-            R{gameState?.round || 1} • T{gameState?.turn || 1} • {gameState?.activePlayer === 'player1' ? 'You' : 'AI'}
+            R{gameState?.round || 1} • T{gameState?.turn || 1} •{' '}
+            {gameState?.activePlayer === 'player1' ? 'You' : 'AI'}
           </Badge>
-
 
           {/* Mulligan Quick Actions */}
           {gameState?.phase === 'mulligan' && !gameState?.player1.mulliganComplete && (
@@ -566,7 +582,6 @@ export default function Tutorial() {
         </div>
       </div>
 
-
       <div>
         <TarotGameBoard
           gameState={gameState}
@@ -577,5 +592,5 @@ export default function Tutorial() {
         />
       </div>
     </div>
-  );
+  )
 }

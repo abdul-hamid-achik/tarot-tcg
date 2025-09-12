@@ -1,5 +1,5 @@
 import { defineDocumentType, makeSource } from 'contentlayer2/source-files'
-import type { ZodiacClass as ZodiacClassType, Element, Rarity } from './src/schemas/gameSchemas'
+import { contentlayerFields, validationComputedFields } from './src/lib/contentlayer-schema-bridge'
 
 export const Card = defineDocumentType(() => ({
   name: 'Card',
@@ -14,21 +14,9 @@ export const Card = defineDocumentType(() => ({
       type: 'string',
       required: true,
     },
-    zodiacClass: {
-      type: 'enum',
-      options: ['aries', 'taurus', 'gemini', 'cancer', 'leo', 'virgo', 'libra', 'scorpio', 'sagittarius', 'capricorn', 'aquarius', 'pisces'] as const,
-      required: true,
-    },
-    element: {
-      type: 'enum',
-      options: ['fire', 'earth', 'air', 'water'] as const,
-      required: true,
-    },
-    cardType: {
-      type: 'enum',
-      options: ['unit', 'spell'] as const,
-      required: true,
-    },
+    zodiacClass: contentlayerFields.zodiacClass,
+    element: contentlayerFields.element,
+    cardType: contentlayerFields.cardType,
     cost: {
       type: 'number',
       required: true,
@@ -38,14 +26,10 @@ export const Card = defineDocumentType(() => ({
       required: false,
     },
     health: {
-      type: 'number', 
+      type: 'number',
       required: false,
     },
-    rarity: {
-      type: 'enum',
-      options: ['common', 'uncommon', 'rare', 'legendary', 'mythic'] as const,
-      required: true,
-    },
+    rarity: contentlayerFields.rarity,
     tarotNumber: {
       type: 'string',
       required: false,
@@ -79,11 +63,7 @@ export const Card = defineDocumentType(() => ({
       type: 'json',
       required: false,
     },
-    spellType: {
-      type: 'enum',
-      options: ['instant', 'ritual', 'enchantment'] as const,
-      required: false,
-    },
+    spellType: contentlayerFields.spellType,
     effects: {
       type: 'json',
       required: false,
@@ -92,20 +72,22 @@ export const Card = defineDocumentType(() => ({
   computedFields: {
     url: {
       type: 'string',
-      resolve: (card) => `/${card._raw.flattenedPath}`,
+      resolve: card => `/${card._raw.flattenedPath}`,
     },
     zodiacPath: {
-      type: 'string', 
-      resolve: (card) => card.zodiacClass,
+      type: 'string',
+      resolve: card => card.zodiacClass,
     },
     isUnit: {
       type: 'boolean',
-      resolve: (card) => card.cardType === 'unit',
+      resolve: card => card.cardType === 'unit',
     },
     isSpell: {
       type: 'boolean',
-      resolve: (card) => card.cardType === 'spell',
+      resolve: card => card.cardType === 'spell',
     },
+    // Add validation computed fields from Zod schema
+    ...validationComputedFields,
   },
 }))
 
@@ -126,7 +108,7 @@ export const ZodiacClass = defineDocumentType(() => ({
   computedFields: {
     url: {
       type: 'string',
-      resolve: (doc) => `/classes/${doc._raw.flattenedPath}`,
+      resolve: doc => `/classes/${doc._raw.flattenedPath}`,
     },
   },
 }))
@@ -148,7 +130,7 @@ export const MetaGuide = defineDocumentType(() => ({
   computedFields: {
     url: {
       type: 'string',
-      resolve: (doc) => `/meta/${doc._raw.flattenedPath.replace('-meta', '')}`,
+      resolve: doc => `/meta/${doc._raw.flattenedPath.replace('-meta', '')}`,
     },
   },
 }))

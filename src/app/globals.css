@@ -6,7 +6,7 @@
 
 :root {
   /* Light newspaper theme */
-  --background: oklch(1.0 0 0);
+  --background: oklch(1 0 0);
   /* Pure white background */
   --foreground: oklch(0.1 0 0);
   /* Near-black text */
@@ -14,17 +14,17 @@
   /* Very light gray card backgrounds */
   --card-foreground: oklch(0.1 0 0);
   /* Dark text on cards */
-  --popover: oklch(1.0 0 0);
+  --popover: oklch(1 0 0);
   /* White popover */
   --popover-foreground: oklch(0.1 0 0);
   /* Black popover text */
   --primary: oklch(0.1 0 0);
   /* Black primary */
-  --primary-foreground: oklch(1.0 0 0);
+  --primary-foreground: oklch(1 0 0);
   /* White on primary */
   --secondary: oklch(0.3 0 0);
   /* Dark gray secondary */
-  --secondary-foreground: oklch(1.0 0 0);
+  --secondary-foreground: oklch(1 0 0);
   /* White on secondary */
   --muted: oklch(0.95 0 0);
   /* Light gray muted */
@@ -32,11 +32,11 @@
   /* Medium gray text */
   --accent: oklch(0.2 0 0);
   /* Dark gray accent */
-  --accent-foreground: oklch(1.0 0 0);
+  --accent-foreground: oklch(1 0 0);
   /* White on accent */
   --destructive: oklch(0.5 0.2 15);
   /* Red for destructive */
-  --destructive-foreground: oklch(1.0 0 0);
+  --destructive-foreground: oklch(1 0 0);
   /* White on destructive */
   --border: oklch(0.8 0 0);
   /* Light gray borders */
@@ -62,11 +62,11 @@
   /* Dark sidebar text */
   --sidebar-primary: oklch(0.1 0 0);
   /* Dark primary sidebar */
-  --sidebar-primary-foreground: oklch(1.0 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
   /* White text on primary sidebar */
   --sidebar-accent: oklch(0.3 0 0);
   /* Dark gray accent sidebar */
-  --sidebar-accent-foreground: oklch(1.0 0 0);
+  --sidebar-accent-foreground: oklch(1 0 0);
   /* White text on sidebar accent */
   --sidebar-border: oklch(0.8 0 0);
   /* Light gray sidebar border */
@@ -106,7 +106,7 @@
   /* Dark text on accent */
   --destructive: oklch(0.5 0.2 15);
   /* Red for destructive */
-  --destructive-foreground: oklch(1.0 0 0);
+  --destructive-foreground: oklch(1 0 0);
   /* White on destructive */
   --border: oklch(0.3 0 0);
   /* Medium gray borders */

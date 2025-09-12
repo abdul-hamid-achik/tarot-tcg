@@ -10,7 +10,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  return allZodiacClasses.map((doc) => ({
+  return allZodiacClasses.map(doc => ({
     slug: doc._raw.flattenedPath.replace('classes/', '').split('/'),
   }))
 }
@@ -18,9 +18,7 @@ export async function generateStaticParams() {
 export default async function ClassPage({ params }: PageProps) {
   const { slug: slugArray } = await params
   const slug = slugArray.join('/')
-  const doc = allZodiacClasses.find((doc) =>
-    doc._raw.flattenedPath === `classes/${slug}`
-  )
+  const doc = allZodiacClasses.find(doc => doc._raw.flattenedPath === `classes/${slug}`)
 
   if (!doc) notFound()
 
@@ -30,7 +28,9 @@ export default async function ClassPage({ params }: PageProps) {
     <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
       <div className="container mx-auto py-8 max-w-4xl">
         <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4 text-black dark:text-white transition-colors">{doc.title}</h1>
+          <h1 className="text-4xl font-bold mb-4 text-black dark:text-white transition-colors">
+            {doc.title}
+          </h1>
           <p className="text-lg text-gray-800 dark:text-gray-200">{doc.description}</p>
         </div>
 

@@ -28,7 +28,8 @@
 }
 
 @keyframes combatClash {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1) rotate(0deg);
   }
   25% {
@@ -43,7 +44,8 @@
 }
 
 @keyframes lanePulse {
-  0%, 100% {
+  0%,
+  100% {
     background-color: rgba(168, 85, 247, 0.1);
   }
   50% {
@@ -74,13 +76,15 @@
 
 /* Glow effects */
 .attack-glow {
-  box-shadow: 0 0 20px rgba(251, 191, 36, 0.6),
-              0 0 40px rgba(251, 191, 36, 0.3);
+  box-shadow:
+    0 0 20px rgba(251, 191, 36, 0.6),
+    0 0 40px rgba(251, 191, 36, 0.3);
 }
 
 .defend-glow {
-  box-shadow: 0 0 20px rgba(6, 182, 212, 0.6),
-              0 0 40px rgba(6, 182, 212, 0.3);
+  box-shadow:
+    0 0 20px rgba(6, 182, 212, 0.6),
+    0 0 40px rgba(6, 182, 212, 0.3);
 }
 
 /* Card hover effects */
