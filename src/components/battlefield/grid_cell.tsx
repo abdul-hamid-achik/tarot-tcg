@@ -22,11 +22,15 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
     'valid',
   )
 
+  // Track click timestamps for double-click detection
+  const cardClickTimestamps = useRef<Map<string, number>>(new Map())
+
   const { gameState, grid, interaction, setHoveredCell, assignDefender, removeDefenderAssignment } =
     useGameStore()
 
   const cellKey = createCellKey(position)
-  const card = gridManagerService.getCellContent(position) || null
+  // Re-read card content whenever gameState changes to ensure visual updates
+  const card = gameState ? gridManagerService.getCellContent(position) || null : null
   const isValidDropZone = grid.validDropZones.has(cellKey)
   const isHighlightedCell = grid.highlightedCells.has(cellKey)
 
@@ -40,9 +44,7 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
       // Add visual feedback for valid/invalid drop zones
       if (cellRef.current) {
         const validPositions = getValidDropPositions()
-        const isValidDrop = validPositions.some(
-          pos => pos.row === position.row && pos.col === position.col,
-        )
+        const isValidDrop = validPositions.includes(cellKey)
         if (isValidDrop) {
           cellRef.current.classList.add('valid-drop-target')
         } else {
@@ -77,7 +79,7 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
     const dragState = interactionService.getDragState()
     if (!dragState.draggedCard || !dragState.sourcePosition) return []
     // Let InteractionService/host provide the actual valid targets
-    return grid.validDropZones.size > 0 ? Array.from(grid.validDropZones).map(createCellKey) : []
+    return Array.from(grid.validDropZones)
   }
 
   // Handle clicks
@@ -117,6 +119,20 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
     }
 
     if (card && isPlayerControlled()) {
+      // Handle double-click for card detail overlay
+      const now = Date.now()
+      const lastClick = cardClickTimestamps.current.get(card.id) || 0
+
+      if (now - lastClick < 300) { // Double-click detected (300ms window)
+        console.log(`Double-clicked on card ${card.name} - showing detail overlay`)
+        const { showCardDetail } = useGameStore.getState()
+        showCardDetail(card)
+        return
+      }
+
+      // Store click timestamp for double-click detection
+      cardClickTimestamps.current.set(card.id, now)
+
       // Check if we're in action phase and this is a bench unit that can be selected
       if (gameState?.phase === 'action' && cellType === 'player_bench' && card.type === 'unit') {
         // Select/deselect bench unit for movement to attack row
@@ -128,14 +144,31 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
           console.log(`Deselected bench unit ${card.name}`)
         } else {
           // Clear any other selections and select this card
-          const { clearSelectedCards } = useGameStore.getState()
-          clearSelectedCards()
+          const { clearSelection } = useGameStore.getState()
+          clearSelection()
           selectCard(card.id)
           console.log(`Selected bench unit ${card.name} for attack positioning`)
         }
         return
       }
-      
+
+      // Handle clicking cards in attack/defense lanes to move them back to bench
+      if ((cellType === 'player_attack') &&
+          (gameState?.phase === 'declare_attackers' || gameState?.phase === 'action')) {
+        console.log(`Clicked on attack lane unit ${card.name} - moving back to bench`)
+        // This would need a function to move units from lanes back to bench
+        // For now, just select/deselect
+        const { selectCard, deselectCard, interaction } = useGameStore.getState()
+        const isSelected = interaction.selectedCards.has(card.id)
+
+        if (isSelected) {
+          deselectCard(card.id)
+        } else {
+          selectCard(card.id)
+        }
+        return
+      }
+
       // Normal drag interaction for other cases
       const element = cellRef.current?.querySelector('.tarot-card') as HTMLElement
       if (element) {
@@ -160,37 +193,47 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
       if (selectedCard) {
         console.log(`Attempting to place selected card ${selectedCard.name} at ${position.row},${position.col}`)
         
-        // Check if this is a valid placement for units
+        // Check if card is from hand
+        const isFromHand = gameState?.player1.hand.some(c => c.id === selectedCard.id)
+
         if (selectedCard.type === 'unit') {
-          // For bench placement (player bench only)
-          if (cellType === 'player_bench') {
-            // Use the hooks-based play card action
-            const { playCard } = useGameStore.getState()
-            if (playCard) {
-              playCard(selectedCard).then(() => {
-                // Clear selection after playing
-                const { clearSelectedCards } = useGameStore.getState()
-                clearSelectedCards()
-                console.log(`Successfully played ${selectedCard.name} to bench`)
-              }).catch(error => {
-                console.error('Failed to play card:', error)
-              })
+          // For bench placement (player bench only) - any bench cell works
+          if (cellType === 'player_bench' && isFromHand) {
+            // Play unit from hand to bench using interaction service
+            if (interactionService.callbacks.onCardMove) {
+              interactionService.callbacks.onCardMove(selectedCard, 'hand', { row: 3, col: 2 })
+              console.log(`Playing ${selectedCard.name} from hand to bench via interaction service`)
             } else {
-              console.log('No card play action available')
+              console.error('No onCardMove callback available')
             }
+
+            // Clear selection after action
+            const { clearSelection } = useGameStore.getState()
+            clearSelection()
           }
-          // For attack row placement during attack phase
-          else if (cellType === 'player_attack' && gameState?.phase === 'action') {
-            // Check if the selected card is from the bench
-            const benchCard = gameState?.player1.bench.find(c => c.id === selectedCard.id)
-            if (benchCard) {
-              // Move unit from bench to attack position
-              console.log(`Moving ${selectedCard.name} from bench to attack position`)
-              // This would require a new game logic function to move units within the field
-              // For now, log the intent
-              const { clearSelectedCards } = useGameStore.getState()
-              clearSelectedCards()
-            }
+        } else if (selectedCard.type === 'spell' && isFromHand) {
+          // For spells, clicking anywhere plays the spell immediately
+          if (interactionService.callbacks.onCardMove) {
+            interactionService.callbacks.onCardMove(selectedCard, 'hand', position)
+            console.log(`Playing spell ${selectedCard.name}`)
+          }
+
+          // Clear selection after action
+          const { clearSelection } = useGameStore.getState()
+          clearSelection()
+        }
+
+        // For attack row placement during attack phase (for units from bench)
+        if (selectedCard.type === 'unit' && cellType === 'player_attack' && gameState?.phase === 'action') {
+          // Check if the selected card is from the bench
+          const benchCard = gameState?.player1.bench.find(c => c.id === selectedCard.id)
+          if (benchCard) {
+            // Move unit from bench to attack position
+            console.log(`Moving ${selectedCard.name} from bench to attack position`)
+            // This would require a new game logic function to move units within the field
+            // For now, log the intent
+            const { clearSelection } = useGameStore.getState()
+            clearSelection()
           }
         }
       }
@@ -277,21 +320,23 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
   // Get cell styling based on type and state
   const getCellStyles = (): string => {
     let baseStyles =
-      'h-[120px] border-2 border-dashed rounded-lg flex items-center justify-center text-xs transition-all duration-200 cursor-pointer relative hover:scale-[1.02]'
+      'h-[120px] rounded-lg flex items-center justify-center text-xs transition-all duration-200 cursor-pointer relative'
 
     // Cell type specific styles
     switch (cellType) {
       case 'enemy_bench':
-        baseStyles += ' border-gray-400 bg-gray-100/20'
+        // Hide bench cell borders - just background
+        baseStyles += ' bg-transparent'
         break
       case 'enemy_attack':
-        baseStyles += ' border-gray-500/50 bg-gray-200/10'
+        baseStyles += ' border-2 border-dashed border-gray-500/50 bg-gray-200/10 hover:scale-[1.02]'
         break
       case 'player_attack':
-        baseStyles += ' border-gray-600/50 bg-gray-200/10'
+        baseStyles += ' border-2 border-dashed border-gray-600/50 bg-gray-200/10 hover:scale-[1.02]'
         break
       case 'player_bench':
-        baseStyles += ' border-gray-500 bg-gray-100/20'
+        // Hide bench cell borders - just background
+        baseStyles += ' bg-transparent'
         break
     }
 
@@ -383,9 +428,7 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
       {/* Drag hover effects */}
       {interactionService.isDragging() && isHovered && (
         <div className="absolute inset-0 rounded transition-all duration-150">
-          {getValidDropPositions().some(
-            pos => pos.row === position.row && pos.col === position.col,
-          ) ? (
+          {getValidDropPositions().includes(cellKey) ? (
             <div className="w-full h-full border-2 border-green-400 rounded bg-green-400/20 animate-pulse" />
           ) : (
             <div className="w-full h-full border-2 border-red-400 rounded bg-red-400/20 animate-pulse" />

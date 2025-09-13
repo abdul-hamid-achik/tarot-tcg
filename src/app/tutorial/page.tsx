@@ -31,7 +31,8 @@ import {
   resolveCombat,
 } from '@/lib/game_logic'
 import type { Card, GameState, ZodiacClass } from '@/schemas/schema'
-import { AI_PERSONALITIES, type AILevel, aiService } from '@/services/ai_service'
+import { AI_PERSONALITIES, type AILevel } from '@/services/ai_service'
+import { useAIController } from '@/hooks/use_ai_controller'
 
 export default function Tutorial() {
   const [selectedZodiac, setSelectedZodiac] = useState<ZodiacClass | undefined>(undefined)
@@ -41,19 +42,28 @@ export default function Tutorial() {
     'ongoing',
   )
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [message, setMessage] = useState('')
+
+  // Initialize AI controller
+  const { getAIInfo } = useAIController({
+    enabled: true,
+    autoPlay: true,
+    difficulty: selectedAILevel,
+  })
 
   // Initialize cards and game when component mounts
   useEffect(() => {
     initializeCards()
-    aiService.setPersonality(selectedAILevel)
     const newGame = createInitialGameState(selectedZodiac)
     setGameState(newGame)
     GameLogger.gameStart('You', AI_PERSONALITIES[selectedAILevel].name)
     GameLogger.turnStart('player1', 1, 1, true)
   }, [selectedZodiac, selectedAILevel])
-  const [message, setMessage] = useState<string>(
-    'Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.',
-  )
+
+  // Initialize message state
+  useEffect(() => {
+    setMessage('Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.')
+  }, [])
   const [timeRemaining, setTimeRemaining] = useState<number>(180) // 3 minutes in seconds
 
   // Timer countdown effect
@@ -78,97 +88,9 @@ export default function Tutorial() {
     return `${mins}:${secs.toString().padStart(2, '0')}`
   }
 
-  // Enhanced AI turn using AI service - moved here to avoid circular dependency
-  const performEnhancedAITurn = async (currentState: GameState): Promise<GameState> => {
-    let newState = { ...currentState }
-
-    // AI card play phase
-    const maxPlays = 3 // Limit AI plays per turn to avoid infinite loops
-    let playsThisTurn = 0
-
-    while (playsThisTurn < maxPlays) {
-      const { card, shouldPlay } = aiService.selectCardToPlay(newState)
-
-      if (!card || !shouldPlay) break
-
-      try {
-        // Play the selected card
-        newState = await playCard(newState, card)
-        playsThisTurn++
-      } catch (error) {
-        console.error('Error in AI card play:', error)
-        break
-      }
-    }
-
-    // AI attack phase (if has attack token)
-    if (newState.player2.hasAttackToken && newState.player2.bench.length > 0) {
-      const attackers = aiService.selectAttackers(newState)
-
-      if (attackers.length > 0) {
-        // Convert to arrangement format
-        const attackerArrangement = attackers.map((id, index) => ({
-          attackerId: id,
-          laneId: index,
-        }))
-
-        newState = declareAttackers(newState, attackerArrangement)
-
-        // Simple auto-defend for the player
-        if (newState.phase === 'combat' && newState.player1.bench.length > 0) {
-          const defenderAssignments: { defenderId: string; laneId: number }[] = []
-          newState.lanes.forEach((lane, index) => {
-            if (lane.attacker) {
-              const availableDefender = newState.player1.bench.find(
-                u => !defenderAssignments.some(d => d.defenderId === u.id),
-              )
-              if (availableDefender) {
-                defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
-              }
-            }
-          })
-
-          newState = declareDefenders(newState, defenderAssignments)
-
-          if (newState.phase === 'combat') {
-            try {
-              newState = await resolveCombat(newState)
-            } catch (error) {
-              console.error('Error in AI combat resolution:', error)
-            }
-          }
-        }
-      }
-    }
-
-    try {
-      // End AI turn
-      newState = await endTurn(newState)
-    } catch (error) {
-      console.error('Error ending AI turn:', error)
-    }
-
-    return newState
-  }
-
+  // Check game outcome and update UI messages
   useEffect(() => {
     if (!gameState) return
-
-    // Handle AI mulligan phase
-    if (
-      gameState.phase === 'mulligan' &&
-      !gameState.player2.mulliganComplete &&
-      gameState.player1.mulliganComplete
-    ) {
-      const personality = aiService.getCurrentPersonality()
-      setTimeout(() => {
-        setMessage(`${personality.icon} ${personality.name} is choosing cards...`)
-        const newState = aiService.performMulligan(gameState)
-        setGameState(newState)
-        setMessage('✅ Both players ready! Game starting...')
-      }, personality.thinkingTime)
-      return
-    }
 
     // Check game outcome
     const outcome = checkGameOutcome(gameState)
@@ -176,31 +98,19 @@ export default function Tutorial() {
 
     if (outcome === 'player2_wins') {
       setMessage('❌ Defeat! The mystical forces have overcome you.')
-      return // Don't continue with AI turn if game is over
     } else if (outcome === 'player1_wins') {
       setMessage('🎉 Victory! You have mastered the tarot powers!')
-      return // Don't continue with AI turn if game is over
-    } else if (gameState.activePlayer === 'player2' && gameState.phase === 'action') {
-      // Enhanced AI Turn with personality
-      const personality = aiService.getCurrentPersonality()
-      setTimeout(async () => {
-        setMessage(`${personality.icon} ${personality.name} is thinking...`)
-        try {
-          const newState = await performEnhancedAITurn(gameState)
-          setGameState(newState)
-
-          if (newState.player1?.hasAttackToken) {
-            setMessage('⚔️ Your turn! You have the attack token - summon units and attack!')
-          } else {
-            setMessage('🛡️ Your turn! Prepare your defenses.')
-          }
-        } catch (error) {
-          console.error('Error in AI turn:', error)
-          setMessage('❌ AI turn failed. Please reset the game.')
-        }
-      }, personality.thinkingTime)
+    } else if (gameState.activePlayer === 'player1') {
+      if (gameState.player1.hasAttackToken) {
+        setMessage('⚔️ Your turn! You have the attack token - summon units and attack!')
+      } else {
+        setMessage('🛡️ Your turn! Prepare your defenses.')
+      }
+    } else if (gameState.activePlayer === 'player2') {
+      const aiInfo = getAIInfo()
+      setMessage(`${aiInfo.icon} ${aiInfo.name} is thinking...`)
     }
-  }, [gameState, performEnhancedAITurn])
+  }, [gameState, getAIInfo])
 
   const handleCardPlay = async (card: Card) => {
     if (!gameState) return
@@ -444,7 +354,7 @@ export default function Tutorial() {
   }
 
   return (
-    <div className="min-h-screen bg-black">
+    <div className="h-screen bg-black overflow-hidden relative">
       {/* Game Outcome Screen Overlay */}
       <GameOutcomeScreen
         outcome={gameOutcome}
@@ -504,9 +414,8 @@ export default function Tutorial() {
                       <Button
                         key={level}
                         onClick={() => setSelectedAILevel(level)}
-                        className={`text-left px-3 py-2 h-auto ${
-                          selectedAILevel === level ? 'bg-purple-600' : 'bg-gray-700'
-                        }`}
+                        className={`text-left px-3 py-2 h-auto ${selectedAILevel === level ? 'bg-purple-600' : 'bg-gray-700'
+                          }`}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{personality.icon}</span>
@@ -601,13 +510,12 @@ export default function Tutorial() {
         {/* Status Badge */}
         <div className="flex items-center gap-2">
           <Badge
-            className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${
-              timeRemaining <= 30
+            className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${timeRemaining <= 30
                 ? 'bg-red-600 animate-pulse'
                 : timeRemaining <= 60
                   ? 'bg-orange-600'
                   : 'bg-blue-600'
-            }`}
+              }`}
           >
             ⏱️ {formatTime(timeRemaining)}
           </Badge>
@@ -640,7 +548,8 @@ export default function Tutorial() {
         </div>
       </div>
 
-      <div>
+      {/* Game Board - Positioned to avoid header */}
+      <div style={{ height: 'calc(100vh - 5rem)' }}>
         <TarotGameBoard
           gameState={gameState}
           onCardPlay={handleCardPlay}

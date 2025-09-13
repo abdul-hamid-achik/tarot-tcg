@@ -41,19 +41,25 @@ export class GridManagerService {
       }
     })
 
-    // Map attack lanes to grid positions
+    // Map attack lanes to grid positions based on who is attacking
     gameState.lanes.forEach((lane, index) => {
       if (index < 6) {
-        // Player attacks in row 2
+        // Place attacking units in the correct attack row
         if (lane.attacker) {
-          const playerAttackPos = CellPositionSchema.parse({ row: 2, col: index })
-          this.gridState.set(this.createCellKey(playerAttackPos), lane.attacker)
+          // Determine which player is attacking
+          const isPlayer1Attacking = gameState.attackingPlayer === 'player1'
+          const attackRow = isPlayer1Attacking ? 2 : 1 // Player1 attacks in row 2, Player2 attacks in row 1
+          const attackPos = CellPositionSchema.parse({ row: attackRow, col: index })
+          this.gridState.set(this.createCellKey(attackPos), lane.attacker)
         }
 
-        // Enemy attacks in row 1
+        // Place defending units in the opposite attack row
         if (lane.defender) {
-          const enemyAttackPos = CellPositionSchema.parse({ row: 1, col: index })
-          this.gridState.set(this.createCellKey(enemyAttackPos), lane.defender)
+          // Defenders go in the opposite attack row from attackers
+          const isPlayer1Attacking = gameState.attackingPlayer === 'player1'
+          const defendRow = isPlayer1Attacking ? 1 : 2 // Defenders go opposite to attackers
+          const defendPos = CellPositionSchema.parse({ row: defendRow, col: index })
+          this.gridState.set(this.createCellKey(defendPos), lane.defender)
         }
       }
     })

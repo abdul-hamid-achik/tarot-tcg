@@ -871,6 +871,36 @@ class CombatService {
   }
 
   /**
+   * Calculate damage dealt by an attacker to a target
+   */
+  private calculateDamage(
+    attacker: GameCard,
+    target: GameCard | null,
+    modifiers?: CombatModifiers,
+  ): number {
+    // Get effective attack considering reversed state
+    const effectiveStats = this.getEffectiveCardStats(attacker)
+    let damage = effectiveStats.attack
+
+    // Apply modifiers
+    if (modifiers) {
+      if (modifiers.attackBonus) {
+        damage += modifiers.attackBonus
+      }
+      if (modifiers.damageReduction) {
+        damage = Math.max(0, damage - modifiers.damageReduction)
+      }
+    }
+
+    // Deathtouch - any damage kills
+    if (target && modifiers?.deathtouch && damage > 0) {
+      return target.currentHealth || target.health
+    }
+
+    return Math.max(0, damage)
+  }
+
+  /**
    * Resolve combat for a single lane with keyword abilities
    */
   private resolveLaneCombat(lane: Lane, laneIndex: number): CombatResult {

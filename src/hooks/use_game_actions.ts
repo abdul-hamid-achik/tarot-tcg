@@ -1,6 +1,5 @@
 import { useCallback } from 'react'
 import type { Card as GameCard } from '@/schemas/schema'
-import { aiService } from '@/services/ai_service'
 import { animationService } from '@/services/animation_service'
 import { combatService } from '@/services/combat_service'
 import { gridManagerService } from '@/services/grid_manager_service'
@@ -52,27 +51,49 @@ export const useGameActions = () => {
         // Remove card from hand
         player.hand = player.hand.filter(c => c.id !== card.id)
 
-        // Add to appropriate position
-        if (targetPosition) {
-          // Place directly on grid (handled by GridManagerService)
-          const cardInstance = { ...card, currentHealth: card.health }
-          gridManagerService.setCellContent(targetPosition, cardInstance)
-        } else {
-          // Add to bench
-          if (player.bench.length < 6) {
-            const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
-            player.bench.push(cardInstance)
+        // Handle different card types
+        if (card.type === 'spell') {
+          // Spells are cast immediately and go to graveyard
+          console.log(`Casting spell: ${card.name}`)
 
-            // Register card abilities and trigger enter bench event
+          // Execute spell effect here (TODO: implement spell effect system)
+          // For now, just move to graveyard
+          if (!player.graveyard) {
+            player.graveyard = []
+          }
+          player.graveyard.push(card)
+
+          newGameState.player1 = player
+          setGameState(newGameState)
+        } else {
+          // Units go to bench or grid position
+          if (targetPosition) {
+            // Place directly on grid (handled by GridManagerService)
+            const cardInstance = { ...card, currentHealth: card.health, position: 'field' as const }
+            gridManagerService.setCellContent(targetPosition, cardInstance)
+
+            // Update player state and register card
             newGameState.player1 = player
             const updatedState = combatService.registerCardAbilities(cardInstance, newGameState)
             setGameState(updatedState)
-            return
+          } else {
+            // Add to bench
+            if (player.bench.length < 6) {
+              const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
+              player.bench.push(cardInstance)
+
+              // Register card abilities and trigger enter bench event
+              newGameState.player1 = player
+              const updatedState = combatService.registerCardAbilities(cardInstance, newGameState)
+              setGameState(updatedState)
+            } else {
+              console.warn('Bench is full, cannot play card')
+              // Update game state to reflect mana cost but card couldn't be placed
+              newGameState.player1 = player
+              setGameState(newGameState)
+            }
           }
         }
-
-        newGameState.player1 = player
-        setGameState(newGameState)
 
         // Animate card play if we have DOM elements
         // This would be handled by the calling component with proper element refs
@@ -296,96 +317,6 @@ export const useGameActions = () => {
     [gameState, setGameState, setAnimationState],
   )
 
-  const executeAITurn = useCallback(async () => {
-    if (!gameState || gameState.activePlayer !== 'player2') return
-
-    try {
-      setAnimationState(true)
-      const currentState = { ...gameState }
-      const ai = currentState.player2
-      const _personality = aiService.getCurrentPersonality()
-
-      // Phase 1: Play cards
-      const maxCardsToPlay = Math.min(3, ai.hand.length) // Play up to 3 cards per turn
-      let cardsPlayed = 0
-
-      for (let i = 0; i < maxCardsToPlay; i++) {
-        const { card, shouldPlay } = aiService.selectCardToPlay(currentState)
-        if (card && shouldPlay && ai.bench.length < 6) {
-          // Simulate AI playing the card
-          const totalMana = ai.mana + ai.spellMana
-          if (card.cost <= totalMana) {
-            // Calculate mana payment
-            const manaToUse = Math.min(ai.mana, card.cost)
-            const spellManaToUse = Math.max(0, card.cost - manaToUse)
-
-            // Update AI state
-            currentState.player2.mana -= manaToUse
-            currentState.player2.spellMana -= spellManaToUse
-            currentState.player2.hand = ai.hand.filter(c => c.id !== card.id)
-
-            if (card.type === 'unit') {
-              const cardInstance = {
-                ...card,
-                currentHealth: card.health,
-                position: 'bench' as const,
-              }
-              currentState.player2.bench.push(cardInstance)
-              cardsPlayed++
-            }
-          }
-        }
-      }
-
-      if (cardsPlayed > 0) {
-        console.log(`AI played ${cardsPlayed} card(s)`)
-        setGameState(currentState)
-        await new Promise(resolve => setTimeout(resolve, 500)) // Small delay between actions
-      }
-
-      // Phase 2: Attack if has attack token
-      if (ai.hasAttackToken && ai.bench.length > 0) {
-        const attackerIds = aiService.selectAttackers(currentState)
-
-        if (attackerIds.length > 0) {
-          // Clear lanes first
-          currentState.lanes = currentState.lanes.map(lane => ({
-            ...lane,
-            attacker: null,
-            defender: null,
-          }))
-
-          // Place attackers in lanes
-          attackerIds.forEach((attackerId, index) => {
-            if (index < 6) {
-              const unit = currentState.player2.bench.find(u => u.id === attackerId)
-              if (unit) {
-                currentState.lanes[index].attacker = { ...unit, position: 'attacking' }
-              }
-            }
-          })
-
-          currentState.phase = 'declare_defenders'
-          currentState.attackingPlayer = 'player2'
-          currentState.activePlayer = 'player1' // Switch to player1 for defense
-
-          console.log(`AI declared attack with ${attackerIds.length} unit(s)`)
-          setGameState(currentState)
-          return // Let player1 decide defenders
-        }
-      }
-
-      // Phase 3: End turn if nothing to do
-      console.log('AI ending turn')
-      await new Promise(resolve => setTimeout(resolve, 500))
-      // The turn will be ended by the calling component
-    } catch (error) {
-      console.error('Error executing AI turn:', error)
-    } finally {
-      setAnimationState(false)
-    }
-  }, [gameState, setGameState, setAnimationState])
-
   const endTurn = useCallback(async () => {
     if (!gameState) return
 
@@ -443,15 +374,8 @@ export const useGameActions = () => {
       clearAttackers()
       clearDefenderAssignments()
 
-      // If switching to AI player, execute AI turn after a delay
-      if (nextPlayer === 'player2') {
-        setGameState(finalState)
-        setTimeout(() => {
-          executeAITurn()
-        }, aiService.getCurrentPersonality().thinkingTime)
-      } else {
-        setGameState(finalState)
-      }
+      // Set the game state - AI turn will be handled by useAITurn hook
+      setGameState(finalState)
     } catch (error) {
       console.error('Error ending turn:', error)
     } finally {
@@ -463,7 +387,6 @@ export const useGameActions = () => {
     setAnimationState,
     clearAttackers,
     clearDefenderAssignments,
-    executeAITurn,
   ])
 
   return {
@@ -474,6 +397,5 @@ export const useGameActions = () => {
     resolveCombat,
     completeMulligan,
     reverseCard,
-    executeAITurn,
   }
 }

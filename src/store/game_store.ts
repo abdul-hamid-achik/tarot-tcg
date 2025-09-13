@@ -350,7 +350,7 @@ export const useGameStore = create<GameStore>()(
           (state: GameStore) => ({
             interaction: {
               ...state.interaction,
-              selectedCards: new Set(state.interaction.selectedCards).add(cardId),
+              selectedCards: new Set([cardId]), // Only select this card (clear others)
             },
           }),
           false,

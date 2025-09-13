@@ -6,7 +6,7 @@ import { useId } from 'react'
 export default function BackgroundEffects() {
   const gradientId = useId()
   return (
-    <div className="fixed inset-0 opacity-5 pointer-events-none overflow-hidden">
+    <div className="absolute inset-0 opacity-5 pointer-events-none overflow-hidden">
       {/* Primary celestial bodies */}
       <div className="absolute top-10 left-10 animate-pulse">
         <Star className="w-6 h-6 text-gray-400" />

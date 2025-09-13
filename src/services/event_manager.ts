@@ -343,6 +343,14 @@ export class EventManager {
   ): Promise<void> {
     await this.emit(type, gameState, additionalData, { type: 'system', id: 'game' })
   }
+
+  /**
+   * Emit an AI action event
+   */
+  emitAIAction(action: string, data: Record<string, any> = {}): void {
+    console.log(`🤖 AI Action: ${action}`, data)
+    // This is just for logging AI actions - no actual event emission needed for now
+  }
 }
 
 // Singleton instance

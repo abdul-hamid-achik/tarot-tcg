@@ -9,6 +9,7 @@ import type {
 } from '@/schemas/schema'
 import { effectStackService } from '@/services/effect_stack_service'
 import { eventManager } from '@/services/event_manager'
+import { useGameStore } from '@/store/game_store'
 
 export interface ActiveEffect {
   id: string
@@ -420,16 +421,21 @@ export class CardEffectSystem {
   }
 
   private getGameStateFromEvent(event: GameEvent): GameState {
-    // For now, we'll extract the game state from the event data
-    // In a real implementation, this would get the current state from the store
+    // First try to extract game state from event data
     if (event.data && 'gameState' in event.data) {
       return event.data.gameState as GameState
     }
 
-    // Fallback: create a minimal game state for processing
-    // This should be replaced with actual game state retrieval
+    // Get current game state from the store
+    const { gameState } = useGameStore.getState()
+    if (gameState) {
+      return gameState
+    }
+
+    // Final fallback: create a minimal game state for processing
+    // This should rarely be needed now
     console.warn(
-      'getGameStateFromEvent: Using fallback game state, this should be implemented properly',
+      'getGameStateFromEvent: No game state available, using minimal fallback',
     )
     return {
       round: 1,

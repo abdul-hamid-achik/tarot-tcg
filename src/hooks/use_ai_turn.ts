@@ -3,6 +3,10 @@ import type { GameState } from '@/schemas/schema'
 import { aiService } from '@/services/ai_service'
 import { useGameStore } from '@/store/game_store'
 
+/**
+ * @deprecated Use useAIController instead for unified AI behavior
+ * This hook is kept for backward compatibility but should not be used in new code
+ */
 export const useAITurn = () => {
   const { gameState, setGameState } = useGameStore()
 
@@ -141,17 +145,18 @@ export const useAITurn = () => {
 
     // Phase 3: End turn if no attack
     console.log('AI ending turn')
-    // Signal that the AI turn is complete - the GameBoard will handle ending the turn
+    // The calling component should handle ending the turn
   }, [gameState, setGameState, executeAICardPlay, executeAIAttack])
 
-  // Auto-execute AI turns
+  // Auto-execute AI turns - DISABLED to prevent conflicts with tutorial page
+  // The tutorial page has its own AI logic in performEnhancedAITurn
   useEffect(() => {
     if (!gameState) return
 
-    // Execute AI turn when it becomes active
-    if (gameState.activePlayer === 'player2' && gameState.phase === 'action') {
-      executeFullAITurn()
-    }
+    // Disabled automatic execution - let the page component control AI turns
+    // if (gameState.activePlayer === 'player2' && gameState.phase === 'action') {
+    //   executeFullAITurn()
+    // }
 
     // Execute AI defense when needed
     if (

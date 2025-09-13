@@ -94,15 +94,16 @@ export default function ActionBar({
     if (!isDefendPhase) {
       return { enabled: false, tooltip: 'Can only defend during defender declaration' }
     }
-    if (getPlayerBench(gameState, 'player1').length === 0) {
-      return { enabled: false, tooltip: 'No units to defend with' }
-    }
+
+    const hasDefenders = getPlayerBench(gameState, 'player1').length > 0
+
     return {
-      enabled: true,
-      tooltip:
-        selectedDefendersCount > 0
+      enabled: true, // Always enabled - player can always skip block
+      tooltip: hasDefenders
+        ? (selectedDefendersCount > 0
           ? `Commit ${selectedDefendersCount} defenders`
-          : 'Assign defenders to lanes',
+          : 'Assign defenders or skip to take damage')
+        : 'No units to defend with - skip to take damage',
     }
   }
 

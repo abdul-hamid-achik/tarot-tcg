@@ -4,9 +4,9 @@ import type React from 'react'
 import { useRef } from 'react'
 import TarotCard from '@/components/tarot_card'
 import type { Card as GameCard } from '@/schemas/schema'
-import { gridManagerService } from '@/services/grid_manager_service'
 import { interactionService } from '@/services/interaction_service'
 import { useGameStore } from '@/store/game_store'
+import Image from 'next/image'
 
 interface HandFanProps {
   cards: GameCard[]
@@ -79,38 +79,32 @@ export default function HandFan({
   const handleCardClick = (card: GameCard) => {
     if (!isCurrentPlayer) return
     if (!gameState) return
-    
-    const { selectCard, deselectCard, interaction } = useGameStore.getState()
-    
+
+    const { selectCard, unselectCard: deselectCard, interaction } = useGameStore.getState()
+
     // Check if card is already selected
     const isSelected = interaction.selectedCards.has(card.id)
-    
+
     if (isSelected) {
       // Deselect if already selected
       deselectCard(card.id)
       return
     }
 
-    // For action phase, select the card for placement
+    // For action phase, select the card for placement (all card types)
     const isOurTurn = gameState.activePlayer === 'player1'
     const isAction = gameState.phase === 'action'
     const totalMana = gameState.player1.mana + gameState.player1.spellMana
     const canAfford = card.cost <= totalMana
 
-    if (isOurTurn && isAction && canAfford && card.type === 'unit') {
-      // Select the card for click-to-place
+    if (isOurTurn && isAction && canAfford) {
+      // Select the card for click-to-place (works for all card types)
       selectCard(card.id)
       console.log(`Selected ${card.name} for placement`)
       return
     }
 
-    // For spells or unaffordable cards, try to auto-play or show details
-    if (isOurTurn && isAction && canAfford) {
-      onCardPlay?.(card)
-      return
-    }
-
-    // Otherwise open details/selection
+    // If can't afford or wrong phase/turn, show card details
     onCardDetail?.(card)
     showCardDetail(card)
   }
@@ -210,7 +204,7 @@ export default function HandFan({
     // This would integrate with mulligan state from the store
     return false
   }
-  
+
   // Check if card is selected for placement
   const isSelectedForPlacement = (cardId: string): boolean => {
     return interaction.selectedCards.has(cardId)
@@ -226,11 +220,9 @@ export default function HandFan({
     return (
       <div
         key={card.id}
-        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${
-          isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
-        } ${
-          isPlacementSelected ? 'ring-2 ring-blue-400 ring-opacity-80 shadow-lg shadow-blue-400/30' : ''
-        }`}
+        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
+          } ${isPlacementSelected ? 'ring-2 ring-blue-400 ring-opacity-80 shadow-lg shadow-blue-400/30' : ''
+          }`}
         style={{
           transform: `rotate(${cardPosition.angle}deg) translateY(${position.includes('bottom') ? '-' : ''}${cardPosition.translateY}px)`,
           zIndex: cardPosition.zIndex,
@@ -269,15 +261,17 @@ export default function HandFan({
           <TarotCard
             card={card}
             size="small"
-            isSelected={isSelected}
+            isSelected={isPlacementSelected}
             draggable={false} // We handle drag through PointerEvents
             className={`transition-all duration-200 ${interaction.draggedCard?.id === card.id ? 'opacity-50' : ''}`}
           />
         ) : (
           /* Enemy card back */
           <div className="w-16 h-24 relative shadow-lg">
-            <img
+            <Image
               src="/default/back/2x.png"
+              width={32}
+              height={48}
               alt="Card Back"
               className="w-full h-full object-cover rounded-lg border-2 border-slate-400"
               style={{

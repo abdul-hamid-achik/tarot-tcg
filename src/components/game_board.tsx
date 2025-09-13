@@ -52,7 +52,7 @@ export default function GameBoard({
   const { gameState } = useGameEffects()
 
   // Use game clock for timing
-  const { isWarning, getTurnTime, getMatchTime, isTimerExpired } = useGameClock({
+  const { isTimerExpired } = useGameClock({
     turnTimeLimit: 90,
     warningTime: 15,
     autoEndTurn: true,
@@ -113,22 +113,6 @@ export default function GameBoard({
     <GameLayout>
       {/* Background Effects */}
       <BackgroundEffects />
-
-      {/* Timer Display */}
-      <div className="fixed top-4 right-4 z-50 flex flex-col gap-2">
-        <div className="bg-black/80 text-white px-3 py-1 rounded-lg text-sm">
-          Match: {getMatchTime()}
-        </div>
-        {isPlayerTurn && gameState?.phase === 'action' && (
-          <div
-            className={`px-3 py-1 rounded-lg text-sm ${
-              isWarning ? 'bg-red-600 text-white animate-pulse' : 'bg-black/80 text-white'
-            }`}
-          >
-            Turn: {getTurnTime()}
-          </div>
-        )}
-      </div>
 
       {/* Player Info Panels */}
       {(() => {
