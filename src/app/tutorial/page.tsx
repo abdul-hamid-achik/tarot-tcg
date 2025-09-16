@@ -160,7 +160,7 @@ export default function Tutorial() {
     setMessage('⚔️ Attackers declared! AI is choosing defenders...')
 
     // New simplified flow - goes straight to combat
-    if (newState.phase === 'combat') {
+    if (newState.phase === 'combat_resolution') {
       // If AI needs to defend, handle it automatically
       if (newState.player2.bench.length > 0) {
         setTimeout(async () => {
@@ -184,7 +184,7 @@ export default function Tutorial() {
             // Pause before combat for visual feedback
             setTimeout(async () => {
               // Combat should trigger automatically after defenders are declared
-              if (defendedState.phase === 'combat') {
+              if (defendedState.phase === 'combat_resolution') {
                 setMessage('⚔️ Combat beginning...')
                 defendedState = await resolveCombat(defendedState)
               }
@@ -200,7 +200,7 @@ export default function Tutorial() {
       } else {
         try {
           // No defenders available, go straight to combat
-          const combatState = await resolveCombat({ ...newState, phase: 'combat' })
+          const combatState = await resolveCombat({ ...newState, phase: 'combat_resolution' })
           setGameState(combatState)
           setMessage('💥 Direct attack! No defenders available.')
         } catch (error) {
@@ -218,7 +218,7 @@ export default function Tutorial() {
 
     try {
       // Combat resolves immediately after declaring defenders
-      if (newState.phase === 'combat') {
+      if (newState.phase === 'combat_resolution') {
         newState = await resolveCombat(newState)
       }
 
@@ -254,11 +254,11 @@ export default function Tutorial() {
   }
 
   const _handleCommitDefenders = async () => {
-    if (!gameState || gameState.phase !== 'combat') return
+    if (!gameState || gameState.phase !== 'combat_resolution') return
 
     try {
       let newState = commitToCombat(gameState)
-      if (newState.phase === 'combat') {
+      if (newState.phase === 'combat_resolution') {
         newState = await resolveCombat(newState)
       }
       setGameState(newState)
@@ -274,7 +274,7 @@ export default function Tutorial() {
 
     try {
       let newState = commitToCombat(gameState)
-      if (newState.phase === 'combat') {
+      if (newState.phase === 'combat_resolution') {
         newState = await resolveCombat(newState)
       }
       setGameState(newState)
@@ -301,15 +301,39 @@ export default function Tutorial() {
   const handleMulligan = (selectedCards: string[]) => {
     if (!gameState) return
 
+    console.log('Mulligan Debug - Before:', {
+      phase: gameState.phase,
+      player1MulliganComplete: gameState.player1.mulliganComplete,
+      player2MulliganComplete: gameState.player2.mulliganComplete,
+      selectedCards
+    })
+
     let newState = completeMulligan({
       ...gameState,
       player1: { ...gameState.player1, selectedForMulligan: selectedCards },
     })
 
+    console.log('Mulligan Debug - After player mulligan:', {
+      phase: newState.phase,
+      player1MulliganComplete: newState.player1.mulliganComplete,
+      player2MulliganComplete: newState.player2.mulliganComplete
+    })
+
     // Check if we need to run AI mulligan
     if (!newState.player2.mulliganComplete) {
       newState = aiMulligan(newState)
+      console.log('Mulligan Debug - After AI mulligan:', {
+        phase: newState.phase,
+        player1MulliganComplete: newState.player1.mulliganComplete,
+        player2MulliganComplete: newState.player2.mulliganComplete
+      })
     }
+
+    console.log('Mulligan Debug - Final state:', {
+      phase: newState.phase,
+      player1MulliganComplete: newState.player1.mulliganComplete,
+      player2MulliganComplete: newState.player2.mulliganComplete
+    })
 
     setGameState(newState)
 
@@ -511,10 +535,10 @@ export default function Tutorial() {
         <div className="flex items-center gap-2">
           <Badge
             className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${timeRemaining <= 30
-                ? 'bg-red-600 animate-pulse'
-                : timeRemaining <= 60
-                  ? 'bg-orange-600'
-                  : 'bg-blue-600'
+              ? 'bg-red-600 animate-pulse'
+              : timeRemaining <= 60
+                ? 'bg-orange-600'
+                : 'bg-blue-600'
               }`}
           >
             ⏱️ {formatTime(timeRemaining)}
@@ -548,8 +572,8 @@ export default function Tutorial() {
         </div>
       </div>
 
-      {/* Game Board - Positioned to avoid header */}
-      <div style={{ height: 'calc(100vh - 5rem)' }}>
+      {/* Game Board - Full height with proper spacing */}
+      <div className="h-full">
         <TarotGameBoard
           gameState={gameState}
           onCardPlay={handleCardPlay}

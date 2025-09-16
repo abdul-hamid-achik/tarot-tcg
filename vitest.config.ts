@@ -9,6 +9,8 @@ export default defineConfig({
     setupFiles: ['./src/test-setup.ts'],
     globals: true,
     css: true,
+    // Disable watch mode by default
+    watch: false,
     // UI options
     ui: true,
     open: false,

@@ -10,6 +10,15 @@ vi.mock('@/services/state_manager')
 vi.mock('@/services/animation_service')
 vi.mock('@/services/CombatService')
 vi.mock('@/services/AIService')
+vi.mock('@/services/combat_service', () => ({
+  combatService: {
+    applyDrawReversalChance: vi.fn((card) => card),
+    registerCardAbilities: vi.fn((card, state) => state),
+    reverseCard: vi.fn((state, cardId) => state),
+    processEndOfTurnEffects: vi.fn((state) => state),
+    resolveCombatPhase: vi.fn((state) => Promise.resolve(state))
+  }
+}))
 
 const createTestGameState = (): GameState => ({
   round: 1,
@@ -76,7 +85,7 @@ describe('useGameActions', () => {
 
   beforeEach(() => {
     vi.clearAllMocks()
-    
+
     // Mock useGameStore
     vi.mocked(useGameStore).mockReturnValue({
       gameState: createTestGameState(),
@@ -113,7 +122,7 @@ describe('useGameActions', () => {
       const gameState = createTestGameState()
       gameState.player1.mana = 0
       gameState.player1.spellMana = 0
-      
+
       // Update the mock to return the modified state
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
@@ -136,7 +145,7 @@ describe('useGameActions', () => {
 
     it('should handle errors gracefully', async () => {
       const { result } = renderHook(() => useGameActions())
-      
+
       // Mock setGameState to throw an error
       mockSetGameState.mockImplementationOnce(() => {
         throw new Error('Test error')
@@ -158,7 +167,7 @@ describe('useGameActions', () => {
     it('should declare attack with valid units', async () => {
       const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
-      
+
       // Add a unit to bench
       gameState.player1.bench = [{
         id: 'unit-1',
@@ -188,7 +197,7 @@ describe('useGameActions', () => {
       const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.player1.hasAttackToken = false
-      
+
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -213,7 +222,7 @@ describe('useGameActions', () => {
       gameState.phase = 'declare_defenders'
       gameState.activePlayer = 'player2'
       gameState.attackingPlayer = 'player1'
-      
+
       // Set up attacking scenario
       gameState.lanes[0].attacker = {
         id: 'attacker-1',
@@ -266,7 +275,7 @@ describe('useGameActions', () => {
       const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.phase = 'action' // Wrong phase
-      
+
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -299,7 +308,7 @@ describe('useGameActions', () => {
 
     it('should handle AI turn transition', async () => {
       const { result } = renderHook(() => useGameActions())
-      
+
       await act(async () => {
         await result.current.endTurn()
       })
@@ -311,11 +320,11 @@ describe('useGameActions', () => {
 
   describe('completeMulligan', () => {
     it('should complete mulligan phase', async () => {
-      const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.phase = 'mulligan'
       gameState.player1.mulliganComplete = false
-      
+
+      // Set up mock before rendering the hook
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -324,18 +333,49 @@ describe('useGameActions', () => {
         setAnimationState: mockSetAnimationState,
       } as any)
 
+      const { result } = renderHook(() => useGameActions())
+
+      // Check if completeMulligan function exists
+      expect(result.current.completeMulligan).toBeDefined()
+      expect(typeof result.current.completeMulligan).toBe('function')
+
       await act(async () => {
         await result.current.completeMulligan(['card-1'])
       })
 
+      expect(mockSetAnimationState).toHaveBeenCalledWith(true)
       expect(mockSetGameState).toHaveBeenCalled()
+      expect(mockSetAnimationState).toHaveBeenCalledWith(false)
+    })
+
+    it('should complete mulligan with no cards (close overlay)', async () => {
+      const gameState = createTestGameState()
+      gameState.phase = 'mulligan'
+      gameState.player1.mulliganComplete = false
+
+      vi.mocked(useGameStore).mockReturnValue({
+        gameState,
+        setGameState: mockSetGameState,
+        clearAttackers: mockClearAttackers,
+        clearDefenderAssignments: mockClearDefenderAssignments,
+        setAnimationState: mockSetAnimationState,
+      } as any)
+
+      const { result } = renderHook(() => useGameActions())
+
+      await act(async () => {
+        await result.current.completeMulligan([]) // Empty array = keep all cards
+      })
+
+      expect(mockSetAnimationState).toHaveBeenCalledWith(true)
+      expect(mockSetGameState).toHaveBeenCalled()
+      expect(mockSetAnimationState).toHaveBeenCalledWith(false)
     })
 
     it('should not complete mulligan in wrong phase', async () => {
-      const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.phase = 'action' // Wrong phase
-      
+
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -344,12 +384,15 @@ describe('useGameActions', () => {
         setAnimationState: mockSetAnimationState,
       } as any)
 
+      const { result } = renderHook(() => useGameActions())
+
       await act(async () => {
         await result.current.completeMulligan(['card-1'])
       })
 
-      // Should return early
-      expect(mockSetAnimationState).toHaveBeenCalledWith(false)
+      // Should return early without calling any functions
+      expect(mockSetAnimationState).not.toHaveBeenCalled()
+      expect(mockSetGameState).not.toHaveBeenCalled()
     })
   })
 
@@ -358,7 +401,7 @@ describe('useGameActions', () => {
       const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.phase = 'combat'
-      
+
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -392,7 +435,7 @@ describe('useGameActions', () => {
       const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.activePlayer = 'player2'
-      
+
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -413,7 +456,7 @@ describe('useGameActions', () => {
       const { result } = renderHook(() => useGameActions())
       const gameState = createTestGameState()
       gameState.activePlayer = 'player1'
-      
+
       vi.mocked(useGameStore).mockReturnValue({
         gameState,
         setGameState: mockSetGameState,
@@ -434,7 +477,7 @@ describe('useGameActions', () => {
   describe('Error Handling', () => {
     it('should handle errors in all actions', async () => {
       const { result } = renderHook(() => useGameActions())
-      
+
       // Mock an error in setGameState
       mockSetGameState.mockImplementation(() => {
         throw new Error('Test error')
@@ -455,10 +498,10 @@ describe('useGameActions', () => {
         await act(async () => {
           await action()
         })
-        
+
         // Should always clean up animation state even on error
         expect(mockSetAnimationState).toHaveBeenCalledWith(false)
-        
+
         // Reset mock calls
         mockSetAnimationState.mockClear()
       }

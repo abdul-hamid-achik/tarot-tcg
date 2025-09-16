@@ -786,7 +786,7 @@ export const isCombatPhase = (gameState: unknown): boolean => {
 }
 
 export const isDefendersPhase = (gameState: unknown): boolean => {
-  return isPhase(gameState, 'declare_defenders')
+  return isPhase(gameState, 'defense_declaration')
 }
 
 // ================================

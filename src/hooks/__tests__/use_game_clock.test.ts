@@ -6,9 +6,18 @@ import type { GameState } from '@/schemas/schema'
 
 // Mock the game store
 vi.mock('@/store/game_store', () => ({
-  useGameStore: {
-    getState: vi.fn()
-  }
+  useGameStore: vi.fn(() => ({
+    gameState: null,
+    setGameState: vi.fn(),
+    ui: {
+      showCardDetail: vi.fn(),
+      hideCardDetail: vi.fn(),
+    },
+    interaction: {
+      selectedCard: null,
+      setSelectedCard: vi.fn(),
+    },
+  }))
 }))
 
 const createTestGameState = (activePlayer: 'player1' | 'player2', phase: string): GameState => ({

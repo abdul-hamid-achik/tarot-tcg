@@ -189,7 +189,7 @@ export async function playCard(state: GameState, card: Card): Promise<GameState>
   await eventHelpers.cardPlayed(card.id, card.name, manaCost)
 
   if (card.type === 'unit') {
-    const newCard = { ...card, currentHealth: card.health, position: 'bench' as const }
+    const newCard = { ...card, currentHealth: card.health, position: 'bench' as const, owner: state.activePlayer }
     player.bench.push(newCard)
 
     // Emit unit summoned event
@@ -1010,7 +1010,7 @@ export function aiMulligan(
   state: GameState,
   difficulty: 'easy' | 'medium' | 'hard' = 'medium',
 ): GameState {
-  if (state.phase !== 'mulligan' || state.activePlayer !== 'player2') return state
+  if (state.phase !== 'mulligan') return state
 
   const newState = { ...state }
   const ai = { ...newState.player2 }
@@ -1071,14 +1071,42 @@ export function aiMulligan(
     `AI selected ${cardsToMulligan.length} cards for mulligan (${difficulty} difficulty)`,
   )
 
-  // Auto-complete AI mulligan
-  return completeMulligan(newState)
+  // Process AI mulligan manually (similar to completeMulligan but for player2)
+  if (ai.selectedForMulligan.length > 0) {
+    // Shuffle selected cards back into deck
+    const cardsToShuffle = ai.hand.filter(card => ai.selectedForMulligan.includes(card.id))
+    const keptCards = ai.hand.filter(card => !ai.selectedForMulligan.includes(card.id))
+
+    // Add discarded cards back to deck and shuffle
+    ai.deck = [...ai.deck, ...cardsToShuffle]
+    shuffleDeck(ai)
+
+    // Draw replacement cards
+    const cardsToDraw = cardsToShuffle.length
+    const newCards = ai.deck.splice(0, cardsToDraw)
+    ai.hand = [...keptCards, ...newCards]
+
+    GameLogger.action(`player2 mulliganed ${cardsToDraw} cards`)
+  }
+
+  ai.mulliganComplete = true
+  ai.selectedForMulligan = []
+  newState.player2 = ai
+
+  // Check if both players completed mulligan
+  if (newState.player1.mulliganComplete && newState.player2.mulliganComplete) {
+    newState.phase = 'action'
+    newState.waitingForAction = true
+    GameLogger.state('Game phase: Mulligan complete, starting action phase')
+  }
+
+  return newState
 }
 
 // Utility function to shuffle a player's deck
 function shuffleDeck(player: Player): void {
   for (let i = player.deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+      ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
   }
 }

@@ -111,24 +111,147 @@ vi.mock('@/services/event_manager', () => ({
     cardPlayed: vi.fn().mockResolvedValue(undefined),
     cardDrawn: vi.fn().mockResolvedValue(undefined),
     unitSummoned: vi.fn().mockResolvedValue(undefined),
+    unitDies: vi.fn().mockResolvedValue(undefined), // Added missing method
     combatDamageDealt: vi.fn().mockResolvedValue(undefined),
     playerHealthChanged: vi.fn().mockResolvedValue(undefined),
-    playerLosesHealth: vi.fn().mockResolvedValue(undefined), // Added missing method
-    turnStart: vi.fn().mockResolvedValue(undefined), // Added missing method
-    turnEnd: vi.fn().mockResolvedValue(undefined), // Added missing method
-    phaseChanged: vi.fn().mockResolvedValue(undefined), // Added missing method
-    playerGainsMana: vi.fn().mockResolvedValue(undefined), // Added missing method
+    playerLosesHealth: vi.fn().mockResolvedValue(undefined),
+    playerGainsMana: vi.fn().mockResolvedValue(undefined),
+    turnStart: vi.fn().mockResolvedValue(undefined),
+    turnEnd: vi.fn().mockResolvedValue(undefined),
+    phaseChanged: vi.fn().mockResolvedValue(undefined),
   }),
 }))
 
 // Mock win condition service for cleaner tests
-vi.mock('@/services/win_condition_service', () => ({
-  winConditionService: {
-    setGameMode: vi.fn(),
-    resetState: vi.fn(),
-    getActiveConditions: vi.fn(() => []),
-    checkConditions: vi.fn(() => ({ achieved: false, winner: null, message: '' })),
-  },
+vi.mock('@/services/win_condition_service', () => {
+  // Create a more realistic mock that behaves like the actual service
+  const mockService = {
+    state: {
+      gameMode: {
+        name: 'Standard',
+        enabledConditions: ['health_depletion'],
+        disabledConditions: [],
+      },
+      activeConditions: [
+        { id: 'health_depletion', name: 'Health Depletion', priority: 1, enabled: true },
+      ],
+      eventCounters: new Map(),
+      playerProgress: new Map(),
+      conditionHistory: new Map(),
+    },
+    
+    setGameMode: vi.fn((modeId) => {
+      if (modeId === 'arcana_master') {
+        mockService.state.gameMode = {
+          name: 'Arcana Master',
+          enabledConditions: ['health_depletion', 'arcana_completion', 'zodiac_alignment'],
+          disabledConditions: [],
+        }
+        mockService.state.activeConditions = [
+          { id: 'health_depletion', name: 'Health Depletion', priority: 1, enabled: true },
+          { id: 'arcana_completion', name: 'Arcana Completion', priority: 2, enabled: true },
+          { id: 'zodiac_alignment', name: 'Zodiac Alignment', priority: 3, enabled: true },
+        ]
+      } else if (modeId === 'puzzle') {
+        mockService.state.gameMode = {
+          name: 'Puzzle',
+          enabledConditions: ['deck_depletion'],
+          disabledConditions: ['health_depletion'],
+        }
+        mockService.state.activeConditions = [
+          { id: 'deck_depletion', name: 'Deck Depletion', priority: 1, enabled: true },
+        ]
+      }
+    }),
+    
+    resetState: vi.fn(() => {
+      mockService.state.eventCounters.clear()
+      mockService.state.playerProgress.clear()
+    }),
+    
+    getActiveConditions: vi.fn(() => mockService.state.activeConditions),
+    
+    checkWinConditions: vi.fn((gameState) => {
+      // Check for health depletion
+      if (gameState.player1.health <= 0) {
+        return { achieved: true, winner: 'player2', message: 'player2 wins by reducing opponent\'s health to 0!' }
+      }
+      if (gameState.player2.health <= 0) {
+        return { achieved: true, winner: 'player1', message: 'player1 wins by reducing opponent\'s health to 0!' }
+      }
+      
+      // Check for deck depletion
+      if (gameState.player1.deck.length === 0) {
+        return { achieved: true, winner: 'player2', message: 'player2 wins by depleting opponent\'s deck!' }
+      }
+      if (gameState.player2.deck.length === 0) {
+        return { achieved: true, winner: 'player1', message: 'player1 wins by depleting opponent\'s deck!' }
+      }
+      
+      // Check for board domination
+      const player1Units = gameState.lanes.filter(lane => lane.attacker && lane.attacker.owner === 'player1').length
+      const player2Units = gameState.lanes.filter(lane => lane.attacker && lane.attacker.owner === 'player2').length
+      
+      if (player1Units >= 6) {
+        return { achieved: false, winner: null, message: 'Player 1 dominates the board' }
+      }
+      if (player2Units >= 6) {
+        return { achieved: false, winner: null, message: 'Player 2 dominates the board' }
+      }
+      
+      // Check for elemental alignment
+      const elements = new Set()
+      gameState.lanes.forEach(lane => {
+        if (lane.attacker && lane.attacker.element) {
+          elements.add(lane.attacker.element)
+        }
+        if (lane.defender && lane.defender.element) {
+          elements.add(lane.defender.element)
+        }
+      })
+      
+      if (elements.size === 4) {
+        return { achieved: true, winner: 'player1', message: 'Player 1 wins by aligning all four elements' }
+      }
+      
+      // Check for turn survival
+      if (gameState.round >= 15 && gameState.player1.health > 0) {
+        return { achieved: true, winner: 'player1', message: 'Player 1 wins by surviving to turn 15' }
+      }
+      
+      return { achieved: false, winner: null, message: '' }
+    }),
+    
+    getCurrentGameMode: vi.fn(() => mockService.state.gameMode),
+    getPlayerProgress: vi.fn((playerId) => mockService.state.playerProgress.get(playerId) || new Map()),
+    registerWinCondition: vi.fn((condition) => {
+      mockService.state.activeConditions.push(condition)
+    }),
+    toggleWinCondition: vi.fn((conditionId) => {
+      const condition = mockService.state.activeConditions.find(c => c.id === conditionId)
+      if (condition) {
+        condition.enabled = !condition.enabled
+      }
+    }),
+  }
+  
+  return { winConditionService: mockService }
+})
+
+// Mock game store for cleaner tests
+vi.mock('@/store/game_store', () => ({
+  useGameStore: vi.fn(() => ({
+    gameState: null,
+    setGameState: vi.fn(),
+    ui: {
+      showCardDetail: vi.fn(),
+      hideCardDetail: vi.fn(),
+    },
+    interaction: {
+      selectedCard: null,
+      setSelectedCard: vi.fn(),
+    },
+  })),
 }))
 
 // Global test utilities

@@ -4,6 +4,7 @@ import { aiController } from '@/services/ai_controller_service'
 import type { AILevel } from '@/services/ai_service'
 import { useGameStore } from '@/store/game_store'
 import { useGameActions } from '@/hooks/use_game_actions'
+import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
 
 interface UseAIControllerOptions {
   enabled?: boolean
@@ -52,7 +53,11 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
 
       // If AI is still active and in action phase, end turn
       if (newState.activePlayer === 'player2' && newState.phase === 'action') {
-        setTimeout(() => endTurn(), 500)
+        // Just set the state - the game board will handle the actual turn ending
+        // This prevents double endTurn calls that can cause state conflicts
+        setTimeout(() => {
+          setGameState(newState)
+        }, 500)
       }
     } catch (error) {
       console.error('AI execution error:', error)

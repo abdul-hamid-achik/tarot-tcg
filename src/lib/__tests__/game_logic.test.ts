@@ -149,25 +149,25 @@ describe('Game Logic', () => {
       expect(canPlay).toBe(false)
     })
 
-    it('should correctly play a card', () => {
+    it('should correctly play a card', async () => {
       gameState.player1.mana = 3
       gameState.player1.hand = [testCard]
-      
-      const newState = playCard(gameState, testCard)
-      
+
+      const newState = await playCard(gameState, testCard)
+
       expect(newState.player1.mana).toBe(1) // 3 - 2 cost
       expect(newState.player1.hand).toHaveLength(0)
       expect(newState.player1.bench).toHaveLength(1)
       expect(newState.player1.bench[0].name).toBe('Test Card')
     })
 
-    it('should use spell mana when regular mana is insufficient', () => {
+    it('should use spell mana when regular mana is insufficient', async () => {
       gameState.player1.mana = 1
       gameState.player1.spellMana = 2
       gameState.player1.hand = [testCard]
-      
-      const newState = playCard(gameState, testCard)
-      
+
+      const newState = await playCard(gameState, testCard)
+
       expect(newState.player1.mana).toBe(0) // Used 1 regular mana
       expect(newState.player1.spellMana).toBe(1) // Used 1 spell mana (2-1)
       expect(newState.player1.bench).toHaveLength(1)
@@ -188,7 +188,7 @@ describe('Game Logic', () => {
     it('should declare attackers correctly', () => {
       const attackerArrangement = [{ attackerId: 'attacker-1', laneId: 0 }]
       const newState = declareAttackers(gameState, attackerArrangement)
-      
+
       expect(newState.phase).toBe('combat')
       expect(newState.attackingPlayer).toBe('player1')
       expect(newState.lanes[0].attacker).toBeTruthy()
@@ -199,7 +199,7 @@ describe('Game Logic', () => {
       gameState.player1.hasAttackToken = false
       const attackerArrangement = [{ attackerId: 'attacker-1', laneId: 0 }]
       const newState = declareAttackers(gameState, attackerArrangement)
-      
+
       expect(newState).toEqual(gameState) // No changes
     })
 
@@ -208,23 +208,23 @@ describe('Game Logic', () => {
       gameState.phase = 'combat'
       gameState.attackingPlayer = 'player1'
       gameState.lanes[0].attacker = { ...testCard, id: 'attacker-1', position: 'attacking' }
-      
+
       const defenderAssignments = [{ defenderId: 'defender-1', laneId: 0 }]
       const newState = declareDefenders(gameState, defenderAssignments)
-      
+
       expect(newState.lanes[0].defender).toBeTruthy()
       expect(newState.lanes[0].defender?.name).toBe('Test Card')
     })
 
-    it('should resolve combat correctly', () => {
+    it('should resolve combat correctly', async () => {
       // Set up combat scenario
       gameState.phase = 'combat'
       gameState.attackingPlayer = 'player1'
       gameState.lanes[0].attacker = { ...testCard, id: 'attacker-1', position: 'attacking', attack: 2, health: 3, currentHealth: 3 }
       gameState.lanes[0].defender = { ...testCard, id: 'defender-1', position: 'defending', attack: 1, health: 2, currentHealth: 2 }
-      
-      const newState = resolveCombat(gameState)
-      
+
+      const newState = await resolveCombat(gameState)
+
       expect(newState.phase).toBe('action')
       expect(newState.combatResolved).toBe(true)
       expect(newState.lanes[0].attacker).toBeNull()
@@ -235,14 +235,14 @@ describe('Game Logic', () => {
       expect(newState.player1.bench[0].currentHealth).toBe(2)
     })
 
-    it('should deal nexus damage when no defenders', () => {
+    it('should deal nexus damage when no defenders', async () => {
       gameState.phase = 'combat'
       gameState.attackingPlayer = 'player1'
       gameState.lanes[0].attacker = { ...testCard, id: 'attacker-1', position: 'attacking', attack: 3 }
       // No defender assigned
-      
-      const newState = resolveCombat(gameState)
-      
+
+      const newState = await resolveCombat(gameState)
+
       expect(newState.player2.health).toBe(17) // 20 - 3 attack
     })
   })
@@ -255,42 +255,42 @@ describe('Game Logic', () => {
       gameState.turn = 3
     })
 
-    it('should end turn and switch players', () => {
+    it('should end turn and switch players', async () => {
       gameState.player1.mana = 3 // Unspent mana
-      
-      const newState = endTurn(gameState)
-      
+
+      const newState = await endTurn(gameState)
+
       expect(newState.activePlayer).toBe('player2')
       expect(newState.turn).toBe(4)
       expect(newState.player1.spellMana).toBe(3) // Unspent mana converted
       expect(newState.phase).toBe('action')
     })
 
-    it('should increment round and switch attack tokens', () => {
+    it('should increment round and switch attack tokens', async () => {
       gameState.turn = 4 // Next turn will be 5 (odd), so new round
-      
-      const newState = endTurn(gameState)
-      
+
+      const newState = await endTurn(gameState)
+
       expect(newState.round).toBe(3)
       expect(newState.player1.hasAttackToken).toBe(false)
       expect(newState.player2.hasAttackToken).toBe(true)
     })
 
-    it('should refill mana for next player', () => {
+    it('should refill mana for next player', async () => {
       gameState.round = 5
-      
-      const newState = endTurn(gameState)
-      
+
+      const newState = await endTurn(gameState)
+
       expect(newState.player2.maxMana).toBe(5)
       expect(newState.player2.mana).toBe(5)
     })
 
-    it('should draw card for next player', () => {
+    it('should draw card for next player', async () => {
       const initialHandSize = gameState.player2.hand.length
       const initialDeckSize = gameState.player2.deck.length
-      
-      const newState = endTurn(gameState)
-      
+
+      const newState = await endTurn(gameState)
+
       expect(newState.player2.hand.length).toBe(initialHandSize + 1)
       expect(newState.player2.deck.length).toBe(initialDeckSize - 1)
     })
@@ -323,10 +323,10 @@ describe('Game Logic', () => {
 
     it('should toggle card selection for mulligan', () => {
       const cardId = gameState.player1.hand[0].id
-      
+
       let newState = toggleMulliganCard(gameState, cardId)
       expect(newState.player1.selectedForMulligan).toContain(cardId)
-      
+
       newState = toggleMulliganCard(newState, cardId)
       expect(newState.player1.selectedForMulligan).not.toContain(cardId)
     })
@@ -335,20 +335,35 @@ describe('Game Logic', () => {
       const originalHand = [...gameState.player1.hand]
       const cardToMulligan = originalHand[0]
       gameState.player1.selectedForMulligan = [cardToMulligan.id]
-      
+
       const newState = completeMulligan(gameState)
-      
+
       expect(newState.player1.mulliganComplete).toBe(true)
       expect(newState.player1.selectedForMulligan).toHaveLength(0)
       expect(newState.player1.hand).toHaveLength(4) // Same size
       expect(newState.player1.hand.find(c => c.id === cardToMulligan.id)).toBeUndefined()
     })
 
+    it('should complete mulligan with no cards selected (close overlay)', () => {
+      const originalHand = [...gameState.player1.hand]
+      gameState.player1.selectedForMulligan = [] // No cards selected
+
+      const newState = completeMulligan(gameState)
+
+      expect(newState.player1.mulliganComplete).toBe(true)
+      expect(newState.player1.selectedForMulligan).toHaveLength(0)
+      expect(newState.player1.hand).toHaveLength(4) // Same size - no cards replaced
+      // All original cards should still be in hand
+      originalHand.forEach(originalCard => {
+        expect(newState.player1.hand.find(c => c.id === originalCard.id)).toBeDefined()
+      })
+    })
+
     it('should transition to action phase when both players complete mulligan', () => {
       gameState.player2.mulliganComplete = true
-      
+
       const newState = completeMulligan(gameState)
-      
+
       expect(newState.phase).toBe('action')
     })
   })
