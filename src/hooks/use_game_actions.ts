@@ -2,7 +2,6 @@ import { useCallback } from 'react'
 import type { Card as GameCard } from '@/schemas/schema'
 import { animationService } from '@/services/animation_service'
 import { combatService } from '@/services/combat_service'
-import { gridManagerService } from '@/services/grid_manager_service'
 import type { CellPosition } from '@/store/game_store'
 import { useGameStore } from '@/store/game_store'
 
@@ -17,17 +16,14 @@ export const useGameActions = () => {
       try {
         setAnimationState(true)
 
-        // Validate the move
-        const validation = gridManagerService.validateMove(
-          card,
-          'hand',
-          targetPosition || { row: 3, col: 0 },
-          gameState,
-        )
-
-        if (!validation.valid) {
-          console.warn('Invalid card play:', validation.reason)
-          return
+        // Basic validation
+        if (targetPosition) {
+          // Check if position is valid (0-3 rows, 0-5 cols)
+          if (targetPosition.row < 0 || targetPosition.row > 3 ||
+              targetPosition.col < 0 || targetPosition.col > 5) {
+            console.warn('Invalid grid position')
+            return
+          }
         }
 
         // Calculate mana cost and payment
@@ -68,9 +64,11 @@ export const useGameActions = () => {
         } else {
           // Units go to bench or grid position
           if (targetPosition) {
-            // Place directly on grid (handled by GridManagerService)
-            const cardInstance = { ...card, currentHealth: card.health, position: 'field' as const }
-            gridManagerService.setCellContent(targetPosition, cardInstance)
+            // Place directly on grid
+            const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
+
+            // Add to bench array
+            player.bench.push(cardInstance)
 
             // Update player state and register card
             newGameState.player1 = player
@@ -81,6 +79,8 @@ export const useGameActions = () => {
             if (player.bench.length < 6) {
               const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
               player.bench.push(cardInstance)
+
+              // Card added to bench array
 
               // Register card abilities and trigger enter bench event
               newGameState.player1 = player
@@ -374,7 +374,7 @@ export const useGameActions = () => {
       clearAttackers()
       clearDefenderAssignments()
 
-      // Set the game state - AI turn will be handled by useAITurn hook
+      // Set the game state - AI turn will be handled by AI controller
       setGameState(finalState)
     } catch (error) {
       console.error('Error ending turn:', error)

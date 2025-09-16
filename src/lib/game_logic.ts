@@ -132,6 +132,11 @@ export function createInitialGameState(
     phase: 'mulligan',
     waitingForAction: false,
     combatResolved: false,
+    // New phase system fields
+    priorityPlayer: 'player1',
+    passCount: 0,
+    canRespond: false,
+    actionStack: [],
   }
 
   // Emit game start event for win condition tracking
@@ -278,7 +283,7 @@ async function queueSpellEffectsOnStack(
   }
 }
 
-// Helper function to execute spell effects through the event system (legacy fallback)
+// Helper function to execute spell effects through the event system
 async function _executeSpellEffectsThroughEventSystem(
   state: GameState,
   effects: { name?: string; description?: string }[],

@@ -30,7 +30,6 @@ export type CellPosition = ZodCellPosition
 export type CellType = 'enemy_bench' | 'enemy_attack' | 'player_attack' | 'player_bench'
 
 export interface GridState {
-  cells: Map<string, GameCard | null> // cellKey -> card
   highlightedCells: Set<string>
   validDropZones: Set<string>
 }
@@ -84,9 +83,7 @@ export interface GameStore {
   // Actions
   setGameState: (gameState: GameState) => void
 
-  // Grid actions
-  setCellContent: (position: CellPosition, card: GameCard | null) => void
-  getCellContent: (position: CellPosition) => GameCard | null
+  // Visual feedback actions
   highlightCells: (positions: CellPosition[]) => void
   clearHighlights: () => void
   setValidDropZones: (positions: CellPosition[]) => void
@@ -157,7 +154,6 @@ export const useGameStore = create<GameStore>()(
       gameState: null as unknown as GameState, // Will be set by game initialization
 
       grid: {
-        cells: new Map(),
         highlightedCells: new Set(),
         validDropZones: new Set(),
       },
@@ -196,34 +192,7 @@ export const useGameStore = create<GameStore>()(
         }
       },
 
-      // Grid actions
-      setCellContent: (position: CellPosition, card: GameCard | null) => {
-        // Validate position
-        const validatedPosition = CellPositionSchema.safeParse(position)
-        if (!validatedPosition.success) {
-          console.error('Invalid cell position:', position)
-          return
-        }
-
-        const cellKey = createCellKey(validatedPosition.data)
-        set(
-          (state: GameStore) => {
-            const newCells = new Map(state.grid.cells)
-            newCells.set(cellKey, card)
-            return {
-              grid: { ...state.grid, cells: newCells },
-            }
-          },
-          false,
-          'setCellContent',
-        )
-      },
-
-      getCellContent: (position: CellPosition) => {
-        const cellKey = createCellKey(position)
-        return get().grid.cells.get(cellKey) || null
-      },
-
+      // Visual feedback actions
       highlightCells: (positions: CellPosition[]) => {
         set(
           (state: GameStore) => ({

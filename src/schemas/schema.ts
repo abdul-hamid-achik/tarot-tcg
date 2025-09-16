@@ -34,10 +34,11 @@ export const CardPositionSchema = z.enum(['bench', 'attacking', 'defending'])
 
 export const PhaseSchema = z.enum([
   'mulligan',
+  'round_start',
   'action',
-  'declare_attackers',
-  'declare_defenders',
-  'combat',
+  'attack_declaration',  // Attack token holder declares attackers
+  'defense_declaration',  // Opponent declares blockers
+  'combat_resolution',    // Damage resolves
   'end_round',
 ])
 
@@ -173,6 +174,11 @@ export const GameStateSchema = z.object({
   phase: PhaseSchema,
   waitingForAction: z.boolean(),
   combatResolved: z.boolean(),
+  // Priority passing system
+  priorityPlayer: PlayerIdSchema.optional(), // Who has priority to act
+  passCount: z.number().default(0), // How many consecutive passes
+  canRespond: z.boolean().default(false), // Can opponent respond to current action
+  actionStack: z.array(z.any()).optional(), // Stack of pending actions
 })
 
 // ================================

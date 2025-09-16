@@ -4,7 +4,7 @@ import type React from 'react'
 import { useEffect, useRef, useState } from 'react'
 import TarotCard from '@/components/tarot_card'
 import { animationService } from '@/services/animation_service'
-import { gridManagerService } from '@/services/grid_manager_service'
+import { stateManager } from '@/services/state_manager'
 import { interactionService } from '@/services/interaction_service'
 import { type CellPosition, type CellType, createCellKey, useGameStore } from '@/store/game_store'
 
@@ -30,7 +30,7 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
 
   const cellKey = createCellKey(position)
   // Re-read card content whenever gameState changes to ensure visual updates
-  const card = gameState ? gridManagerService.getCellContent(position) || null : null
+  const card = gameState ? stateManager.getCardAtPosition(position) || null : null
   const isValidDropZone = grid.validDropZones.has(cellKey)
   const isHighlightedCell = grid.highlightedCells.has(cellKey)
 
@@ -304,7 +304,7 @@ export default function GridCell({ position, cellType, className = '' }: GridCel
   // Force re-render when game state changes to update card content
   useEffect(() => {
     // This effect will trigger when gameState changes, causing the component to re-render
-    // and fetch the updated card content from gridManagerService
+    // and fetch the updated card content from stateManager
   }, [])
 
   // Check if this cell is player-controlled

@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
-import { useAITurn } from '@/hooks/use_ai_turn'
+import { aiService } from '@/services/ai_service'
 import { useGameActions } from '@/hooks/use_game_actions'
-import { gridManagerService } from '@/services/grid_manager_service'
+import { stateManager } from '@/services/state_manager'
 import { interactionService } from '@/services/interaction_service'
 import { useGameStore } from '@/store/game_store'
 
@@ -18,12 +18,12 @@ export const useGameEffects = () => {
 
   const { playCard, declareDefenders, resolveCombat } = useGameActions()
 
-  const { executeAIDefense } = useAITurn()
+  // AI defense will be handled by AI service
 
-  // Initialize game state and services
+  // Initialize state manager
   useEffect(() => {
     if (gameState) {
-      gridManagerService.initializeFromGameState(gameState)
+      stateManager.initialize(gameState)
     }
   }, [gameState])
 
@@ -44,12 +44,10 @@ export const useGameEffects = () => {
         if (from === 'hand') {
           await playCard(card, to)
         } else {
-          gridManagerService.executeMove({
-            card,
-            from,
-            to,
-            cost: 0,
-          })
+          // Use state manager to move card
+          if (from !== 'hand') {
+            stateManager.moveCard(card.id, { type: 'grid', position: to })
+          }
         }
       },
 
@@ -85,13 +83,23 @@ export const useGameEffects = () => {
 
       getValidDropZones: (card, from) => {
         if (!gameState) return []
-        return gridManagerService.getValidDropZones(card, from, gameState)
+        // Simple validation - allow empty positions for now
+        const validPositions = []
+        for (let row = 0; row < 4; row++) {
+          for (let col = 0; col < 6; col++) {
+            const position = { row, col }
+            if (stateManager.isPositionEmpty(position)) {
+              validPositions.push(position)
+            }
+          }
+        }
+        return validPositions
       },
 
       canDropOn: (to, card, from) => {
         if (!gameState) return false
-        const validation = gridManagerService.validateMove(card, from, to, gameState)
-        return validation.valid
+        // Basic validation - check if position is empty
+        return stateManager.isPositionEmpty(to)
       },
     })
   }, [gameState, playCard, highlightCells, clearHighlights, setValidDropZones, clearValidDropZones])
@@ -105,7 +113,19 @@ export const useGameEffects = () => {
       gameState.activePlayer === 'player2' &&
       gameState.attackingPlayer === 'player1'
     ) {
-      const defenderAssignments = executeAIDefense(gameState)
+      // Simple AI defense logic - block strongest attackers
+      const defenderAssignments: { defenderId: string; laneId: number }[] = []
+      gameState.lanes.forEach((lane, index) => {
+        if (lane.attacker && gameState.player2.bench.length > defenderAssignments.length) {
+          const availableDefenders = gameState.player2.bench.filter(
+            u => !defenderAssignments.some(d => d.defenderId === u.id)
+          )
+          if (availableDefenders.length > 0) {
+            const defender = availableDefenders[0]
+            defenderAssignments.push({ defenderId: defender.id, laneId: index })
+          }
+        }
+      })
       if (defenderAssignments.length > 0 || gameState.lanes.some(l => l.attacker)) {
         // Use a small delay for visual feedback
         setTimeout(() => {
@@ -113,7 +133,7 @@ export const useGameEffects = () => {
         }, 1000)
       }
     }
-  }, [gameState, executeAIDefense, declareDefenders])
+  }, [gameState, declareDefenders])
 
   // Auto-resolve combat
   useEffect(() => {

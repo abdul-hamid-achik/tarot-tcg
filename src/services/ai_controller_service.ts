@@ -2,7 +2,7 @@ import type { Card, GameCard, GameState } from '@/schemas/schema'
 import { aiService, type AILevel, type AIPersonality } from './ai_service'
 import { combatService } from './combat_service'
 import { eventManager } from './event_manager'
-import { gridManagerService } from './grid_manager_service'
+import { stateManager } from './state_manager'
 
 // AI Decision weights for different strategies
 interface DecisionWeights {

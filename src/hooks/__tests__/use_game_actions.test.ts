@@ -6,7 +6,7 @@ import type { GameState } from '@/schemas/schema'
 
 // Mock dependencies
 vi.mock('@/store/game_store')
-vi.mock('@/services/grid_manager_service')
+vi.mock('@/services/state_manager')
 vi.mock('@/services/animation_service')
 vi.mock('@/services/CombatService')
 vi.mock('@/services/AIService')

@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { gridManagerService } from '@/services/grid_manager_service'
+import { stateManager } from '@/services/state_manager'
 import { gridMathService } from '@/services/grid_math_service'
 import { type CellPosition, getCellType, useGameStore } from '@/store/game_store'
 import GridCell from './grid_cell'
@@ -27,10 +27,10 @@ export default function BattlefieldGrid({ className = '' }: BattlefieldGridProps
     return () => window.removeEventListener('resize', updateDimensions)
   }, [])
 
-  // Initialize grid from game state
+  // Initialize state manager from game state
   useEffect(() => {
     if (gameState) {
-      gridManagerService.initializeFromGameState(gameState)
+      stateManager.initialize(gameState)
     }
   }, [gameState])
 
