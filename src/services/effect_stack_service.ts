@@ -145,7 +145,11 @@ export class EffectStackService {
 
     // Handle immediate resolution effects (like replacement effects)
     if (stackItem.resolveImmediately) {
-      return this.resolveImmediately(stackItem)
+      // Fire and forget async resolution
+      this.resolveImmediately(stackItem).catch(error => {
+        console.error('Immediate resolution failed:', error)
+      })
+      return stackItem.id
     }
 
     this.state.items.push(stackItem)
@@ -533,7 +537,7 @@ export class EffectStackService {
     return true
   }
 
-  private isTargetValid(_target: StackItem['targets'][0]): boolean {
+  private isTargetValid(_target: NonNullable<StackItem['targets']>[0]): boolean {
     // Target validation logic - would need game state access
     return true
   }

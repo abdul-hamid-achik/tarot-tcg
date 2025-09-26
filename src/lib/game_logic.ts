@@ -8,8 +8,9 @@ import { winConditionService } from '@/services/win_condition_service'
 
 // Game Constants
 const GAME_CONFIG = {
-  LANE_COUNT: 6,
-  MAX_BENCH_SIZE: 6,
+  BATTLEFIELD_SLOTS: 7,
+  LANE_COUNT: 6,  // Legacy compatibility
+  MAX_BENCH_SIZE: 6,  // Legacy compatibility
   MAX_DECK_SIZE: 40,
   STARTING_DECK_SIZE: 40,
   MAX_SPELL_MANA: 3,
@@ -124,11 +125,11 @@ export function createInitialGameState(
     attackingPlayer: null,
     player1,
     player2,
-    lanes: Array.from({ length: GAME_CONFIG.LANE_COUNT }, (_, id) => ({
-      id,
-      attacker: null,
-      defender: null,
-    })),
+    battlefield: {
+      playerUnits: Array(7).fill(null),
+      enemyUnits: Array(7).fill(null),
+      maxSlots: 7,
+    },
     phase: 'mulligan',
     waitingForAction: false,
     combatResolved: false,
@@ -189,7 +190,12 @@ export async function playCard(state: GameState, card: Card): Promise<GameState>
   await eventHelpers.cardPlayed(card.id, card.name, manaCost)
 
   if (card.type === 'unit') {
-    const newCard = { ...card, currentHealth: card.health, position: 'bench' as const, owner: state.activePlayer }
+    const newCard = {
+      ...card,
+      currentHealth: card.health,
+      position: 'bench' as const,
+      owner: state.activePlayer,
+    }
     player.bench.push(newCard)
 
     // Emit unit summoned event
@@ -219,7 +225,7 @@ export async function playCard(state: GameState, card: Card): Promise<GameState>
 // Helper function to convert old abilities to triggered abilities for the effect system
 function convertAbilitiesToTriggeredAbilities(
   abilities: { name?: string; description?: string }[],
-): import('@/types/gameEvents').TriggeredAbility[] {
+): any[] { // TODO: Fix types for battlefield system
   return abilities.map((ability, index) => ({
     id: `ability_${index}`,
     name: ability.name || `Ability ${index + 1}`,
@@ -233,7 +239,7 @@ function convertAbilitiesToTriggeredAbilities(
       name: ability.name || `Ability Effect ${index + 1}`,
       description: ability.description || '',
       type: 'instant' as const,
-      execute: context => {
+      execute: (context: any) => {
         // Convert old ability logic to new effect system
         const gameState = context.gameState
         executeAbilities(
@@ -256,18 +262,18 @@ async function queueSpellEffectsOnStack(
   card: Card,
 ): Promise<void> {
   for (const effect of effects) {
-    const cardEffect: import('@/types/gameEvents').CardEffect = {
+    const cardEffect: any = { // TODO: Fix types for battlefield system
       id: `spell_effect_${card.id}`,
       name: effect.name || 'Spell Effect',
       description: effect.description || '',
       type: 'instant',
-      execute: context => {
+      execute: (context: any) => {
         executeSpellEffects(context.gameState, [effect], castingPlayer)
         return { success: true, newGameState: context.gameState }
       },
     }
 
-    const effectContext: import('@/types/gameEvents').EffectContext = {
+    const effectContext: any = { // TODO: Fix types for battlefield system
       gameState: state,
       source: card,
     }
@@ -291,18 +297,18 @@ async function _executeSpellEffectsThroughEventSystem(
   card: Card,
 ): Promise<void> {
   for (const effect of effects) {
-    const cardEffect: import('@/types/gameEvents').CardEffect = {
+    const cardEffect: any = { // TODO: Fix types for battlefield system
       id: `spell_effect_${card.id}`,
       name: effect.name || 'Spell Effect',
       description: effect.description || '',
       type: 'instant',
-      execute: context => {
+      execute: (context: any) => {
         executeSpellEffects(context.gameState, [effect], castingPlayer)
         return { success: true, newGameState: context.gameState }
       },
     }
 
-    const effectContext: import('@/types/gameEvents').EffectContext = {
+    const effectContext: any = { // TODO: Fix types for battlefield system
       gameState: state,
       source: card,
     }
@@ -383,287 +389,109 @@ function executeAbilities(
   })
 }
 
-export function declareAttackers(
+// Hearthstone-style direct attack - no lane declarations needed
+export function directAttack(
   state: GameState,
-  attackerArrangement: { attackerId: string; laneId: number }[],
+  attackerId: string,
+  target: { player: 'player1' | 'player2'; slot: number } | 'nexus',
 ): GameState {
   if (!state[state.activePlayer].hasAttackToken) return state
   if (state.phase !== 'action') return state
-  if (attackerArrangement.length > GAME_CONFIG.LANE_COUNT) return state
 
   const newState = { ...state }
-  const player = { ...newState[state.activePlayer] }
 
-  // Clear lanes
-  newState.lanes = newState.lanes.map(lane => ({ ...lane, attacker: null, defender: null }))
+  // Find attacker on battlefield (check correct side based on active player)
+  let attacker = null
+  let attackerPosition = null
 
-  const attackerNames: string[] = []
-  // Place attackers in specific lanes (LoR style)
-  attackerArrangement.forEach(({ attackerId, laneId }) => {
-    const unit = player.bench.find(u => u.id === attackerId)
-    if (unit && laneId < GAME_CONFIG.LANE_COUNT) {
-      newState.lanes[laneId].attacker = { ...unit, position: 'attacking' }
-      attackerNames.push(`${unit.name} (Lane ${laneId + 1})`)
+  // Check the correct units array based on active player
+  const attackerUnits = state.activePlayer === 'player1' ? newState.battlefield.playerUnits : newState.battlefield.enemyUnits
+  const attackerPlayer = state.activePlayer
+
+  for (let i = 0; i < attackerUnits.length; i++) {
+    const unit = attackerUnits[i]
+    if (unit && unit.id === attackerId) {
+      attacker = unit
+      attackerPosition = { player: attackerPlayer, slot: i }
+      break
     }
-  })
-
-  GameLogger.combat(`${state.activePlayer} declares attack`, {
-    attackers: attackerNames,
-    totalAttackers: attackerArrangement.length,
-  })
-
-  newState.phase = 'combat'
-  newState.attackingPlayer = state.activePlayer
-  return newState
-}
-
-export function declareDefenders(
-  state: GameState,
-  defenderAssignments: { defenderId: string; laneId: number }[],
-): GameState {
-  if (state.phase !== 'combat') return state
-
-  const newState = { ...state }
-  const defendingPlayer = state.activePlayer === 'player1' ? 'player2' : 'player1'
-  const player = { ...newState[defendingPlayer] }
-
-  // Clear existing defenders
-  newState.lanes = newState.lanes.map(lane => ({ ...lane, defender: null }))
-
-  const defenderNames: string[] = []
-  // Assign defenders to specific lanes (LoR style)
-  defenderAssignments.forEach(({ defenderId, laneId }) => {
-    const unit = player.bench.find(u => u.id === defenderId)
-    if (unit && laneId < GAME_CONFIG.LANE_COUNT && newState.lanes[laneId].attacker) {
-      newState.lanes[laneId].defender = { ...unit, position: 'defending' }
-      defenderNames.push(`${unit.name} blocks Lane ${laneId + 1}`)
-    }
-  })
-
-  GameLogger.combat(`${defendingPlayer} declares defense`, {
-    defenders: defenderNames,
-    unblockedLanes: newState.lanes.filter(l => l.attacker && !l.defender).length,
-  })
-
-  // Immediately resolve combat after defenders are set
-  newState.phase = 'combat'
-  return newState
-}
-
-// Function to rearrange attackers during declare phase (LoR style)
-export function rearrangeAttackers(
-  state: GameState,
-  newArrangement: { attackerId: string; laneId: number }[],
-): GameState {
-  if (state.phase !== 'action') return state
-  if (state.attackingPlayer !== state.activePlayer) return state
-
-  const newState = { ...state }
-  const attackingPlayer = state.attackingPlayer!
-
-  // Clear current attackers from lanes
-  newState.lanes = newState.lanes.map(lane => ({ ...lane, attacker: null }))
-
-  // Place attackers in new positions
-  newArrangement.forEach(({ attackerId, laneId }) => {
-    const unit = newState[attackingPlayer].bench.find(u => u.id === attackerId)
-    if (unit && laneId < GAME_CONFIG.LANE_COUNT) {
-      newState.lanes[laneId].attacker = { ...unit, position: 'attacking' }
-    }
-  })
-
-  return newState
-}
-
-// Function to rearrange defenders during declare phase (LoR style)
-export function rearrangeDefenders(
-  state: GameState,
-  newArrangement: { defenderId: string; laneId: number }[],
-): GameState {
-  if (state.phase !== 'combat') return state
-
-  const newState = { ...state }
-  const defendingPlayer = state.activePlayer === 'player1' ? 'player2' : 'player1'
-
-  // Clear current defenders from lanes
-  newState.lanes = newState.lanes.map(lane => ({ ...lane, defender: null }))
-
-  // Place defenders in new positions
-  newArrangement.forEach(({ defenderId, laneId }) => {
-    const unit = newState[defendingPlayer].bench.find(u => u.id === defenderId)
-    if (unit && laneId < GAME_CONFIG.LANE_COUNT && newState.lanes[laneId].attacker) {
-      newState.lanes[laneId].defender = { ...unit, position: 'defending' }
-    }
-  })
-
-  return newState
-}
-
-// Commit to combat - used by both attacker and defender
-export function commitToCombat(state: GameState): GameState {
-  if (state.phase === 'combat') {
-    // Defender commits, trigger combat
-    const newState = { ...state }
-    newState.phase = 'combat'
-    return newState
   }
-  return state
-}
 
-export async function resolveCombat(state: GameState): Promise<GameState> {
-  if (state.phase !== 'combat') return state
+  if (!attacker || attacker.hasAttackedThisTurn) return state
 
-  const newState = { ...state }
-  const attackingPlayer = newState.attackingPlayer!
-  const defendingPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1'
-  const eventHelpers = createEventHelpers(newState)
-
-  let totalNexusDamage = 0
-  const combatResults: {
-    lane?: number
-    type?: string
-    attacker: string
-    defender?: string
-    result?: string
-    damage?: number
-  }[] = []
-
-  // Clear effect stack before combat resolution to start fresh
-  effectStackService.clearStack()
-
-  // Emit combat declared event
-  await eventManager.emitCombatEvent('combat_declared', newState, -1, {
-    attackingPlayer,
-    defendingPlayer,
+  GameLogger.combat(`${state.activePlayer} attacks with ${attacker.name}`, {
+    target: target === 'nexus' ? 'nexus' : `${target.player} slot ${target.slot}`,
   })
 
-  // Resolve combat lane by lane (left to right)
-  for (let index = 0; index < newState.lanes.length; index++) {
-    const lane = newState.lanes[index]
-    if (lane.attacker) {
-      if (lane.defender) {
-        // Unit vs Unit combat
-        const attackerDamage = lane.attacker.attack
-        const defenderDamage = lane.defender.attack
-        const attackerNewHealth =
-          (lane.attacker.currentHealth || lane.attacker.health) - defenderDamage
-        const defenderNewHealth =
-          (lane.defender.currentHealth || lane.defender.health) - attackerDamage
+  // Mark attacker as having attacked
+  attacker.hasAttackedThisTurn = true
 
-        // Emit combat damage events
-        await eventManager.emitCombatEvent('combat_damage_dealt', newState, index, {
-          attackerId: lane.attacker.id,
-          defenderId: lane.defender.id,
-          damage: attackerDamage,
-          combatResults: {
-            attackerDied: attackerNewHealth <= 0,
-            defenderDied: defenderNewHealth <= 0,
-            damageToAttacker: defenderDamage,
-            damageToDefender: attackerDamage,
-            nexusDamage: 0,
-          },
-        })
+  // Apply damage immediately (Hearthstone style)
+  if (target === 'nexus') {
+    const opponent = state.activePlayer === 'player1' ? 'player2' : 'player1'
+    newState[opponent].health -= attacker.attack
+  } else {
+    // Unit vs Unit combat
+    const targetUnits = target.player === 'player1' ? newState.battlefield.playerUnits : newState.battlefield.enemyUnits
+    const defender = targetUnits[target.slot]
 
-        combatResults.push({
-          lane: index + 1,
-          type: 'trade',
-          attacker: `${lane.attacker.name} (${attackerNewHealth <= 0 ? 'dies' : `survives ${attackerNewHealth}hp`})`,
-          defender: `${lane.defender.name} (${defenderNewHealth <= 0 ? 'dies' : `survives ${defenderNewHealth}hp`})`,
-        })
+    if (defender) {
+      // Simultaneous damage
+      defender.currentHealth = (defender.currentHealth || defender.health) - attacker.attack
+      attacker.currentHealth = (attacker.currentHealth || attacker.health) - defender.attack
 
-        // Handle unit deaths and damage
-        if (attackerNewHealth <= 0) {
-          await eventHelpers.unitDies(lane.attacker.id, lane.attacker.name)
-          cardEffectSystem.unregisterCardAbilities(lane.attacker.id)
-          newState[attackingPlayer].bench = newState[attackingPlayer].bench.filter(
-            u => u.id !== lane.attacker?.id,
-          )
-        } else {
-          const benchUnit = newState[attackingPlayer].bench.find(u => u.id === lane.attacker?.id)
-          if (benchUnit) {
-            benchUnit.currentHealth = attackerNewHealth
-            // Emit unit damaged event
-            await eventManager.emitCardEvent(
-              'unit_dealt_damage',
-              newState,
-              benchUnit.id,
-              benchUnit.name,
-              {
-                damage: defenderDamage,
-                previousValue: benchUnit.currentHealth + defenderDamage,
-                newValue: benchUnit.currentHealth,
-              },
-            )
-          }
+      // Remove dead units
+      if (defender.currentHealth <= 0) {
+        targetUnits[target.slot] = null
+      }
+      if (attacker.currentHealth <= 0) {
+        if (attackerPosition) {
+          const attackerUnits = attackerPosition.player === 'player1' ? newState.battlefield.playerUnits : newState.battlefield.enemyUnits
+          attackerUnits[attackerPosition.slot] = null
         }
-
-        if (defenderNewHealth <= 0) {
-          await eventHelpers.unitDies(lane.defender.id, lane.defender.name)
-          cardEffectSystem.unregisterCardAbilities(lane.defender.id)
-          newState[defendingPlayer].bench = newState[defendingPlayer].bench.filter(
-            u => u.id !== lane.defender?.id,
-          )
-        } else {
-          const benchUnit = newState[defendingPlayer].bench.find(u => u.id === lane.defender?.id)
-          if (benchUnit) {
-            benchUnit.currentHealth = defenderNewHealth
-            // Emit unit damaged event
-            await eventManager.emitCardEvent(
-              'unit_dealt_damage',
-              newState,
-              benchUnit.id,
-              benchUnit.name,
-              {
-                damage: attackerDamage,
-                previousValue: benchUnit.currentHealth + attackerDamage,
-                newValue: benchUnit.currentHealth,
-              },
-            )
-          }
-        }
-      } else {
-        // Direct nexus damage
-        const damage = lane.attacker.attack
-        const _previousHealth = newState[defendingPlayer].health
-        newState[defendingPlayer].health -= damage
-        totalNexusDamage += damage
-
-        // Emit player damage event
-        await eventHelpers.playerLosesHealth(defendingPlayer, damage, 'combat damage')
-
-        combatResults.push({
-          lane: index + 1,
-          type: 'nexus',
-          attacker: lane.attacker.name,
-          damage: damage,
-        })
       }
     }
   }
 
-  // Resolve all effects on the stack before finishing combat
-  await resolveEffectStack(newState)
-
-  // Emit combat resolved event
-  await eventManager.emitCombatEvent('combat_resolved', newState, -1, {
-    totalNexusDamage,
-    combatResults,
-  })
-
-  GameLogger.combat('Combat resolved', {
-    results: combatResults,
-    totalNexusDamage,
-    defenderHealth: newState[defendingPlayer].health,
-  })
-
-  // Clear lanes
-  newState.lanes = newState.lanes.map(lane => ({ ...lane, attacker: null, defender: null }))
-  newState.combatResolved = true
-  newState.phase = 'action'
-  newState.attackingPlayer = null
-
   return newState
 }
+
+// Simplified battlefield system - no complex declarations needed
+// Units can be placed directly in battlefield slots
+
+// Legacy function stubs for tutorial compatibility (deprecated)
+export function declareAttackers(state: GameState, _attackerArrangement: any): GameState {
+  console.warn('declareAttackers is deprecated - use directAttack instead')
+  return state
+}
+
+export function declareDefenders(state: GameState, _defenderAssignments: any): GameState {
+  console.warn('declareDefenders is deprecated - use directAttack instead')
+  return state
+}
+
+export async function resolveCombat(state: GameState): Promise<GameState> {
+  console.warn('resolveCombat is deprecated - attacks are resolved immediately')
+  return state
+}
+
+export function rearrangeAttackers(state: GameState, _newArrangement: any): GameState {
+  console.warn('rearrangeAttackers is deprecated')
+  return state
+}
+
+export function rearrangeDefenders(state: GameState, _newArrangement: any): GameState {
+  console.warn('rearrangeDefenders is deprecated')
+  return state
+}
+
+export function commitToCombat(state: GameState): GameState {
+  console.warn('commitToCombat is deprecated')
+  return state
+}
+
+// Battlefield system uses directAttack() instead of complex lane combat
+// No separate combat resolution phase needed
 
 // Game outcome detection with win conditions
 export function checkGameOutcome(state: GameState): 'player1_wins' | 'player2_wins' | 'ongoing' {
@@ -712,10 +540,11 @@ async function resolveEffectStack(_gameState: GameState): Promise<void> {
 
 // Get effect stack state for UI display
 export function getEffectStackState() {
+  // TODO: Update for battlefield system
   return {
-    items: effectStackService.getStackItems(),
-    canRespond: effectStackService.canCurrentPlayerRespond(),
-    resolutionMode: effectStackService.getResolutionMode(),
+    items: [], // effectStackService.getStackItems(),
+    canRespond: false, // effectStackService.canCurrentPlayerRespond(),
+    resolutionMode: false, // effectStackService.getResolutionMode(),
   }
 }
 
@@ -729,20 +558,22 @@ export async function respondToStackEffect(
   try {
     if (responseType === 'counter' && responseCard) {
       // Add counter spell to stack
-      const counterEffect: import('@/types/gameEvents').CardEffect = {
+      const counterEffect: any = { // TODO: Fix types for battlefield system
         id: `counter_${responseCard.id}`,
         name: responseCard.name,
         description: `Counter target spell or ability`,
         type: 'instant',
-        execute: context => {
-          // Remove the targeted effect from stack
-          effectStackService.removeFromStack(stackItemId)
-          GameLogger.action(`${responseCard.name} counters effect ${stackItemId}`)
-          return { success: true, newGameState: context.gameState }
+        execute: (context: any) => {
+          // Counter the targeted effect from stack
+          const success = effectStackService.counterEffect(stackItemId, 'player1')
+          if (success) {
+            GameLogger.action(`${responseCard.name} counters effect ${stackItemId}`)
+          }
+          return { success, newGameState: context.gameState }
         },
       }
 
-      const effectContext: import('@/types/gameEvents').EffectContext = {
+      const effectContext: any = { // TODO: Fix types for battlefield system
         gameState,
         source: responseCard,
       }
@@ -794,6 +625,11 @@ export async function endTurn(state: GameState): Promise<GameState> {
   // Update persistent effects at end of turn
   const updatedState = cardEffectSystem.updatePersistentEffects(newState)
   Object.assign(newState, updatedState)
+
+  // Reset attack flags for all units (Hearthstone style)
+  newState[state.activePlayer].bench.forEach(unit => {
+    unit.hasAttackedThisTurn = false
+  })
 
   // Store unspent mana as spell mana
   const unspentMana = newState[state.activePlayer].mana
@@ -895,53 +731,15 @@ export async function aiTurn(state: GameState): Promise<GameState> {
     GameLogger.ai('AI played cards', cardsPlayed)
   }
 
-  // Phase 2: Attack if has attack token
+  // Phase 2: Attack if has attack token (Hearthstone style)
   if (ai.hasAttackToken && ai.bench.length > 0) {
-    // Select best attackers
-    const attackers = ai.bench
-      .sort((a, b) => b.attack - a.attack)
-      .slice(0, GAME_CONFIG.LANE_COUNT)
-      .map(u => u.id)
-
-    if (attackers.length > 0) {
-      // Declare attackers with lane positions
-      const attackerArrangement = attackers.map((id, index) => ({ attackerId: id, laneId: index }))
-      GameLogger.ai('AI declaring attack', { attackerCount: attackers.length })
-      newState = declareAttackers(newState, attackerArrangement)
-
-      // AI auto-assigns defenders (simplified for tutorial)
-      if (newState.phase === 'combat') {
-        const defenderAssignments: { defenderId: string; laneId: number }[] = []
-
-        // Simple defensive strategy: block strongest attackers first
-        newState.lanes.forEach((lane, index) => {
-          if (lane.attacker && opponent.bench.length > defenderAssignments.length) {
-            const availableDefenders = opponent.bench.filter(
-              u => !defenderAssignments.some(d => d.defenderId === u.id),
-            )
-
-            if (availableDefenders.length > 0) {
-              // Find best defender (highest health that can survive)
-              const bestDefender = availableDefenders
-                .sort((a, b) => (b.currentHealth || b.health) - (a.currentHealth || a.health))
-                .find(d => (d.currentHealth || d.health) > lane.attacker?.attack)
-
-              if (bestDefender) {
-                defenderAssignments.push({
-                  defenderId: bestDefender.id,
-                  laneId: index,
-                })
-              }
-            }
-          }
-        })
-
-        GameLogger.ai('AI assigning defenders', { defenderCount: defenderAssignments.length })
-        newState = declareDefenders(newState, defenderAssignments)
-
-        if (newState.phase === 'combat') {
-          newState = await resolveCombat(newState)
-        }
+    // Simple AI strategy: attack with all units that can attack
+    for (const unit of ai.bench) {
+      if (!unit.hasAttackedThisTurn) {
+        // AI targets nexus directly (simple strategy)
+        // In a more advanced AI, we could add logic to target enemy units with taunt or make tactical decisions
+        newState = directAttack(newState, unit.id, 'nexus')
+        GameLogger.ai(`AI attacks nexus with ${unit.name}`)
       }
     }
   }
@@ -1107,6 +905,6 @@ export function aiMulligan(
 function shuffleDeck(player: Player): void {
   for (let i = player.deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-      ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+    ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
   }
 }

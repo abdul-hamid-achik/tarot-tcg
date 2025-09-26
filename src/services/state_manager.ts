@@ -1,15 +1,12 @@
 import { GameLogger } from '@/lib/game_logger'
 import type { Card as GameCard, GameState } from '@/schemas/schema'
-import { CellPositionSchema } from '@/schemas/schema'
-import type { CellPosition } from '@/store/game_store'
+import type { BattlefieldPosition } from '@/services/battlefield_service'
 
 export type CardLocation =
   | { type: 'hand'; player: 'player1' | 'player2'; index: number }
   | { type: 'deck'; player: 'player1' | 'player2'; index: number }
   | { type: 'bench'; player: 'player1' | 'player2'; index: number }
-  | { type: 'grid'; position: CellPosition }
-  | { type: 'lane'; laneId: number; role: 'attacker' | 'defender' }
-  | { type: 'graveyard'; player: 'player1' | 'player2'; index: number }
+  | { type: 'battlefield'; player: 'player1' | 'player2'; slot: number }
   | { type: 'void' } // Card removed from game
 
 /**
@@ -30,12 +27,12 @@ export class StateManager {
     // Map all cards to their locations
     this.mapPlayerCards('player1', state.player1)
     this.mapPlayerCards('player2', state.player2)
-    this.mapLaneCards(state)
+    this.mapBattlefieldCards(state)
 
     // Initialize grid representation
 
     GameLogger.state('StateManager initialized', {
-      totalCards: this.cardLocations.size
+      totalCards: this.cardLocations.size,
     })
   }
 
@@ -48,7 +45,7 @@ export class StateManager {
       this.cardLocations.set(card.id, {
         type: 'hand',
         player: playerId,
-        index
+        index,
       })
     })
 
@@ -57,51 +54,46 @@ export class StateManager {
       this.cardLocations.set(card.id, {
         type: 'deck',
         player: playerId,
-        index
+        index,
       })
     })
 
     // Bench cards - these are also on the grid
     player.bench?.forEach((card: GameCard, index: number) => {
-      // Bench cards exist in both bench array AND grid
-      const gridRow = playerId === 'player1' ? 3 : 0
-      const gridCol = index // Assuming bench positions map directly to columns
-
-      if (gridCol < 6) {
+      // Bench cards exist in both bench array AND battlefield
+      if (index < 7) { // Battlefield has 7 slots per player
         this.cardLocations.set(card.id, {
-          type: 'grid',
-          position: CellPositionSchema.parse({ row: gridRow, col: gridCol })
+          type: 'battlefield',
+          player: playerId,
+          slot: index,
         })
       }
     })
 
-    // Graveyard cards
-    player.graveyard?.forEach((card: GameCard, index: number) => {
-      this.cardLocations.set(card.id, {
-        type: 'graveyard',
-        player: playerId,
-        index
-      })
-    })
   }
 
   /**
-   * Map lane cards (attackers/defenders)
+   * Map battlefield cards
    */
-  private mapLaneCards(state: GameState): void {
-    state.lanes.forEach((lane, laneId) => {
-      if (lane.attacker) {
-        this.cardLocations.set(lane.attacker.id, {
-          type: 'lane',
-          laneId,
-          role: 'attacker'
+  private mapBattlefieldCards(state: GameState): void {
+    // Map player1 units
+    state.battlefield.playerUnits.forEach((unit, slot) => {
+      if (unit) {
+        this.cardLocations.set(unit.id, {
+          type: 'battlefield',
+          player: 'player1',
+          slot,
         })
       }
-      if (lane.defender) {
-        this.cardLocations.set(lane.defender.id, {
-          type: 'lane',
-          laneId,
-          role: 'defender'
+    })
+
+    // Map player2 units
+    state.battlefield.enemyUnits.forEach((unit, slot) => {
+      if (unit) {
+        this.cardLocations.set(unit.id, {
+          type: 'battlefield',
+          player: 'player2',
+          slot,
         })
       }
     })
@@ -110,11 +102,13 @@ export class StateManager {
   /**
    * Get card at specific grid position
    */
-  getCardAtPosition(position: CellPosition): GameCard | null {
+  getCardAtPosition(position: BattlefieldPosition): GameCard | null {
     for (const [cardId, location] of this.cardLocations) {
-      if (location.type === 'grid' &&
-          location.position.row === position.row &&
-          location.position.col === position.col) {
+      if (
+        location.type === 'battlefield' &&
+        location.player === position.player &&
+        location.slot === position.slot
+      ) {
         return this.findCard(cardId)
       }
     }
@@ -124,7 +118,7 @@ export class StateManager {
   /**
    * Check if a grid position is empty
    */
-  isPositionEmpty(position: CellPosition): boolean {
+  isPositionEmpty(position: BattlefieldPosition): boolean {
     return this.getCardAtPosition(position) === null
   }
 
@@ -157,7 +151,7 @@ export class StateManager {
 
     GameLogger.action(`Card ${card.name} moved`, {
       from: currentLocation,
-      to: newLocation
+      to: newLocation,
     })
 
     return true
@@ -185,27 +179,11 @@ export class StateManager {
         player.bench = player.bench.filter(c => c.id !== cardId)
         break
       }
-      case 'grid': {
+      case 'battlefield': {
         // Remove from bench if it's there
         const owner = this.getCardOwner(cardId)
         if (owner) {
           this.gameState[owner].bench = this.gameState[owner].bench.filter(c => c.id !== cardId)
-        }
-        break
-      }
-      case 'lane': {
-        const lane = this.gameState.lanes[location.laneId]
-        if (location.role === 'attacker') {
-          lane.attacker = null
-        } else {
-          lane.defender = null
-        }
-        break
-      }
-      case 'graveyard': {
-        const player = this.gameState[location.player]
-        if (player.graveyard) {
-          player.graveyard = player.graveyard.filter(c => c.id !== cardId)
         }
         break
       }
@@ -234,29 +212,12 @@ export class StateManager {
         player.bench.push(card)
         break
       }
-      case 'grid': {
+      case 'battlefield': {
         // Add to bench array for state consistency
         const owner = this.getCardOwner(cardId)
         if (owner && !this.gameState[owner].bench.find(c => c.id === cardId)) {
           this.gameState[owner].bench.push(card)
         }
-        break
-      }
-      case 'lane': {
-        const lane = this.gameState.lanes[location.laneId]
-        if (location.role === 'attacker') {
-          lane.attacker = card
-        } else {
-          lane.defender = card
-        }
-        break
-      }
-      case 'graveyard': {
-        const player = this.gameState[location.player]
-        if (!player.graveyard) {
-          player.graveyard = []
-        }
-        player.graveyard.push(card)
         break
       }
     }
@@ -282,15 +243,16 @@ export class StateManager {
       const benchCard = player.bench.find(c => c.id === cardId)
       if (benchCard) return benchCard
 
-      // Check graveyard
-      const graveyardCard = player.graveyard?.find(c => c.id === cardId)
-      if (graveyardCard) return graveyardCard
     }
 
-    // Check lanes
-    for (const lane of this.gameState.lanes) {
-      if (lane.attacker?.id === cardId) return lane.attacker
-      if (lane.defender?.id === cardId) return lane.defender
+    // Check battlefield
+    const allBattlefieldUnits = [
+      ...this.gameState.battlefield.playerUnits,
+      ...this.gameState.battlefield.enemyUnits,
+    ].filter(Boolean)
+
+    for (const unit of allBattlefieldUnits) {
+      if (unit && unit.id === cardId) return unit
     }
 
     return null
@@ -332,7 +294,7 @@ export class StateManager {
   /**
    * Play a card from hand
    */
-  playCardFromHand(cardId: string, targetPosition?: CellPosition): boolean {
+  playCardFromHand(cardId: string, targetPosition?: BattlefieldPosition): boolean {
     const location = this.cardLocations.get(cardId)
     if (!location || location.type !== 'hand') {
       GameLogger.error(`Card ${cardId} is not in hand`)
@@ -341,16 +303,16 @@ export class StateManager {
 
     if (targetPosition) {
       // Play directly to grid position
-      return this.moveCard(cardId, { type: 'grid', position: targetPosition })
+      return this.moveCard(cardId, { type: 'battlefield', player: targetPosition.player, slot: targetPosition.slot })
     } else {
       // Play to bench (find first empty slot)
       const player = location.player
       const benchRow = player === 'player1' ? 3 : 0
 
-      for (let col = 0; col < 6; col++) {
-        const position = CellPositionSchema.parse({ row: benchRow, col })
+      for (let slot = 0; slot < 7; slot++) {
+        const position = { player, slot }
         if (this.isPositionEmpty(position)) {
-          return this.moveCard(cardId, { type: 'grid', position })
+          return this.moveCard(cardId, { type: 'battlefield', player, slot })
         }
       }
 
@@ -372,7 +334,7 @@ export class StateManager {
     const success = this.moveCard(card.id, {
       type: 'hand',
       player,
-      index: this.gameState[player].hand.length
+      index: this.gameState[player].hand.length,
     })
 
     return success ? card : null
@@ -389,21 +351,23 @@ export class StateManager {
 
     // Check all player cards
     for (const player of [this.gameState.player1, this.gameState.player2]) {
-      [...player.hand, ...player.deck, ...player.bench, ...(player.graveyard || [])].forEach(
+      ;[...player.hand, ...player.deck, ...player.bench].forEach(
         card => {
           if (foundCards.has(card.id)) {
             GameLogger.error(`Duplicate card found: ${card.id}`)
             valid = false
           }
           foundCards.add(card.id)
-        }
+        },
       )
     }
 
-    // Check lane cards
-    for (const lane of this.gameState.lanes) {
-      if (lane.attacker) foundCards.add(lane.attacker.id)
-      if (lane.defender) foundCards.add(lane.defender.id)
+    // Check battlefield cards
+    for (const unit of this.gameState.battlefield.playerUnits) {
+      if (unit) foundCards.add(unit.id)
+    }
+    for (const unit of this.gameState.battlefield.enemyUnits) {
+      if (unit) foundCards.add(unit.id)
     }
 
     // Check all tracked cards exist

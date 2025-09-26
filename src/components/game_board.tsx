@@ -2,7 +2,7 @@
 
 import React from 'react'
 // Game Components
-import BattlefieldGrid from '@/components/battlefield/battlefield_grid'
+import { Battlefield } from '@/components/battlefield/battlefield'
 // Overlays
 import CardDetailOverlay from '@/components/card_detail_overlay'
 import BackgroundEffects from '@/components/effects/background_effects'
@@ -15,9 +15,10 @@ import PlayerInfoPanel from '@/components/player/player_info_panel'
 // UI Components
 import ActionBar from '@/components/ui/action_bar'
 import { useGameActions } from '@/hooks/use_game_actions'
-import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
 import { useGameClock } from '@/hooks/use_game_clock'
 import { useGameEffects } from '@/hooks/use_game_effects'
+import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
+import type { BattlefieldPosition } from '@/services/battlefield_service'
 // Types
 import type { Card as GameCard, GameState } from '@/schemas/schema'
 import {
@@ -46,7 +47,7 @@ export default function GameBoard({
 }: GameBoardProps) {
   const { ui, interaction, hideCardDetail, showCardDetail, setGameState } = useGameStore()
 
-  const { playCard, declareAttack, declareDefenders, completeMulligan, reverseCard } =
+  const { playCard, declareAttack, attackTarget, completeMulligan, reverseCard } =
     useGameActions()
 
   // Use centralized game effects
@@ -80,11 +81,8 @@ export default function GameBoard({
     onAttack?.(attackerIds)
   }
 
-  const handleDefend = async () => {
-    const defenderAssignments = Array.from(interaction.defenderAssignments.entries()).map(
-      ([laneId, defenderId]) => ({ defenderId, laneId }),
-    )
-    await declareDefenders(defenderAssignments)
+  const handleDirectAttack = async (attackerId: string, target: 'nexus') => {
+    await attackTarget(attackerId, target)
   }
 
   const handleEndTurn = async () => {
@@ -100,15 +98,29 @@ export default function GameBoard({
   }
 
   const handlePass = async () => {
-    if (isDefendersPhase(gameState)) {
-      await declareDefenders([])
-    } else {
-      await handleEndTurn()
-    }
+    await handleEndTurn()
   }
 
   const handleCardPlay = async (card: GameCard) => {
-    await playCard(card)
+    if (card.type === 'unit') {
+      // Find first empty slot for unit cards
+      const battlefield = gameState?.battlefield
+      if (battlefield) {
+        const playerUnits = battlefield.playerUnits
+        const firstEmptySlot = playerUnits.findIndex(unit => unit === null)
+
+        if (firstEmptySlot !== -1) {
+          console.log(`Playing card to slot: {player: "player1", slot: ${firstEmptySlot}}`)
+          await playCard(card, { player: 'player1', slot: firstEmptySlot })
+        } else {
+          console.warn('No empty slots available on battlefield')
+          return
+        }
+      }
+    } else {
+      // Spell cards don't need target position
+      await playCard(card)
+    }
     onCardPlay?.(card)
   }
 
@@ -149,9 +161,9 @@ export default function GameBoard({
 
       {/* Main Game Area */}
       <div className="flex flex-col justify-between h-full pt-16 pb-20 px-4 sm:px-12 md:px-24 lg:px-48 xl:px-64 2xl:px-80 relative">
-        {/* Battlefield Grid */}
+        {/* Battlefield */}
         <div className="flex-1 flex flex-col justify-center">
-          <BattlefieldGrid />
+          <Battlefield />
         </div>
       </div>
 
@@ -161,7 +173,6 @@ export default function GameBoard({
           <div className="pointer-events-auto">
             <ActionBar
               onAttack={handleAttack}
-              onDefend={handleDefend}
               onPass={handlePass}
               onEndTurn={handlePass}
               className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl p-3 min-w-[280px]"
@@ -182,7 +193,7 @@ export default function GameBoard({
         position="bottom-left"
         isCurrentPlayer={true}
         onCardPlay={handleCardPlay}
-        onCardDetail={(card) => {
+        onCardDetail={card => {
           // Show card detail overlay
           showCardDetail(card)
         }}

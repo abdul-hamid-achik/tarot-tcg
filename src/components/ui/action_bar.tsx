@@ -42,7 +42,6 @@ export default function ActionBar({
   const selectedDefendersCount = interaction.defenderAssignments.size
   const isDefendPhase = gameState?.phase === 'defense_declaration'
 
-
   // Phase display
   const getPhaseDisplay = () => {
     switch (gameState?.phase) {
@@ -76,10 +75,10 @@ export default function ActionBar({
     if (!isActionPhase(gameState)) {
       return { enabled: false, tooltip: 'Can only attack during action phase' }
     }
-    // Check if there are any units that can attack (bench or attack row)
+    // Check if there are any units that can attack (battlefield units)
     const benchUnits = getPlayerBench(gameState, 'player1').length
-    const attackUnits = gameState?.lanes?.filter(lane => lane.attacker).length || 0
-    if (benchUnits === 0 && attackUnits === 0) {
+    // In Hearthstone-style, units attack directly from the battlefield
+    if (benchUnits === 0) {
       return { enabled: true, tooltip: 'Pass priority (no units to attack with)' }
     }
     if (selectedAttackersCount === 0) {
@@ -104,9 +103,9 @@ export default function ActionBar({
     return {
       enabled: true, // Always enabled - player can always skip block
       tooltip: hasDefenders
-        ? (selectedDefendersCount > 0
+        ? selectedDefendersCount > 0
           ? `Commit ${selectedDefendersCount} defenders`
-          : 'Assign defenders or skip to take damage')
+          : 'Assign defenders or skip to take damage'
         : 'No units to defend with - skip to take damage',
     }
   }
@@ -126,11 +125,12 @@ export default function ActionBar({
                 disabled={!attackState.enabled}
                 className={`
                   w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                  ${attackState.enabled
-                    ? selectedAttackersCount > 0
-                      ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-xl border-2 border-orange-400 hover:shadow-2xl'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+                  ${
+                    attackState.enabled
+                      ? selectedAttackersCount > 0
+                        ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-xl border-2 border-orange-400 hover:shadow-2xl'
+                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
+                      : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
                   }
                 `}
                 title={attackState.tooltip}
@@ -148,9 +148,10 @@ export default function ActionBar({
                 disabled={!canPass}
                 className={`
                   w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                  ${canPass
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+                  ${
+                    canPass
+                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
+                      : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
                   }
                 `}
                 title={canPass ? 'End your turn' : 'Cannot end turn yet'}
@@ -168,10 +169,11 @@ export default function ActionBar({
             disabled={!defendState.enabled}
             className={`
                 w-full justify-center text-lg px-6 py-4 min-h-[50px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-200
-                ${defendState.enabled
-                ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg border-2 border-green-400'
-                : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
-              }
+                ${
+                  defendState.enabled
+                    ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg border-2 border-green-400'
+                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+                }
               `}
             title={defendState.tooltip}
           >
@@ -204,7 +206,6 @@ export default function ActionBar({
           </Button>
         )}
 
-
         {/* End Round Button - LoR Style */}
         {gameState?.phase === 'end_round' && isPlayerTurn && (
           <Button
@@ -219,11 +220,11 @@ export default function ActionBar({
         {!['action', 'defense_declaration', 'combat_resolution', 'end_round', 'mulligan'].includes(
           gameState?.phase || '',
         ) && (
-            <div className="flex items-center gap-2 text-gray-600 text-sm px-4 py-2 bg-gray-100/80 rounded border border-gray-300">
-              <Clock className="w-4 h-4 animate-pulse" />
-              <span>Waiting...</span>
-            </div>
-          )}
+          <div className="flex items-center gap-2 text-gray-600 text-sm px-4 py-2 bg-gray-100/80 rounded border border-gray-300">
+            <Clock className="w-4 h-4 animate-pulse" />
+            <span>Waiting...</span>
+          </div>
+        )}
 
         {/* Always show End Turn button when it's player's turn and not in mulligan */}
         {isPlayerTurn && gameState?.phase !== 'mulligan' && !canPass && (

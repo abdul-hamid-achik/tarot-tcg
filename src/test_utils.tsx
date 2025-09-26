@@ -67,33 +67,41 @@ export const createTestGameState = (overrides: Partial<GameState> = {}): GameSta
   attackingPlayer: null,
   player1: createTestPlayer('player1'),
   player2: createTestPlayer('player2', { hasAttackToken: false }),
-  lanes: Array(6).fill(null).map((_, id) => ({ id, attacker: null, defender: null })),
+  battlefield: {
+    playerUnits: Array(7).fill(null),
+    enemyUnits: Array(7).fill(null),
+    maxSlots: 7,
+  },
   phase: 'action',
   waitingForAction: false,
   combatResolved: false,
+  passCount: 0,
+  canRespond: false,
   ...overrides
 })
 
 // Test utilities for game scenarios
 export const withCombatSetup = (gameState: GameState): GameState => {
-  const attacker = createTestCard({ id: 'attacker-1', name: 'Attacker', position: 'attacking' })
-  const defender = createTestCard({ id: 'defender-1', name: 'Defender', position: 'defending' })
+  const attacker = createTestCard({ id: 'attacker-1', name: 'Attacker' })
+  const defender = createTestCard({ id: 'defender-1', name: 'Defender' })
 
   return {
     ...gameState,
-    phase: 'combat',
+    phase: 'action', // Hearthstone-style keeps action phase
     attackingPlayer: 'player1',
-    activePlayer: 'player2',
-    lanes: gameState.lanes.map((lane, index) =>
-      index === 0 ? { ...lane, attacker, defender } : lane
-    ),
+    activePlayer: 'player1',
+    battlefield: {
+      ...gameState.battlefield,
+      playerUnits: [attacker, ...gameState.battlefield.playerUnits.slice(1)],
+      enemyUnits: [defender, ...gameState.battlefield.enemyUnits.slice(1)],
+    },
     player1: {
       ...gameState.player1,
-      bench: [attacker]
+      bench: []
     },
     player2: {
       ...gameState.player2,
-      bench: [defender]
+      bench: []
     }
   }
 }
@@ -175,20 +183,18 @@ export const expectPlayerHasCard = (gameState: GameState, playerId: 'player1' | 
   expect(hasCard).toBe(true)
 }
 
-export const expectLaneHasAttacker = (gameState: GameState, laneId: number, cardId?: string) => {
-  const lane = gameState.lanes[laneId]
-  expect(lane.attacker).toBeTruthy()
+export const expectBattlefieldHasUnit = (gameState: GameState, player: 'player1' | 'player2', slot: number, cardId?: string) => {
+  const units = player === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
+  const unit = units[slot]
+  expect(unit).toBeTruthy()
   if (cardId) {
-    expect(lane.attacker?.id).toBe(cardId)
+    expect(unit?.id).toBe(cardId)
   }
 }
 
-export const expectLaneHasDefender = (gameState: GameState, laneId: number, cardId?: string) => {
-  const lane = gameState.lanes[laneId]
-  expect(lane.defender).toBeTruthy()
-  if (cardId) {
-    expect(lane.defender?.id).toBe(cardId)
-  }
+export const expectBattlefieldSlotEmpty = (gameState: GameState, player: 'player1' | 'player2', slot: number) => {
+  const units = player === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
+  expect(units[slot]).toBeNull()
 }
 
 export const expectPhase = (gameState: GameState, expectedPhase: GameState['phase']) => {

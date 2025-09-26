@@ -3,9 +3,7 @@ import {
   createInitialGameState,
   canPlayCard,
   playCard,
-  declareAttackers,
-  declareDefenders,
-  resolveCombat,
+  directAttack,
   endTurn,
   checkGameOutcome,
   completeMulligan,
@@ -104,7 +102,8 @@ describe('Game Logic', () => {
       expect(gameState.player2.health).toBe(20)
       expect(gameState.player1.hasAttackToken).toBe(true)
       expect(gameState.player2.hasAttackToken).toBe(false)
-      expect(gameState.lanes).toHaveLength(6)
+      expect(gameState.battlefield.playerUnits).toHaveLength(7)
+      expect(gameState.battlefield.enemyUnits).toHaveLength(7)
     })
 
     it('should give players starting hands and decks', () => {
@@ -174,76 +173,56 @@ describe('Game Logic', () => {
     })
   })
 
-  describe('Combat System', () => {
+  describe('Combat System - Battlefield', () => {
     beforeEach(() => {
       gameState.phase = 'action'
       gameState.player1.hasAttackToken = true
-      // Add some units to bench
+      // Place units on battlefield
       const attacker = { ...testCard, id: 'attacker-1' }
       const defender = { ...testCard, id: 'defender-1' }
-      gameState.player1.bench = [attacker]
-      gameState.player2.bench = [defender]
+      gameState.battlefield.playerUnits[0] = attacker
+      gameState.battlefield.enemyUnits[0] = defender
     })
 
-    it('should declare attackers correctly', () => {
-      const attackerArrangement = [{ attackerId: 'attacker-1', laneId: 0 }]
-      const newState = declareAttackers(gameState, attackerArrangement)
+    it('should attack unit directly', () => {
+      const newState = directAttack(gameState, 'attacker-1', { player: 'player2', slot: 0 })
 
-      expect(newState.phase).toBe('combat')
-      expect(newState.attackingPlayer).toBe('player1')
-      expect(newState.lanes[0].attacker).toBeTruthy()
-      expect(newState.lanes[0].attacker?.name).toBe('Test Card')
+      expect(newState.phase).toBe('action') // Stays in action phase (Hearthstone-style)
+      // Attacker (2 attack) vs Defender (3 health) - Defender should have 1 health left
+      expect(newState.battlefield.enemyUnits[0]?.currentHealth).toBe(1)
+      // Defender (2 attack) vs Attacker (3 health) - Attacker should have 1 health left
+      expect(newState.battlefield.playerUnits[0]?.currentHealth).toBe(1)
     })
 
     it('should prevent attacking without attack token', () => {
       gameState.player1.hasAttackToken = false
-      const attackerArrangement = [{ attackerId: 'attacker-1', laneId: 0 }]
-      const newState = declareAttackers(gameState, attackerArrangement)
+      const newState = directAttack(gameState, 'attacker-1', { player: 'player2', slot: 0 })
 
       expect(newState).toEqual(gameState) // No changes
     })
 
-    it('should declare defenders correctly', () => {
-      // Set up attack first
-      gameState.phase = 'combat'
-      gameState.attackingPlayer = 'player1'
-      gameState.lanes[0].attacker = { ...testCard, id: 'attacker-1', position: 'attacking' }
+    it('should attack nexus directly', () => {
+      const newState = directAttack(gameState, 'attacker-1', 'nexus')
 
-      const defenderAssignments = [{ defenderId: 'defender-1', laneId: 0 }]
-      const newState = declareDefenders(gameState, defenderAssignments)
-
-      expect(newState.lanes[0].defender).toBeTruthy()
-      expect(newState.lanes[0].defender?.name).toBe('Test Card')
-    })
-
-    it('should resolve combat correctly', async () => {
-      // Set up combat scenario
-      gameState.phase = 'combat'
-      gameState.attackingPlayer = 'player1'
-      gameState.lanes[0].attacker = { ...testCard, id: 'attacker-1', position: 'attacking', attack: 2, health: 3, currentHealth: 3 }
-      gameState.lanes[0].defender = { ...testCard, id: 'defender-1', position: 'defending', attack: 1, health: 2, currentHealth: 2 }
-
-      const newState = await resolveCombat(gameState)
-
+      expect(newState.player2.health).toBe(18) // 20 - 2 attack
       expect(newState.phase).toBe('action')
-      expect(newState.combatResolved).toBe(true)
-      expect(newState.lanes[0].attacker).toBeNull()
-      expect(newState.lanes[0].defender).toBeNull()
-      // Defender should be dead (2 health - 2 attack = 0)
-      // Attacker should survive (3 health - 1 attack = 2)
-      expect(newState.player2.bench).toHaveLength(0) // Defender removed
-      expect(newState.player1.bench[0].currentHealth).toBe(2)
     })
 
-    it('should deal nexus damage when no defenders', async () => {
-      gameState.phase = 'combat'
-      gameState.attackingPlayer = 'player1'
-      gameState.lanes[0].attacker = { ...testCard, id: 'attacker-1', position: 'attacking', attack: 3 }
-      // No defender assigned
+    it('should destroy units with 0 health', () => {
+      // Set up weak defender
+      gameState.battlefield.enemyUnits[0] = { ...testCard, id: 'weak-defender', health: 1, currentHealth: 1 }
 
-      const newState = await resolveCombat(gameState)
+      const newState = directAttack(gameState, 'attacker-1', { player: 'player2', slot: 0 })
 
-      expect(newState.player2.health).toBe(17) // 20 - 3 attack
+      expect(newState.battlefield.enemyUnits[0]).toBeNull() // Unit destroyed
+    })
+
+    it('should prevent attacking empty slots', () => {
+      gameState.battlefield.enemyUnits[0] = null // Empty slot
+
+      const newState = directAttack(gameState, 'attacker-1', { player: 'player2', slot: 0 })
+
+      expect(newState).toEqual(gameState) // No changes
     })
   })
 

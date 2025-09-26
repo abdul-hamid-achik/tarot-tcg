@@ -13,6 +13,57 @@
   }
 }
 
+/* Tarot-themed Animations */
+@keyframes damage-float {
+  0% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translateY(-30px) scale(1.2);
+    opacity: 0.8;
+  }
+  100% {
+    transform: translateY(-60px) scale(0.8);
+    opacity: 0;
+  }
+}
+
+@keyframes cosmic-pulse {
+  0%, 100% {
+    transform: scale(1);
+    filter: drop-shadow(0 0 10px gold) brightness(1);
+  }
+  50% {
+    transform: scale(1.05);
+    filter: drop-shadow(0 0 20px gold) brightness(1.2);
+  }
+}
+
+@keyframes mystic-shimmer {
+  0%, 100% {
+    filter: hue-rotate(0deg) brightness(1);
+  }
+  25% {
+    filter: hue-rotate(90deg) brightness(1.1);
+  }
+  50% {
+    filter: hue-rotate(180deg) brightness(1.2);
+  }
+  75% {
+    filter: hue-rotate(270deg) brightness(1.1);
+  }
+}
+
+@keyframes divine-shield {
+  0%, 100% {
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 25px rgba(255, 215, 0, 0.6);
+  }
+}
+
 @keyframes defendDeclare {
   0% {
     transform: translateY(0) scale(1);
@@ -102,4 +153,51 @@
 .lane-defend-available {
   background: linear-gradient(135deg, rgba(6, 182, 212, 0.1) 0%, rgba(6, 182, 212, 0.05) 100%);
   border-color: rgba(6, 182, 212, 0.5);
+}
+
+/* Battlefield Slot Highlights (replacing lane highlights) */
+.slot-highlight-valid {
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.2) 0%, rgba(34, 197, 94, 0.1) 100%);
+  border-color: rgba(34, 197, 94, 0.6);
+  box-shadow: 0 0 15px rgba(34, 197, 94, 0.3);
+}
+
+.slot-highlight-invalid {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(239, 68, 68, 0.1) 100%);
+  border-color: rgba(239, 68, 68, 0.6);
+  box-shadow: 0 0 15px rgba(239, 68, 68, 0.3);
+}
+
+.slot-highlight-hover {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.2) 0%, rgba(168, 85, 247, 0.1) 100%);
+  border-color: rgba(168, 85, 247, 0.6);
+  box-shadow: 0 0 15px rgba(168, 85, 247, 0.3);
+}
+
+/* Shake animation for damage */
+.shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
+  20%, 40%, 60%, 80% { transform: translateX(3px); }
+}
+
+/* Tarot card effects */
+.divine-shield-effect {
+  animation: divine-shield 2s ease-in-out infinite;
+}
+
+.mystic-shimmer-effect {
+  animation: mystic-shimmer 3s ease-in-out infinite;
+}
+
+.reversed-card {
+  filter: sepia(0.3) hue-rotate(270deg) brightness(0.9);
+}
+
+.cosmic-resonance {
+  animation: cosmic-pulse 2s ease-in-out infinite;
 }

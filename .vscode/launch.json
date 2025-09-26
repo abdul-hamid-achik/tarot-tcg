@@ -120,10 +120,7 @@
   "compounds": [
     {
       "name": "Next.js: debug full stack (compound)",
-      "configurations": [
-        "Next.js: debug server-side",
-        "Next.js: debug client-side"
-      ],
+      "configurations": ["Next.js: debug server-side", "Next.js: debug client-side"],
       "stopAll": true
     }
   ]

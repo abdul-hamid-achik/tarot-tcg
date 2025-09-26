@@ -14,6 +14,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet'
+import { useAIController } from '@/hooks/use_ai_controller'
 import { GameLogger } from '@/lib/game_logger'
 import {
   aiMulligan,
@@ -23,6 +24,7 @@ import {
   createInitialGameState,
   declareAttackers,
   declareDefenders,
+  directAttack,
   endTurn,
   initializeCards,
   playCard,
@@ -32,7 +34,6 @@ import {
 } from '@/lib/game_logic'
 import type { Card, GameState, ZodiacClass } from '@/schemas/schema'
 import { AI_PERSONALITIES, type AILevel } from '@/services/ai_service'
-import { useAIController } from '@/hooks/use_ai_controller'
 
 export default function Tutorial() {
   const [selectedZodiac, setSelectedZodiac] = useState<ZodiacClass | undefined>(undefined)
@@ -62,7 +63,9 @@ export default function Tutorial() {
 
   // Initialize message state
   useEffect(() => {
-    setMessage('Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.')
+    setMessage(
+      'Welcome! Choose your starting hand - drag cards to discard them for new ones, or keep all cards.',
+    )
   }, [])
   const [timeRemaining, setTimeRemaining] = useState<number>(180) // 3 minutes in seconds
 
@@ -134,7 +137,9 @@ export default function Tutorial() {
     try {
       const newState = await playCard(gameState, card)
       setGameState(newState)
-      setMessage(`✅ Played ${card.name} (${newState.player1?.bench?.length || 0}/6 units on bench)`)
+      setMessage(
+        `✅ Played ${card.name} (${newState.player1?.bench?.length || 0}/6 units on bench)`,
+      )
     } catch (error) {
       console.error('Error playing card:', error)
       setMessage('❌ Failed to play card. Please try again.')
@@ -165,18 +170,19 @@ export default function Tutorial() {
       if (newState.player2.bench.length > 0) {
         setTimeout(async () => {
           try {
-            // Simple AI defense logic
+            // TODO: Update tutorial for new Hearthstone-style combat system
+            // Legacy lane-based combat logic disabled
             const defenderAssignments: { defenderId: string; laneId: number }[] = []
-            newState.lanes.forEach((lane, index) => {
-              if (lane.attacker) {
-                const availableDefender = newState.player2.bench.find(
-                  u => !defenderAssignments.some(d => d.defenderId === u.id),
-                )
-                if (availableDefender) {
-                  defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
-                }
-              }
-            })
+            // newState.lanes.forEach((lane, index) => {
+            //   if (lane.attacker) {
+            //     const availableDefender = newState.player2.bench.find(
+            //       u => !defenderAssignments.some(d => d.defenderId === u.id),
+            //     )
+            //     if (availableDefender) {
+            //       defenderAssignments.push({ defenderId: availableDefender.id, laneId: index })
+            //     }
+            //   }
+            // })
 
             setMessage('🛡️ AI is positioning defenders...')
             let defendedState = declareDefenders(newState, defenderAssignments)
@@ -305,7 +311,7 @@ export default function Tutorial() {
       phase: gameState.phase,
       player1MulliganComplete: gameState.player1.mulliganComplete,
       player2MulliganComplete: gameState.player2.mulliganComplete,
-      selectedCards
+      selectedCards,
     })
 
     let newState = completeMulligan({
@@ -316,7 +322,7 @@ export default function Tutorial() {
     console.log('Mulligan Debug - After player mulligan:', {
       phase: newState.phase,
       player1MulliganComplete: newState.player1.mulliganComplete,
-      player2MulliganComplete: newState.player2.mulliganComplete
+      player2MulliganComplete: newState.player2.mulliganComplete,
     })
 
     // Check if we need to run AI mulligan
@@ -325,14 +331,14 @@ export default function Tutorial() {
       console.log('Mulligan Debug - After AI mulligan:', {
         phase: newState.phase,
         player1MulliganComplete: newState.player1.mulliganComplete,
-        player2MulliganComplete: newState.player2.mulliganComplete
+        player2MulliganComplete: newState.player2.mulliganComplete,
       })
     }
 
     console.log('Mulligan Debug - Final state:', {
       phase: newState.phase,
       player1MulliganComplete: newState.player1.mulliganComplete,
-      player2MulliganComplete: newState.player2.mulliganComplete
+      player2MulliganComplete: newState.player2.mulliganComplete,
     })
 
     setGameState(newState)
@@ -438,8 +444,9 @@ export default function Tutorial() {
                       <Button
                         key={level}
                         onClick={() => setSelectedAILevel(level)}
-                        className={`text-left px-3 py-2 h-auto ${selectedAILevel === level ? 'bg-purple-600' : 'bg-gray-700'
-                          }`}
+                        className={`text-left px-3 py-2 h-auto ${
+                          selectedAILevel === level ? 'bg-purple-600' : 'bg-gray-700'
+                        }`}
                       >
                         <div className="flex items-center gap-2">
                           <span className="text-lg">{personality.icon}</span>
@@ -534,12 +541,13 @@ export default function Tutorial() {
         {/* Status Badge */}
         <div className="flex items-center gap-2">
           <Badge
-            className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${timeRemaining <= 30
-              ? 'bg-red-600 animate-pulse'
-              : timeRemaining <= 60
-                ? 'bg-orange-600'
-                : 'bg-blue-600'
-              }`}
+            className={`border-2 border-white px-4 py-2 text-lg font-bold shadow-lg ${
+              timeRemaining <= 30
+                ? 'bg-red-600 animate-pulse'
+                : timeRemaining <= 60
+                  ? 'bg-orange-600'
+                  : 'bg-blue-600'
+            }`}
           >
             ⏱️ {formatTime(timeRemaining)}
           </Badge>

@@ -44,9 +44,10 @@ export class WinConditionService {
       type: 'health_depletion',
       priority: 100,
       toggleable: false,
-      checkCondition: (gameState, playerId) => {
-        const opponent = playerId === 'player1' ? 'player2' : 'player1'
-        const opponentHealth = gameState[opponent].health
+      checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
+        const opponentHealth = playerId === 'player1'
+          ? gameState.player2.health
+          : gameState.player1.health
 
         return {
           achieved: opponentHealth <= 0,
@@ -69,9 +70,10 @@ export class WinConditionService {
       type: 'deck_depletion',
       priority: 95,
       toggleable: true,
-      checkCondition: (gameState, playerId) => {
-        const opponent = playerId === 'player1' ? 'player2' : 'player1'
-        const opponentDeck = gameState[opponent].deck
+      checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
+        const opponentDeck = playerId === 'player1'
+          ? gameState.player2.deck
+          : gameState.player1.deck
 
         return {
           achieved: opponentDeck.length === 0,
@@ -94,7 +96,7 @@ export class WinConditionService {
       type: 'board_domination',
       priority: 80,
       toggleable: true,
-      checkCondition: (gameState, playerId) => {
+      checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
         const player = gameState[playerId]
         const unitsControlled = player.bench.length
         const turnsRequired = 3
@@ -160,7 +162,7 @@ export class WinConditionService {
       type: 'arcana_completion',
       priority: 85,
       toggleable: true,
-      checkCondition: (gameState, playerId) => {
+      checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
         const player = gameState[playerId]
         const playedMajorArcana = new Set<string>()
 
@@ -199,7 +201,7 @@ export class WinConditionService {
       type: 'zodiac_alignment',
       priority: 85,
       toggleable: true,
-      checkCondition: (gameState, playerId) => {
+      checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
         const player = gameState[playerId]
         const elementsOnField = new Set<string>()
 
@@ -238,7 +240,7 @@ export class WinConditionService {
       type: 'turn_survival',
       priority: 70,
       toggleable: true,
-      checkCondition: (gameState, playerId) => {
+      checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
         const targetTurn = 15
         const currentTurn = gameState.turn
         const playerHealth = gameState[playerId].health
@@ -281,7 +283,7 @@ export class WinConditionService {
       },
       config: { targetAmount: 50 },
       eventHandlers: {
-        player_loses_health: (event, playerId) => {
+        player_loses_health: (event: GameEvent, playerId: 'player1' | 'player2') => {
           if (event.source?.type === 'card' && event.data && 'amount' in event.data) {
             const damage = Number(event.data.amount) || 0
             this.incrementEventCounter(`total_damage_${playerId}`, playerId, damage)
@@ -302,10 +304,10 @@ export class WinConditionService {
       for (const [eventType, handler] of Object.entries(condition.eventHandlers)) {
         eventManager.subscribe(
           { types: [eventType as any] },
-          async event => {
+          async (event: GameEvent) => {
             const playerId = this.extractPlayerIdFromEvent(event)
             if (playerId) {
-              handler(event, playerId)
+              (handler as any)(event, playerId)
             }
           },
           { priority: 50 },
@@ -349,7 +351,7 @@ export class WinConditionService {
     for (const [conditionId, condition] of this.state.activeConditions) {
       // Check for both players
       for (const playerId of ['player1', 'player2'] as const) {
-        const result = condition.checkCondition(gameState, playerId)
+        const result = (condition.checkCondition as any)(gameState, playerId)
 
         if (result.achieved) {
           results.push({
@@ -366,7 +368,7 @@ export class WinConditionService {
           })
         } else {
           // Update progress tracking
-          const progress = condition.getProgress?.(gameState, playerId)
+          const progress = (condition.getProgress as any)?.(gameState, playerId)
           if (progress) {
             this.updatePlayerProgress(playerId, conditionId, progress)
           }
@@ -453,7 +455,7 @@ export class WinConditionService {
   private updateAllProgress(gameState: GameState): void {
     for (const [conditionId, condition] of this.state.activeConditions) {
       for (const playerId of ['player1', 'player2'] as const) {
-        const progress = condition.getProgress?.(gameState, playerId)
+        const progress = (condition.getProgress as any)?.(gameState, playerId)
         if (progress) {
           this.updatePlayerProgress(playerId, conditionId, progress)
         }

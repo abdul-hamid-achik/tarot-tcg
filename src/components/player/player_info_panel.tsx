@@ -65,7 +65,8 @@ export default function PlayerInfoPanel({
     selectedAttackersCount > 0
 
   // Check if must defend (simplified - combat phase)
-  const _mustDefend = gameState?.phase === 'combat' && gameState?.activePlayer === player?.id
+  // Note: In Hearthstone-style, there's no separate combat phase
+  const _mustDefend = false
 
   // Render mana crystals for current player
   const renderManaDisplay = () => {

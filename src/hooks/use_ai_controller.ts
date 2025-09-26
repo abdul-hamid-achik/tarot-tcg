@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useRef } from 'react'
+import { useGameActions } from '@/hooks/use_game_actions'
+import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
 import type { GameState } from '@/schemas/schema'
 import { aiController } from '@/services/ai_controller_service'
 import type { AILevel } from '@/services/ai_service'
 import { useGameStore } from '@/store/game_store'
-import { useGameActions } from '@/hooks/use_game_actions'
-import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
 
 interface UseAIControllerOptions {
   enabled?: boolean
@@ -15,7 +15,7 @@ interface UseAIControllerOptions {
 export const useAIController = (options: UseAIControllerOptions = {}) => {
   const { enabled = true, autoPlay = true, difficulty = 'normal' } = options
   const { gameState, setGameState } = useGameStore()
-  const { endTurn, declareDefenders, resolveCombat } = useGameActions()
+  const { endTurn } = useGameActions()
   const isExecutingRef = useRef(false)
 
   // Set AI difficulty
@@ -34,44 +34,24 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
 
     try {
       // Execute AI logic through the controller
+      // The AI controller now properly ends the turn internally
       const newState = await aiController.executeAITurn(gameState)
 
-      // Update game state
+      // Update game state once with the final result
       setGameState(newState)
-
-      // Handle phase transitions
-      if (newState.phase === 'declare_defenders' && newState.activePlayer === 'player1') {
-        // AI has attacked, player needs to defend
-        return
-      }
-
-      if (newState.phase === 'combat') {
-        // Move to combat resolution
-        setTimeout(() => resolveCombat(), 1000)
-        return
-      }
-
-      // If AI is still active and in action phase, end turn
-      if (newState.activePlayer === 'player2' && newState.phase === 'action') {
-        // Just set the state - the game board will handle the actual turn ending
-        // This prevents double endTurn calls that can cause state conflicts
-        setTimeout(() => {
-          setGameState(newState)
-        }, 500)
-      }
     } catch (error) {
       console.error('AI execution error:', error)
     } finally {
       isExecutingRef.current = false
     }
-  }, [gameState, setGameState, endTurn, resolveCombat])
+  }, [gameState, setGameState])
 
   // Auto-play AI turns when enabled
   useEffect(() => {
-    if (!enabled || !autoPlay || !gameState) return
+    if (!enabled || !autoPlay || !gameState || isExecutingRef.current) return
 
-    // Check if it's AI's turn
-    if (gameState.activePlayer === 'player2') {
+    // Check if it's AI's turn and in action phase
+    if (gameState.activePlayer === 'player2' && gameState.phase === 'action') {
       // Add a small delay for better UX
       const timeoutId = setTimeout(() => {
         executeAI()
@@ -80,28 +60,6 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
       return () => clearTimeout(timeoutId)
     }
   }, [enabled, autoPlay, gameState?.activePlayer, gameState?.phase, executeAI])
-
-  // Handle AI defense when attacked by player
-  useEffect(() => {
-    if (!enabled || !gameState) return
-
-    // Only auto-execute AI defense when AI is the defending player
-    if (
-      gameState.phase === 'declare_defenders' &&
-      gameState.activePlayer === 'player2' &&
-      gameState.attackingPlayer === 'player1'
-    ) {
-      const timeoutId = setTimeout(async () => {
-        const newState = await aiController.executeAITurn(gameState)
-        setGameState(newState)
-
-        // Resolve combat after defenders are declared
-        setTimeout(() => resolveCombat(), 1000)
-      }, 1000)
-
-      return () => clearTimeout(timeoutId)
-    }
-  }, [enabled, gameState, setGameState, resolveCombat])
 
   // Manual AI trigger
   const triggerAI = useCallback(() => {

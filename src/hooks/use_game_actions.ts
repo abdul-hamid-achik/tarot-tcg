@@ -2,15 +2,22 @@ import { useCallback } from 'react'
 import type { Card as GameCard } from '@/schemas/schema'
 import { animationService } from '@/services/animation_service'
 import { combatService } from '@/services/combat_service'
-import type { CellPosition } from '@/store/game_store'
+import type { BattlefieldPosition } from '@/services/battlefield_service'
+import { battlefieldService } from '@/services/battlefield_service'
 import { useGameStore } from '@/store/game_store'
 
 export const useGameActions = () => {
-  const { gameState, setGameState, clearAttackers, clearDefenderAssignments, setAnimationState } =
-    useGameStore()
+  const {
+    gameState,
+    setGameState,
+    interaction,
+    clearAttackers,
+    setAnimationState,
+    updateBattlefield,
+  } = useGameStore()
 
   const playCard = useCallback(
-    async (card: GameCard, targetPosition?: CellPosition) => {
+    async (card: GameCard, targetPosition?: BattlefieldPosition) => {
       if (!gameState) return
 
       try {
@@ -18,10 +25,9 @@ export const useGameActions = () => {
 
         // Basic validation
         if (targetPosition) {
-          // Check if position is valid (0-3 rows, 0-5 cols)
-          if (targetPosition.row < 0 || targetPosition.row > 3 ||
-              targetPosition.col < 0 || targetPosition.col > 5) {
-            console.warn('Invalid grid position')
+          // Check if position is valid (slots 0-6)
+          if (!battlefieldService.isSlotEmpty(gameState.battlefield, targetPosition.player, targetPosition.slot)) {
+            console.warn('Battlefield slot is occupied')
             return
           }
         }
@@ -48,57 +54,40 @@ export const useGameActions = () => {
         player.hand = player.hand.filter(c => c.id !== card.id)
 
         // Handle different card types
-        if (card.type === 'spell') {
-          // Spells are cast immediately and go to graveyard
-          console.log(`Casting spell: ${card.name}`)
+        console.log(`🎮 [PlayCard] Card: ${card.name}, Type: ${card.type}, Target:`, targetPosition)
 
-          // Execute spell effect here (TODO: implement spell effect system)
-          // For now, just move to graveyard
-          if (!player.graveyard) {
-            player.graveyard = []
-          }
-          player.graveyard.push(card)
+        if (card.type === 'unit' && targetPosition) {
+          console.log(`🎮 [PlayCard] Placing unit ${card.name} on battlefield`)
+          // Place unit on battlefield - directly modify the game state battlefield
+          const newBattlefield = battlefieldService.placeUnit(
+            newGameState.battlefield,
+            card,
+            targetPosition.player,
+            targetPosition.slot
+          )
+          newGameState.battlefield = newBattlefield
 
-          newGameState.player1 = player
-          setGameState(newGameState)
+          // Animate card placement
+          await animationService.animateCardPlay(card, targetPosition)
+        } else if (card.type === 'spell') {
+          console.log(`🎮 [PlayCard] Playing spell ${card.name}`)
+          // Handle spell card
+          console.log('Spell played:', card.name)
+          // Spell effects would be handled here
         } else {
-          // Units go to bench or grid position
-          if (targetPosition) {
-            // Place directly on grid
-            const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
-
-            // Add to bench array
-            player.bench.push(cardInstance)
-
-            // Update player state and register card
-            newGameState.player1 = player
-            const updatedState = combatService.registerCardAbilities(cardInstance, newGameState)
-            setGameState(updatedState)
-          } else {
-            // Add to bench
-            if (player.bench.length < 6) {
-              const cardInstance = { ...card, currentHealth: card.health, position: 'bench' as const }
-              player.bench.push(cardInstance)
-
-              // Card added to bench array
-
-              // Register card abilities and trigger enter bench event
-              newGameState.player1 = player
-              const updatedState = combatService.registerCardAbilities(cardInstance, newGameState)
-              setGameState(updatedState)
-            } else {
-              console.warn('Bench is full, cannot play card')
-              // Update game state to reflect mana cost but card couldn't be placed
-              newGameState.player1 = player
-              setGameState(newGameState)
-            }
-          }
+          console.log(`🎮 [PlayCard] Unknown card type or missing target for ${card.name}`)
         }
 
-        // Animate card play if we have DOM elements
-        // This would be handled by the calling component with proper element refs
-      } catch (error) {
-        console.error('Error playing card:', error)
+        // Update game state
+        newGameState.player1 = player
+        setGameState(newGameState)
+
+        // Trigger card played event
+        await combatService.triggerEvent('card_played', {
+          gameState: newGameState,
+          triggerCard: card,
+          player: 'player1',
+        })
       } finally {
         setAnimationState(false)
       }
@@ -108,148 +97,96 @@ export const useGameActions = () => {
 
   const declareAttack = useCallback(
     async (attackerIds: string[]) => {
-      if (!gameState || !gameState.player1.hasAttackToken) return
+      if (!gameState || attackerIds.length === 0) return
 
       try {
         setAnimationState(true)
 
-        const newGameState = { ...gameState }
+        // Validate attackers are on battlefield
+        const validAttackers = attackerIds.filter(
+          id => battlefieldService.findUnitPosition(gameState.battlefield, id) !== null,
+        )
 
-        // Clear existing lanes
-        newGameState.lanes = newGameState.lanes.map(lane => ({
-          ...lane,
-          attacker: null,
-          defender: null,
-        }))
-
-        // Place attackers in lanes
-        const attackerArrangements = attackerIds.map((id, index) => ({
-          attackerId: id,
-          laneId: index,
-        }))
-
-        // Animate attackers moving to attack positions
-        const animationPromises: Promise<void>[] = []
-
-        attackerArrangements.forEach(({ attackerId, laneId }) => {
-          const unit = newGameState.player1.bench.find(u => u.id === attackerId)
-          if (unit && laneId < 6) {
-            newGameState.lanes[laneId].attacker = { ...unit, position: 'attacking' }
-
-            // Get card element and animate to attack position
-            const cardElement = document.querySelector(
-              `[data-card-id="${attackerId}"]`,
-            ) as HTMLElement
-            if (cardElement) {
-              const targetPosition: CellPosition = { row: 2, col: laneId as 0 | 1 | 2 | 3 | 4 | 5 }
-              animationPromises.push(
-                animationService.animateCardMove(
-                  cardElement,
-                  { row: 3, col: laneId as 0 | 1 | 2 | 3 | 4 | 5 },
-                  targetPosition,
-                ),
-              )
-            }
-          }
-        })
-
-        // Wait for attack animations to complete
-        if (animationPromises.length > 0) {
-          await Promise.all(animationPromises)
+        if (validAttackers.length === 0) {
+          console.warn('No valid attackers on battlefield')
+          return
         }
 
-        newGameState.phase = 'declare_defenders' // Now go to defend phase
-        newGameState.attackingPlayer = gameState?.activePlayer
+        // Update game state to attack declaration phase
+        const newGameState = {
+          ...gameState,
+          phase: 'attack_declaration' as const,
+        }
 
-        // Switch active player to defender for defend phase
-        newGameState.activePlayer = gameState?.activePlayer === 'player1' ? 'player2' : 'player1'
+        setGameState(newGameState)
+
+        // Animation for attack declaration
+        for (const attackerId of validAttackers) {
+          const position = battlefieldService.findUnitPosition(gameState.battlefield, attackerId)
+          if (position) {
+            await animationService.highlightSlot(position, 'valid')
+          }
+        }
+      } finally {
+        setAnimationState(false)
+      }
+    },
+    [gameState, setGameState, setAnimationState],
+  )
+
+  // Hearthstone-style direct attack - choose target and attack immediately
+  const attackTarget = useCallback(
+    async (attackerId: string, target: BattlefieldPosition | 'nexus') => {
+      if (!gameState) return
+
+      try {
+        setAnimationState(true)
+
+        const attackerPosition = battlefieldService.findUnitPosition(gameState.battlefield, attackerId)
+        if (!attackerPosition) {
+          console.warn('Attacker not found on battlefield')
+          return
+        }
+
+        // Process the attack through combat service
+        const result = await combatService.processAttack(
+          gameState.battlefield,
+          attackerPosition,
+          target,
+          gameState
+        )
+
+        // Apply combat results to game state
+        const newGameState = { ...gameState }
+
+        if (target === 'nexus') {
+          // Damage enemy nexus
+          newGameState.player2.health -= result.nexusDamage
+        } else {
+          // Update battlefield with damage/deaths
+          const targetUnit = battlefieldService.getUnit(gameState.battlefield, target.player, target.slot)
+          if (targetUnit && targetUnit.currentHealth) {
+            targetUnit.currentHealth -= result.targetDamage
+            if (targetUnit.currentHealth <= 0) {
+              // Remove dead unit
+              const newBattlefield = battlefieldService.removeUnit(gameState.battlefield, target.player, target.slot)
+              newGameState.battlefield = newBattlefield
+            }
+          }
+        }
 
         setGameState(newGameState)
         clearAttackers()
-      } catch (error) {
-        console.error('Error declaring attack:', error)
       } finally {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState, clearAttackers],
+    [gameState, setGameState, clearAttackers, setAnimationState]
   )
-
-  const declareDefenders = useCallback(
-    async (defenderAssignments: { defenderId: string; laneId: number }[]) => {
-      if (!gameState || gameState.phase !== 'declare_defenders') return
-
-      try {
-        setAnimationState(true)
-
-        const newGameState = { ...gameState }
-        const defendingPlayer = gameState?.activePlayer
-        const _attackingPlayer = newGameState.attackingPlayer!
-
-        // Animate defenders moving to defense positions
-        const animationPromises: Promise<void>[] = []
-
-        defenderAssignments.forEach(({ defenderId, laneId }) => {
-          const unit = newGameState[defendingPlayer].bench.find(u => u.id === defenderId)
-          if (unit && laneId < 6 && newGameState.lanes[laneId].attacker) {
-            newGameState.lanes[laneId].defender = { ...unit, position: 'defending' }
-
-            // Get card element and animate to defend position
-            const cardElement = document.querySelector(
-              `[data-card-id="${defenderId}"]`,
-            ) as HTMLElement
-            if (cardElement) {
-              const targetPosition: CellPosition = {
-                row: defendingPlayer === 'player1' ? 2 : 1,
-                col: laneId as 0 | 1 | 2 | 3 | 4 | 5,
-              }
-              const fromPosition: CellPosition = {
-                row: defendingPlayer === 'player1' ? 3 : 0,
-                col: laneId as 0 | 1 | 2 | 3 | 4 | 5,
-              }
-              animationPromises.push(
-                animationService.animateCardMove(cardElement, fromPosition, targetPosition),
-              )
-            }
-          }
-        })
-
-        // Wait for defense animations to complete
-        if (animationPromises.length > 0) {
-          await Promise.all(animationPromises)
-        }
-
-        newGameState.phase = 'combat'
-        setGameState(newGameState)
-        clearDefenderAssignments()
-      } catch (error) {
-        console.error('Error declaring defenders:', error)
-      } finally {
-        setAnimationState(false)
-      }
-    },
-    [gameState, setGameState, setAnimationState, clearDefenderAssignments],
-  )
-
-  const resolveCombat = useCallback(async () => {
-    if (!gameState || gameState.phase !== 'combat') return
-
-    try {
-      setAnimationState(true)
-
-      // Use the dedicated CombatService for all combat resolution
-      const newGameState = await combatService.resolveCombatPhase(gameState)
-      setGameState(newGameState)
-    } catch (error) {
-      console.error('Error resolving combat:', error)
-    } finally {
-      setAnimationState(false)
-    }
-  }, [gameState, setGameState, setAnimationState])
 
   const completeMulligan = useCallback(
     async (selectedCardIds: string[]) => {
-      if (!gameState || gameState.phase !== 'mulligan') return
+      if (!gameState) return
 
       try {
         setAnimationState(true)
@@ -257,40 +194,33 @@ export const useGameActions = () => {
         const newGameState = { ...gameState }
         const player = { ...newGameState.player1 }
 
-        if (selectedCardIds.length > 0) {
-          // Shuffle selected cards back into deck
-          const cardsToShuffle = player.hand.filter(card => selectedCardIds.includes(card.id))
-          const keptCards = player.hand.filter(card => !selectedCardIds.includes(card.id))
-
-          // Add discarded cards back to deck and shuffle
-          player.deck = [...player.deck, ...cardsToShuffle]
-
-          // Simple shuffle
-          for (let i = player.deck.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1))
-            ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
-          }
-
-          // Draw replacement cards with reversal chance
-          const cardsToDraw = cardsToShuffle.length
-          const newCards = player.deck
-            .splice(0, cardsToDraw)
-            .map(card => combatService.applyDrawReversalChance(card))
-          player.hand = [...keptCards, ...newCards]
-        }
-
+        // Mark mulligan as complete
         player.mulliganComplete = true
         player.selectedForMulligan = []
+
+        // Replace selected cards
+        const keptCards = player.hand.filter(c => !selectedCardIds.includes(c.id))
+        const mulliganedCards = player.hand.filter(c => selectedCardIds.includes(c.id))
+
+        // Put mulliganed cards back in deck
+        player.deck = [...player.deck, ...mulliganedCards]
+
+        // Draw new cards
+        const newCards = player.deck.slice(0, selectedCardIds.length)
+        player.deck = player.deck.slice(selectedCardIds.length)
+
+        // Update hand
+        player.hand = [...keptCards, ...newCards]
+
+        // Update game state
         newGameState.player1 = player
 
         // Check if both players completed mulligan
-        if (newGameState.player1.mulliganComplete && newGameState.player2.mulliganComplete) {
-          newGameState.phase = 'action'
+        if (newGameState.player2.mulliganComplete) {
+          newGameState.phase = 'round_start'
         }
 
         setGameState(newGameState)
-      } catch (error) {
-        console.error('Error completing mulligan:', error)
       } finally {
         setAnimationState(false)
       }
@@ -302,100 +232,76 @@ export const useGameActions = () => {
     async (cardId: string) => {
       if (!gameState) return
 
-      try {
-        setAnimationState(true)
-
-        // Use CombatService to handle reversal with all side effects
-        const newGameState = combatService.reverseCard(gameState, cardId)
-        setGameState(newGameState)
-      } catch (error) {
-        console.error('Error reversing card:', error)
-      } finally {
-        setAnimationState(false)
+      const position = battlefieldService.findUnitPosition(gameState.battlefield, cardId)
+      if (!position) {
+        console.warn('Card not on battlefield')
+        return
       }
+
+      const card = battlefieldService.getUnit(gameState.battlefield, position.player, position.slot)
+      if (!card) return
+
+      // Toggle reversed state
+      const updatedCard = {
+        ...card,
+        isReversed: !card.isReversed,
+      }
+
+      // Update card on battlefield
+      const newBattlefield = battlefieldService.placeUnit(
+        battlefieldService.removeUnit(gameState.battlefield, position.player, position.slot),
+        updatedCard,
+        position.player,
+        position.slot
+      )
+
+      const newGameState = { ...gameState, battlefield: newBattlefield }
+      setGameState(newGameState)
+
+      // Animate card reverse
+      await animationService.animateCardReverse(updatedCard)
+
+      // Trigger event
+      await combatService.triggerEvent(
+        updatedCard.isReversed ? 'card_reversed' : 'card_uprighted',
+        {
+          gameState: newGameState,
+          triggerCard: updatedCard,
+        },
+      )
     },
-    [gameState, setGameState, setAnimationState],
+    [gameState, setGameState],
   )
 
   const endTurn = useCallback(async () => {
     if (!gameState) return
 
     try {
-      setAnimationState(true)
-
-      const newGameState = { ...gameState }
-      const currentPlayer = gameState.activePlayer
-
-      // Store unspent mana as spell mana for current player
-      const unspentMana = newGameState[currentPlayer].mana
-      newGameState[currentPlayer].spellMana = Math.min(
-        3,
-        newGameState[currentPlayer].spellMana + unspentMana,
-      )
-
-      // Switch active player
-      const nextPlayer = currentPlayer === 'player1' ? 'player2' : 'player1'
-      newGameState.activePlayer = nextPlayer
-      newGameState.turn++
-
-      // Every 2 turns = new round
-      if (newGameState.turn % 2 === 1) {
-        newGameState.round++
-
-        // Switch attack token
-        newGameState.player1.hasAttackToken = !newGameState.player1.hasAttackToken
-        newGameState.player2.hasAttackToken = !newGameState.player2.hasAttackToken
-      }
-
-      // Refill mana for next player
-      const nextPlayerData = newGameState[nextPlayer]
-      nextPlayerData.maxMana = Math.min(10, newGameState.round)
-      nextPlayerData.mana = nextPlayerData.maxMana
-
-      // Draw a card with reversal chance
-      if (nextPlayerData.deck.length > 0) {
-        const drawnCard = nextPlayerData.deck.shift()!
-        // Apply reversal chance when drawing (fundamental tarot mechanic)
-        const processedCard = combatService.applyDrawReversalChance(drawnCard)
-        nextPlayerData.hand.push(processedCard)
-
-        if (processedCard.isReversed) {
-          console.log(`${processedCard.name} was drawn reversed!`)
-        }
-      }
-
-      newGameState.phase = 'action'
-      newGameState.combatResolved = false
-
-      // Process end-of-turn effects and triggered abilities
-      const finalState = combatService.processEndOfTurnEffects(newGameState)
-
-      // Clear interaction states
-      clearAttackers()
-      clearDefenderAssignments()
-
-      // Set the game state - AI turn will be handled by AI controller
-      setGameState(finalState)
+      const { endTurn: endTurnLogic } = await import('@/lib/game_logic')
+      const newGameState = await endTurnLogic(gameState)
+      setGameState(newGameState)
     } catch (error) {
       console.error('Error ending turn:', error)
-    } finally {
-      setAnimationState(false)
     }
-  }, [
-    gameState,
-    setGameState,
-    setAnimationState,
-    clearAttackers,
-    clearDefenderAssignments,
-  ])
+  }, [gameState, setGameState])
+
+  // Legacy compatibility stubs (deprecated)
+  const declareDefenders = useCallback(() => {
+    console.warn('declareDefenders is deprecated in Hearthstone-style system')
+  }, [])
+
+  const resolveCombat = useCallback(() => {
+    console.warn('resolveCombat is deprecated in Hearthstone-style system')
+  }, [])
 
   return {
     playCard,
     declareAttack,
-    declareDefenders,
-    endTurn,
-    resolveCombat,
+    attackTarget,
     completeMulligan,
     reverseCard,
+    endTurn,
+    declareDefenders,
+    resolveCombat,
   }
 }

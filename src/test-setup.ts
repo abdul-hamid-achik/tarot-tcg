@@ -83,19 +83,29 @@ vi.mock('@/lib/card_loader', () => ({
 }))
 
 // Mock game logger to prevent console spam during tests
-vi.mock('@/lib/game_logger', () => ({
-  GameLogger: {
+vi.mock('@/lib/game_logger', () => {
+  const mockMethods = {
     action: vi.fn(),
     event: vi.fn(),
     warning: vi.fn(),
     error: vi.fn(),
-    combat: vi.fn(), // Added missing combat method
+    combat: vi.fn(),
     turn: vi.fn(),
     phase: vi.fn(),
-    state: vi.fn(), // Added missing state method
-    turnStart: vi.fn(), // Added missing turnStart method
-  },
-}))
+    state: vi.fn(),
+    turnStart: vi.fn(),
+  }
+
+  // Constructor that returns instance methods
+  const GameLoggerConstructor = vi.fn().mockImplementation(() => mockMethods)
+
+  // Add static methods to the constructor
+  Object.assign(GameLoggerConstructor, mockMethods)
+
+  return {
+    GameLogger: GameLoggerConstructor,
+  }
+})
 
 // Mock event manager for cleaner tests
 vi.mock('@/services/event_manager', () => ({
@@ -156,7 +166,7 @@ vi.mock('@/services/win_condition_service', () => {
         mockService.state.gameMode = {
           name: 'Puzzle',
           enabledConditions: ['deck_depletion'],
-          disabledConditions: ['health_depletion'],
+          disabledConditions: ['health_depletion'] as any,
         }
         mockService.state.activeConditions = [
           { id: 'deck_depletion', name: 'Deck Depletion', priority: 1, enabled: true },
@@ -188,10 +198,10 @@ vi.mock('@/services/win_condition_service', () => {
         return { achieved: true, winner: 'player1', message: 'player1 wins by depleting opponent\'s deck!' }
       }
       
-      // Check for board domination
-      const player1Units = gameState.lanes.filter(lane => lane.attacker && lane.attacker.owner === 'player1').length
-      const player2Units = gameState.lanes.filter(lane => lane.attacker && lane.attacker.owner === 'player2').length
-      
+      // Check for board domination (battlefield system)
+      const player1Units = gameState.battlefield.playerUnits.filter((unit: any) => unit !== null).length
+      const player2Units = gameState.battlefield.enemyUnits.filter((unit: any) => unit !== null).length
+
       if (player1Units >= 6) {
         return { achieved: false, winner: null, message: 'Player 1 dominates the board' }
       }
@@ -199,17 +209,19 @@ vi.mock('@/services/win_condition_service', () => {
         return { achieved: false, winner: null, message: 'Player 2 dominates the board' }
       }
       
-      // Check for elemental alignment
+      // Check for elemental alignment (battlefield system)
       const elements = new Set()
-      gameState.lanes.forEach(lane => {
-        if (lane.attacker && lane.attacker.element) {
-          elements.add(lane.attacker.element)
-        }
-        if (lane.defender && lane.defender.element) {
-          elements.add(lane.defender.element)
+      gameState.battlefield.playerUnits.forEach((unit: any) => {
+        if (unit && unit.element) {
+          elements.add(unit.element)
         }
       })
-      
+      gameState.battlefield.enemyUnits.forEach((unit: any) => {
+        if (unit && unit.element) {
+          elements.add(unit.element)
+        }
+      })
+
       if (elements.size === 4) {
         return { achieved: true, winner: 'player1', message: 'Player 1 wins by aligning all four elements' }
       }

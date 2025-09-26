@@ -9,12 +9,19 @@ attack: 6
 health: 6
 rarity: "rare"
 tarotSymbol: "🜁"
-keywords: ["authority", "intellectual", "truth"]
+keywords: ["authority", "intellectual", "truth", "taunt"]
+description: "When played, destroy all enemy units with 3 or less health. A commanding presence on the battlefield."
+reversedDescription: "When played, destroy all friendly units with 3 or less health. Tyrannical rule destroys what it seeks to protect."
 abilities:
-  - name: "Divine Judgment"
-    description: "When played, destroy all units with 3 or less health"
-  - name: "Intellectual Authority"
-    description: "Your Air spells cost 2 less"
+  upright:
+    - name: "Divine Judgment"
+      description: "When played, destroy all enemy units with 3 or less health"
+    - name: "Intellectual Authority"
+      description: "Your Air spells cost 2 less"
+  reversed:
+    - name: "Tyrannical Rule"
+      description: "When played, destroy all friendly units with 3 or less health. Gain +2/+2 for each unit destroyed."
+orientation: "random"
 ---
 
 # King of Swords

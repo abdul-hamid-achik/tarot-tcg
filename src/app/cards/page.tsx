@@ -161,9 +161,9 @@ export default function CardsPage() {
     if (filters.rarity) {
       cards = cards.filter(card => card.rarity === filters.rarity)
     }
-    if (filters.costRange) {
+    if (filters.costRange && filters.costRange.min !== undefined && filters.costRange.max !== undefined) {
       cards = cards.filter(
-        card => card.cost >= filters.costRange?.min && card.cost <= filters.costRange?.max,
+        card => card.cost >= filters.costRange!.min && card.cost <= filters.costRange!.max,
       )
     }
 

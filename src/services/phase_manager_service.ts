@@ -35,10 +35,10 @@ export class PhaseManagerService {
     this.addTransition({
       from: 'mulligan',
       to: 'round_start',
-      validate: (state) => {
+      validate: state => {
         return state.player1.mulliganComplete && state.player2.mulliganComplete
       },
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'round_start'
         newState.priorityPlayer = 'player1' // Player 1 gets first priority
@@ -48,7 +48,7 @@ export class PhaseManagerService {
 
         GameLogger.state('Phase transition: Mulligan → Round Start')
         return newState
-      }
+      },
     })
 
     // Round Start → Action
@@ -56,7 +56,7 @@ export class PhaseManagerService {
       from: 'round_start',
       to: 'action',
       validate: () => true,
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'action'
         newState.passCount = 0
@@ -68,18 +68,18 @@ export class PhaseManagerService {
 
         GameLogger.state('Phase transition: Round Start → Action')
         return newState
-      }
+      },
     })
 
     // Action → Attack Declaration (when attack declared)
     this.addTransition({
       from: 'action',
       to: 'attack_declaration',
-      validate: (state) => {
+      validate: state => {
         const player = state[state.activePlayer]
         return player.hasAttackToken && player.bench.length > 0
       },
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'attack_declaration'
         newState.attackingPlayer = state.activePlayer
@@ -88,18 +88,22 @@ export class PhaseManagerService {
 
         GameLogger.state('Phase transition: Action → Attack Declaration')
         return newState
-      }
+      },
     })
 
     // Attack Declaration → Defense Declaration
     this.addTransition({
       from: 'attack_declaration',
       to: 'defense_declaration',
-      validate: (state) => {
+      validate: state => {
         // Must have at least one attacker declared
-        return state.lanes.some(lane => lane.attacker !== null)
+        // Check if any units are ready to attack (in battlefield system)
+        const activePlayerUnits = state.activePlayer === 'player1'
+          ? state.battlefield.playerUnits
+          : state.battlefield.enemyUnits
+        return activePlayerUnits.some(unit => unit !== null && !unit.hasAttackedThisTurn)
       },
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'defense_declaration'
         const defender = state.activePlayer === 'player1' ? 'player2' : 'player1'
@@ -108,7 +112,7 @@ export class PhaseManagerService {
 
         GameLogger.state('Phase transition: Attack Declaration → Defense Declaration')
         return newState
-      }
+      },
     })
 
     // Defense Declaration → Combat Resolution
@@ -116,7 +120,7 @@ export class PhaseManagerService {
       from: 'defense_declaration',
       to: 'combat_resolution',
       validate: () => true,
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'combat_resolution'
         newState.canRespond = false
@@ -125,7 +129,7 @@ export class PhaseManagerService {
 
         GameLogger.state('Phase transition: Defense Declaration → Combat Resolution')
         return newState
-      }
+      },
     })
 
     // Combat Resolution → Action
@@ -133,41 +137,42 @@ export class PhaseManagerService {
       from: 'combat_resolution',
       to: 'action',
       validate: () => true,
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'action'
         newState.combatResolved = true
         newState.attackingPlayer = null
         newState.passCount = 0
 
-        // Clear lanes after combat
-        newState.lanes = newState.lanes.map(lane => ({
-          ...lane,
-          attacker: null,
-          defender: null
-        }))
+        // Reset unit attack flags after combat
+        newState.battlefield.playerUnits = newState.battlefield.playerUnits.map(unit =>
+          unit ? { ...unit, hasAttackedThisTurn: false } : null
+        )
+        newState.battlefield.enemyUnits = newState.battlefield.enemyUnits.map(unit =>
+          unit ? { ...unit, hasAttackedThisTurn: false } : null
+        )
 
         // Combat state cleared
 
         GameLogger.state('Phase transition: Combat Resolution → Action')
         return newState
-      }
+      },
     })
 
     // Action → End Round (when both players pass)
     this.addTransition({
       from: 'action',
       to: 'end_round',
-      validate: (state) => {
+      validate: state => {
         return state.passCount >= 2 // Both players passed
       },
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'end_round'
 
         GameLogger.state('Phase transition: Action → End Round')
         return newState
-      }
+      },
     })
 
     // End Round → Round Start
@@ -175,7 +180,7 @@ export class PhaseManagerService {
       from: 'end_round',
       to: 'round_start',
       validate: () => true,
-      execute: (state) => {
+      execute: state => {
         const newState = { ...state }
         newState.phase = 'round_start'
         newState.round++
@@ -191,7 +196,7 @@ export class PhaseManagerService {
 
         GameLogger.state(`Phase transition: End Round → Round Start (Round ${newState.round})`)
         return newState
-      }
+      },
     })
   }
 
@@ -313,9 +318,10 @@ export class PhaseManagerService {
         return 'Choose cards to mulligan'
       case 'round_start':
         return `Round ${state.round} starting...`
-      case 'action':
+      case 'action': {
         const tokenHolder = state.player1.hasAttackToken ? 'Player 1' : 'Player 2'
         return `Action Phase (${tokenHolder} has attack token)`
+      }
       case 'attack_declaration':
         return 'Declare your attackers'
       case 'defense_declaration':

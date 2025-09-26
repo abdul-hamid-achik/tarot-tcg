@@ -67,13 +67,9 @@ export const useGameClock = (config: Partial<GameClockConfig> = {}) => {
 
         // Auto-end turn if timer expires
         if (remaining === 0 && mergedConfig.autoEndTurn) {
-          // Trigger end turn action
-          const store = useGameStore.getState()
-          if (store.gameState?.activePlayer === 'player1') {
-            console.log('Turn timer expired, auto-ending turn')
-            // This should trigger the endTurn action
-            // We'll connect this in the GameBoard component
-          }
+          console.log('Turn timer expired, auto-ending turn')
+          // This should trigger the endTurn action
+          // We'll connect this in the GameBoard component
         }
       }, 1000)
     }

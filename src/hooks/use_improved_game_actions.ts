@@ -1,10 +1,10 @@
 import { useCallback } from 'react'
 import type { Card, GameState } from '@/schemas/schema'
-import type { CellPosition } from '@/store/game_store'
-import { useGameStore } from '@/store/game_store'
 import { combatService } from '@/services/combat_service'
 import { phaseManager } from '@/services/phase_manager_service'
 import { stateManager } from '@/services/state_manager'
+// import type { CellPosition } from '@/store/game_store' // Deprecated for battlefield system
+import { useGameStore } from '@/store/game_store'
 
 /**
  * Improved game actions with proper phase management and state management
@@ -27,7 +27,7 @@ export function useImprovedGameActions() {
    * Play a card with proper priority and phase checking
    */
   const playCard = useCallback(
-    async (card: Card, targetPosition?: CellPosition) => {
+    async (card: Card, targetPosition?: any) => { // TODO: Update for battlefield system
       if (!gameState || !phaseManager.canTakeAction(gameState, 'player1')) {
         console.warn('Cannot play card - no priority or wrong phase')
         return
@@ -48,7 +48,7 @@ export function useImprovedGameActions() {
         const spellManaToUse = Math.max(0, card.cost - manaToUse)
 
         // Action taken - reset pass count and switch priority
-        let newGameState = phaseManager.actionTaken(gameState)
+        const newGameState = phaseManager.actionTaken(gameState)
 
         // Pay mana
         newGameState.player1.mana -= manaToUse
@@ -68,12 +68,13 @@ export function useImprovedGameActions() {
         const finalState = stateManager.getGameState()
         if (finalState) {
           // Register card abilities if it's a unit
-          if (card.type === 'unit') {
-            const updatedState = combatService.registerCardAbilities(card, finalState)
-            setGameState(updatedState)
-          } else {
+          // TODO: Update for new battlefield system
+          // if (card.type === 'unit') {
+          //   const updatedState = combatService.registerCardAbilities(card, finalState)
+          //   setGameState(updatedState)
+          // } else {
             setGameState(finalState)
-          }
+          // }
         }
       } catch (error) {
         console.error('Error playing card:', error)
@@ -81,7 +82,7 @@ export function useImprovedGameActions() {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState]
+    [gameState, setGameState, setAnimationState],
   )
 
   /**
@@ -104,23 +105,27 @@ export function useImprovedGameActions() {
         // Initialize state manager
         stateManager.initialize(newGameState)
 
-        // Clear lanes and set attackers
-        newGameState.lanes = newGameState.lanes.map(lane => ({
-          ...lane,
-          attacker: null,
-          defender: null
-        }))
+        // TODO: Update for battlefield system - lanes no longer exist
+        // // Clear lanes and set attackers
+        // newGameState.lanes = newGameState.lanes.map(lane => ({
+        //   ...lane,
+        //   attacker: null,
+        //   defender: null,
+        // }))
 
-        // Place attackers in lanes
-        attackerIds.forEach((attackerId, index) => {
-          const unit = newGameState.player1.bench.find(u => u.id === attackerId)
-          if (unit && index < 6) {
-            newGameState.lanes[index].attacker = { ...unit, position: 'attacking' }
-          }
-        })
+        // // Place attackers in lanes
+        // attackerIds.forEach((attackerId, index) => {
+        //   const unit = newGameState.player1.bench.find(u => u.id === attackerId)
+        //   if (unit && index < 6) {
+        //     newGameState.lanes[index].attacker = { ...unit, position: 'attacking' }
+        //   }
+        // })
+
+        console.warn('declareAttackers function needs update for battlefield system')
 
         // Transition to defense declaration
-        newGameState = phaseManager.transitionTo(newGameState, 'defense_declaration') || newGameState
+        newGameState =
+          phaseManager.transitionTo(newGameState, 'defense_declaration') || newGameState
 
         setGameState(newGameState)
       } catch (error) {
@@ -129,7 +134,7 @@ export function useImprovedGameActions() {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState]
+    [gameState, setGameState, setAnimationState],
   )
 
   /**
@@ -145,16 +150,19 @@ export function useImprovedGameActions() {
         const newGameState = { ...gameState }
         const defendingPlayer = gameState.activePlayer === 'player1' ? 'player2' : 'player1'
 
-        // Clear existing defenders
-        newGameState.lanes = newGameState.lanes.map(lane => ({ ...lane, defender: null }))
+        // TODO: Update for battlefield system - lanes no longer exist
+        // // Clear existing defenders
+        // newGameState.lanes = newGameState.lanes.map(lane => ({ ...lane, defender: null }))
 
-        // Assign defenders
-        defenderAssignments.forEach(({ defenderId, laneId }) => {
-          const unit = newGameState[defendingPlayer].bench.find(u => u.id === defenderId)
-          if (unit && laneId < 6 && newGameState.lanes[laneId].attacker) {
-            newGameState.lanes[laneId].defender = { ...unit, position: 'defending' }
-          }
-        })
+        // // Assign defenders
+        // defenderAssignments.forEach(({ defenderId, laneId }) => {
+        //   const unit = newGameState[defendingPlayer].bench.find(u => u.id === defenderId)
+        //   if (unit && laneId < 6 && newGameState.lanes[laneId].attacker) {
+        //     newGameState.lanes[laneId].defender = { ...unit, position: 'defending' }
+        //   }
+        // })
+
+        console.warn('declareDefenders function needs update for battlefield system')
 
         // Transition to combat resolution
         const combatState = phaseManager.transitionTo(newGameState, 'combat_resolution')
@@ -167,7 +175,7 @@ export function useImprovedGameActions() {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState]
+    [gameState, setGameState, setAnimationState],
   )
 
   /**
@@ -179,11 +187,15 @@ export function useImprovedGameActions() {
     try {
       setAnimationState(true)
 
-      // Use combat service for resolution
-      let newGameState = await combatService.resolveCombatPhase(gameState)
+      // TODO: Update for battlefield system - combat is resolved immediately
+      // // Use combat service for resolution
+      // let newGameState = await combatService.resolveCombatPhase(gameState)
 
-      // Transition back to action phase
-      newGameState = phaseManager.transitionTo(newGameState, 'action') || newGameState
+      // // Transition back to action phase
+      // newGameState = phaseManager.transitionTo(newGameState, 'action') || newGameState
+
+      console.warn('resolveCombat function needs update for battlefield system')
+      let newGameState = gameState
 
       // Initialize state manager to sync everything
       stateManager.initialize(newGameState)
@@ -212,7 +224,7 @@ export function useImprovedGameActions() {
       const unspentMana = newGameState[currentPlayer].mana
       newGameState[currentPlayer].spellMana = Math.min(
         3,
-        newGameState[currentPlayer].spellMana + unspentMana
+        newGameState[currentPlayer].spellMana + unspentMana,
       )
 
       // Check if we should end the round
@@ -268,7 +280,7 @@ export function useImprovedGameActions() {
       try {
         setAnimationState(true)
 
-        let newGameState = { ...gameState }
+        const newGameState = { ...gameState }
         const player = { ...newGameState.player1 }
 
         if (selectedCardIds.length > 0) {
@@ -288,7 +300,8 @@ export function useImprovedGameActions() {
           const cardsToDraw = cardsToShuffle.length
           const newCards = player.deck
             .splice(0, cardsToDraw)
-            .map(card => combatService.applyDrawReversalChance(card))
+            // TODO: Update for battlefield system
+            // .map(card => combatService.applyDrawReversalChance(card))
           player.hand = [...keptCards, ...newCards]
         }
 
@@ -315,7 +328,7 @@ export function useImprovedGameActions() {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState]
+    [gameState, setGameState, setAnimationState],
   )
 
   /**
@@ -330,7 +343,7 @@ export function useImprovedGameActions() {
       canAct: phaseManager.canTakeAction(gameState, 'player1'),
       validTransitions: phaseManager.getValidTransitions(gameState),
       priorityPlayer: gameState.priorityPlayer || gameState.activePlayer,
-      passCount: gameState.passCount || 0
+      passCount: gameState.passCount || 0,
     }
   }, [gameState])
 
@@ -342,6 +355,6 @@ export function useImprovedGameActions() {
     endTurn,
     completeMulligan,
     passPriority,
-    getPhaseInfo
+    getPhaseInfo,
   }
 }

@@ -9,12 +9,19 @@ attack: 4
 health: 3
 rarity: "uncommon"
 tarotSymbol: "🜁"
-keywords: ["ambitious", "fast", "direct"]
+keywords: ["ambitious", "fast", "direct", "charge"]
+description: "Can attack immediately when played. Swift and relentless in pursuit of victory."
+reversedDescription: "When played, must attack immediately. Reckless aggression often leads to downfall."
 abilities:
-  - name: "Swift Strike"
-    description: "Charge. When this attacks, draw a card"
-  - name: "Cutting Wind"
-    description: "Can attack units in any lane"
+  upright:
+    - name: "Swift Strike"
+      description: "Charge. When this attacks, draw a card"
+    - name: "Cutting Wind"
+      description: "Can attack any enemy unit regardless of taunt"
+  reversed:
+    - name: "Reckless Charge"
+      description: "Charge. Must attack when played. Take 1 damage when attacking."
+orientation: "random"
 ---
 
 # Knight of Swords

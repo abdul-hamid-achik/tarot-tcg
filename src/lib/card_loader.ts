@@ -28,6 +28,7 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
     // Spell-specific properties - only set if valid
     spellType:
       contentCard.cardType === 'spell' &&
+      contentCard.spellType &&
       ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType)
         ? contentCard.spellType
         : undefined,
@@ -43,7 +44,7 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
   if (result.success) {
     return result.data
   } else {
-    console.warn(`Card validation failed for ${contentCard.id}:`, result.error.errors)
+    console.warn(`Card validation failed for ${contentCard.id}:`, result.error.issues)
     // Return a fallback valid card
     return CardSchema.parse({
       ...rawCard,

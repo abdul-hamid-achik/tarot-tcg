@@ -45,11 +45,11 @@ export function PhaseIndicator({ className = '' }: PhaseIndicatorProps) {
   }
 
   return (
-    <div className={`flex items-center gap-3 p-3 bg-white border rounded-lg shadow-sm ${className}`}>
+    <div
+      className={`flex items-center gap-3 p-3 bg-white border rounded-lg shadow-sm ${className}`}
+    >
       {/* Phase Badge */}
-      <Badge className={getPhaseColor(phaseInfo.phase)}>
-        {formatPhaseName(phaseInfo.phase)}
-      </Badge>
+      <Badge className={getPhaseColor(phaseInfo.phase)}>{formatPhaseName(phaseInfo.phase)}</Badge>
 
       {/* Phase Description */}
       <div className="flex-1">
@@ -79,12 +79,7 @@ export function PhaseIndicator({ className = '' }: PhaseIndicatorProps) {
 
         {/* Pass Priority Button */}
         {phaseInfo.canAct && phaseInfo.phase === 'action' && (
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={passPriority}
-            className="text-xs px-2 py-1"
-          >
+          <Button size="sm" variant="outline" onClick={passPriority} className="text-xs px-2 py-1">
             Pass
           </Button>
         )}
@@ -92,9 +87,7 @@ export function PhaseIndicator({ className = '' }: PhaseIndicatorProps) {
 
       {/* Valid Transitions (Debug Info - can be removed) */}
       {process.env.NODE_ENV === 'development' && phaseInfo.validTransitions.length > 0 && (
-        <div className="text-xs text-gray-500">
-          Next: {phaseInfo.validTransitions.join(', ')}
-        </div>
+        <div className="text-xs text-gray-500">Next: {phaseInfo.validTransitions.join(', ')}</div>
       )}
     </div>
   )

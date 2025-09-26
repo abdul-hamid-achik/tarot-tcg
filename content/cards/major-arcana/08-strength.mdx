@@ -9,12 +9,19 @@ attack: 4
 health: 8
 rarity: "rare"
 tarotSymbol: "VIII"
-keywords: ["courage", "patience", "fortitude"]
+keywords: ["courage", "patience", "fortitude", "taunt"]
+description: "Must be attacked first. Inner strength protects what matters most."
+reversedDescription: "Can't attack. Inner turmoil renders strength useless."
 abilities:
-  - name: "Inner Fortitude"
-    description: "Takes 1 less damage from all sources"
-  - name: "Gentle Strength"
-    description: "At the start of your turn, heal this unit for 2"
+  upright:
+    - name: "Inner Fortitude"
+      description: "Taunt. Takes 1 less damage from all sources"
+    - name: "Gentle Strength"
+      description: "At the start of your turn, heal this unit for 2"
+  reversed:
+    - name: "Paralyzed by Fear"
+      description: "Can't attack. At the start of your turn, take 1 damage."
+orientation: "random"
 ---
 
 # Strength

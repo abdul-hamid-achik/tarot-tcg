@@ -36,30 +36,22 @@ export const PhaseSchema = z.enum([
   'mulligan',
   'round_start',
   'action',
-  'attack_declaration',  // Attack token holder declares attackers
-  'defense_declaration',  // Opponent declares blockers
-  'combat_resolution',    // Damage resolves
+  'attack_declaration', // Attack token holder declares attackers
+  'defense_declaration', // Opponent declares blockers
+  'combat_resolution', // Damage resolves
   'end_round',
 ])
 
 export const PlayerIdSchema = z.enum(['player1', 'player2'])
 
-// Grid position schemas
-export const GridRowSchema = z.union([z.literal(0), z.literal(1), z.literal(2), z.literal(3)])
+// Battlefield position schemas
+export const BattlefieldSlotSchema = z.number().min(0).max(6)
 
-export const GridColSchema = z.union([
-  z.literal(0),
-  z.literal(1),
-  z.literal(2),
-  z.literal(3),
-  z.literal(4),
-  z.literal(5),
-])
-
-export const CellPositionSchema = z.object({
-  row: GridRowSchema,
-  col: GridColSchema,
+export const BattlefieldPositionSchema = z.object({
+  player: PlayerIdSchema,
+  slot: BattlefieldSlotSchema,
 })
+
 
 // Object schemas
 export const AbilitySchema = z.object({
@@ -115,6 +107,29 @@ export const CardSchema = z.object({
   // Runtime state
   statusEffects: z.array(StatusEffectSchema).optional(),
   counters: z.record(z.string(), z.number()).optional(),
+
+  // Tarot-specific mechanics
+  hasSummoningSickness: z.boolean().optional(),
+  hasAttackedThisTurn: z.boolean().optional(),
+  divineShield: z.boolean().optional(), // Like Divine Shield in Hearthstone
+  ethereal: z.boolean().optional(), // Card disappears at end of turn
+  arcaneCharge: z.number().optional(), // Charges that build up over time
+  cosmicResonance: z.number().optional(), // Zodiac synergy counter
+
+  // Advanced esoteric mechanics
+  astrologyBonus: z.number().optional(), // Bonus from zodiac alignments
+  tarotPower: z.number().optional(), // Special tarot energy accumulated
+  mysticWard: z.boolean().optional(), // Protection from spells
+  veilOfIllusion: z.boolean().optional(), // Cannot be targeted until attacks
+  cosmicAlignment: z.string().optional(), // Current astrological state
+  sacredGeometry: z.number().optional(), // Geometric power multiplier
+  chakraResonance: z.array(z.string()).optional(), // Active chakra energies
+})
+
+export const BattlefieldSchema = z.object({
+  playerUnits: z.array(CardSchema.nullable()).length(7),
+  enemyUnits: z.array(CardSchema.nullable()).length(7),
+  maxSlots: z.number().default(7),
 })
 
 export const CardMetadataSchema = z.object({
@@ -140,11 +155,8 @@ export const CardDataSchema = z.object({
   filepath: z.string(),
 })
 
-export const LaneSchema = z.object({
-  id: z.number(),
-  attacker: CardSchema.nullable(),
-  defender: CardSchema.nullable(),
-})
+// Battlefield in game state
+export const GameBattlefieldSchema = BattlefieldSchema
 
 export const PlayerSchema = z.object({
   id: z.string(),
@@ -155,7 +167,7 @@ export const PlayerSchema = z.object({
   spellMana: z.number(),
   hand: z.array(CardSchema),
   deck: z.array(CardSchema),
-  bench: z.array(CardSchema),
+  bench: z.array(CardSchema),  // Added missing bench field
   hasAttackToken: z.boolean(),
   mulliganComplete: z.boolean(),
   selectedForMulligan: z.array(z.string()),
@@ -170,7 +182,7 @@ export const GameStateSchema = z.object({
   attackingPlayer: PlayerIdSchema.nullable(),
   player1: PlayerSchema,
   player2: PlayerSchema,
-  lanes: z.array(LaneSchema),
+  battlefield: GameBattlefieldSchema,
   phase: PhaseSchema,
   waitingForAction: z.boolean(),
   combatResolved: z.boolean(),
@@ -614,16 +626,16 @@ export type CardType = z.infer<typeof CardTypeSchema>
 export type CardPosition = z.infer<typeof CardPositionSchema>
 export type Phase = z.infer<typeof PhaseSchema>
 export type PlayerId = z.infer<typeof PlayerIdSchema>
-export type GridRow = z.infer<typeof GridRowSchema>
-export type GridCol = z.infer<typeof GridColSchema>
-export type CellPosition = z.infer<typeof CellPositionSchema>
+export type BattlefieldSlot = z.infer<typeof BattlefieldSlotSchema>
+export type BattlefieldPosition = z.infer<typeof BattlefieldPositionSchema>
+export type Battlefield = z.infer<typeof BattlefieldSchema>
 export type Ability = z.infer<typeof AbilitySchema>
 export type SpellEffect = z.infer<typeof SpellEffectSchema>
 export type StatusEffect = z.infer<typeof StatusEffectSchema>
 export type Card = z.infer<typeof CardSchema>
 export type CardMetadata = z.infer<typeof CardMetadataSchema>
 export type CardData = z.infer<typeof CardDataSchema>
-export type Lane = z.infer<typeof LaneSchema>
+export type GameBattlefield = z.infer<typeof GameBattlefieldSchema>
 export type Player = z.infer<typeof PlayerSchema>
 export type GameState = z.infer<typeof GameStateSchema>
 
@@ -638,9 +650,26 @@ export type PhaseEventData = z.infer<typeof PhaseEventDataSchema>
 export type GenericEventData = z.infer<typeof GenericEventDataSchema>
 export type EventData = z.infer<typeof EventDataSchema>
 export type GameEvent = z.infer<typeof GameEventSchema>
-export type EventFilter = z.infer<typeof EventFilterSchema>
-export type EventListener = z.infer<typeof EventListenerSchema>
-export type EventSubscription = z.infer<typeof EventSubscriptionSchema>
+export type EventFilter = {
+  types?: GameEventType[]
+  source?: {
+    type?: 'card' | 'player' | 'system'
+    id?: string
+  }
+  target?: {
+    type?: 'card' | 'player' | 'zone' | 'lane'
+    id?: string
+  }
+  condition?: (event: GameEvent) => boolean
+}
+export type EventListener = (event: GameEvent) => void | Promise<void>
+export type EventSubscription = {
+  id: string
+  filter: EventFilter
+  listener: EventListener
+  priority: number
+  once?: boolean
+}
 export type TriggerCondition = z.infer<typeof TriggerConditionSchema>
 export type ResourceCost = z.infer<typeof ResourceCostSchema>
 export type TargetRequirement = z.infer<typeof TargetRequirementSchema>
@@ -665,9 +694,7 @@ export type WinConditionEventData = z.infer<typeof WinConditionEventDataSchema>
 // PARSE HELPER FUNCTIONS
 // ================================
 
-export const parseGridPosition = (row: number, col: number): CellPosition => {
-  return CellPositionSchema.parse({ row, col })
-}
+// Removed deprecated grid position parsing - using battlefield positions instead
 
 export const parseCard = (data: unknown): Card => {
   return CardSchema.parse(data)
@@ -697,9 +724,7 @@ export const parseWinConditionResult = (data: unknown): WinConditionResult => {
 // SAFE PARSE HELPER FUNCTIONS
 // ================================
 
-export const safeParseGridPosition = (row: number, col: number) => {
-  return CellPositionSchema.safeParse({ row, col })
-}
+// Removed deprecated grid position safe parsing - using battlefield positions instead
 
 export const safeParseCard = (data: unknown) => {
   return CardSchema.safeParse(data)
@@ -781,12 +806,13 @@ export const isMulliganPhase = (gameState: unknown): boolean => {
   return isPhase(gameState, 'mulligan')
 }
 
+// Legacy compatibility for Hearthstone-style system (combat is immediate)
 export const isCombatPhase = (gameState: unknown): boolean => {
-  return isPhase(gameState, 'combat')
+  return isPhase(gameState, 'combat_resolution')
 }
 
 export const isDefendersPhase = (gameState: unknown): boolean => {
-  return isPhase(gameState, 'defense_declaration')
+  return false // No defenders phase in Hearthstone-style system
 }
 
 // ================================

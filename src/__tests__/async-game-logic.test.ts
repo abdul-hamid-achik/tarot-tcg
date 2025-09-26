@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach } from 'vitest'
-import { createInitialGameState, playCard, resolveCombat, endTurn } from '@/lib/game_logic'
+import { createInitialGameState, playCard, directAttack, endTurn } from '@/lib/game_logic'
 import { GameStateSchema, parseGameState, isValidGameState } from '@/schemas/schema'
 import type { GameState, Card } from '@/schemas/schema'
 
@@ -109,27 +109,28 @@ describe('Async Game Logic - Promise and Schema Validation', () => {
       expect(newGameState.player1.hand.length).toBeLessThanOrEqual(testGameState.player1.hand.length)
     })
 
-    it('resolveCombat should return a Promise that resolves to a valid GameState', async () => {
-      // Set up a combat scenario
+    it('directAttack should return a valid GameState after combat', async () => {
+      // Set up a combat scenario on battlefield
       const combatState: GameState = {
         ...testGameState,
-        phase: 'combat',
-        lanes: testGameState.lanes.map((lane, index) => ({
-          ...lane,
-          attacker: index === 0 ? { ...testCard, currentHealth: testCard.health } : null,
-        })),
+        phase: 'action',
+        battlefield: {
+          ...testGameState.battlefield,
+          playerUnits: [{ ...testCard, currentHealth: testCard.health }, ...testGameState.battlefield.playerUnits.slice(1)],
+          enemyUnits: [{ ...testCard, id: 'enemy-card', currentHealth: testCard.health }, ...testGameState.battlefield.enemyUnits.slice(1)],
+        },
+        player1: {
+          ...testGameState.player1,
+          hasAttackToken: true
+        }
       }
-      
-      // Test that resolveCombat returns a Promise
-      const result = resolveCombat(combatState)
-      expect(result).toBeInstanceOf(Promise)
-      
-      // Test that the Promise resolves to a valid GameState
-      const resolvedState = await result
+
+      // Execute direct attack (Hearthstone-style)
+      const resolvedState = directAttack(combatState, testCard.id, { player: 'player2', slot: 0 })
       expect(resolvedState).not.toBeInstanceOf(Promise)
       expect(typeof resolvedState).toBe('object')
       expect(isValidGameState(resolvedState)).toBe(true)
-      
+
       // Test that critical properties still exist after combat
       expect(resolvedState.player1).toBeDefined()
       expect(resolvedState.player1.health).toBeDefined()
@@ -179,14 +180,15 @@ describe('Async Game Logic - Promise and Schema Validation', () => {
       expect(correctResult.player2).toBeDefined()
     })
 
-    it('should validate that async functions never return synchronous GameState objects', async () => {
-      // All our async game logic functions should return Promises, never sync objects
+    it('should validate that async functions return correct types', async () => {
+      // playCard and endTurn should return Promises, directAttack returns sync GameState
       const playCardResult = playCard(testGameState, testCard)
-      const resolveCombatResult = resolveCombat({ ...testGameState, phase: 'combat' })
+      const directAttackResult = directAttack({ ...testGameState, phase: 'action', player1: { ...testGameState.player1, hasAttackToken: true } }, testCard.id, 'nexus')
       const endTurnResult = endTurn({ ...testGameState, phase: 'end_round' })
-      
+
       expect(playCardResult).toBeInstanceOf(Promise)
-      expect(resolveCombatResult).toBeInstanceOf(Promise)
+      expect(directAttackResult).not.toBeInstanceOf(Promise) // directAttack is synchronous
+      expect(typeof directAttackResult).toBe('object')
       expect(endTurnResult).toBeInstanceOf(Promise)
     })
 
@@ -218,18 +220,25 @@ describe('Async Game Logic - Promise and Schema Validation', () => {
       expect(result).toEqual(testGameState) // Should return unchanged state
     })
 
-    it('should handle errors in resolveCombat gracefully', async () => {
-      // Try to resolve combat with an invalid state
+    it('should handle errors in directAttack gracefully', async () => {
+      // Try to attack with an invalid state (no attacker on battlefield)
       const invalidCombatState: GameState = {
         ...testGameState,
-        phase: 'combat',
-        lanes: [], // Empty lanes could cause issues
+        phase: 'action',
+        battlefield: {
+          ...testGameState.battlefield,
+          playerUnits: Array(7).fill(null), // No units on battlefield
+        },
+        player1: {
+          ...testGameState.player1,
+          hasAttackToken: true
+        }
       }
-      
-      // This should not throw and should return a valid state
-      await expect(resolveCombat(invalidCombatState)).resolves.toBeDefined()
-      const result = await resolveCombat(invalidCombatState)
+
+      // This should not throw and should return the original state
+      const result = directAttack(invalidCombatState, 'non-existent-card', 'nexus')
       expect(isValidGameState(result)).toBe(true)
+      expect(result).toEqual(invalidCombatState) // Should return unchanged state
     })
   })
 

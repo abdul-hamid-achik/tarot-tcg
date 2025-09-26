@@ -1,8 +1,10 @@
-import type { Card, GameCard, GameState } from '@/schemas/schema'
-import { aiService, type AILevel, type AIPersonality } from './ai_service'
+import type { Card, GameState } from '@/schemas/schema'
+import { type AILevel, type AIPersonality, aiService } from './ai_service'
 import { combatService } from './combat_service'
 import { eventManager } from './event_manager'
 import { stateManager } from './state_manager'
+import { battlefieldService } from './battlefield_service'
+import { endTurn } from '@/lib/game_logic'
 
 // AI Decision weights for different strategies
 interface DecisionWeights {
@@ -22,7 +24,7 @@ interface CardPlayDecision {
 
 interface AttackDecision {
   attackerIds: string[]
-  targetPriority: 'nexus' | 'units' | 'mixed'
+  targetPriority: 'nexus' | 'units' | 'mixed' | 'none'
   confidence: number
 }
 
@@ -48,7 +50,9 @@ export class AIControllerService {
     let currentState = { ...gameState }
 
     // Log AI thinking
-    console.log(`🤖 ${this.currentPersonality.icon} ${this.currentPersonality.name} is analyzing...`)
+    console.log(
+      `🤖 ${this.currentPersonality.icon} ${this.currentPersonality.name} is analyzing...`,
+    )
 
     // Phase 1: Mulligan (if needed)
     if (currentState.phase === 'mulligan' && !currentState.player2.mulliganComplete) {
@@ -67,14 +71,8 @@ export class AIControllerService {
       // Small delay between actions for visual clarity
       await new Promise(resolve => setTimeout(resolve, 300))
 
-      // Make attack decisions if we have the token
-      if (currentState.player2.hasAttackToken) {
-        const attackDecision = this.makeAttackDecision(currentState)
-        if (attackDecision.attackerIds.length > 0) {
-          currentState = this.executeAttack(currentState, attackDecision)
-          return currentState // Control passes to opponent for defense
-        }
-      }
+      // Skip attack phase for now - Hearthstone-style direct attacks are handled by the UI
+      // The AI will attack via direct unit interactions in future implementation
 
       // End turn if nothing else to do
       console.log(`🤖 ${this.currentPersonality.name} ends turn`)
@@ -82,13 +80,17 @@ export class AIControllerService {
         playerId: 'player2',
         reason: 'No more actions available',
       })
+
+      // Actually end the turn using game logic
+      currentState = await endTurn(currentState)
+      return currentState
     }
 
-    // Phase 3: Defense phase
-    if (currentState.phase === 'declare_defenders' && currentState.activePlayer === 'player2') {
-      await this.simulateThinking()
-      const defenseDecision = this.makeDefenseDecision(currentState)
-      currentState = this.executeDefense(currentState, defenseDecision)
+    // Phase 3: Defense phase (deprecated in Hearthstone-style system)
+    // Combat is resolved immediately when attacks are declared
+    if (currentState.phase === 'defense_declaration' && currentState.activePlayer === 'player2') {
+      // In Hearthstone-style, no separate defense phase - combat resolves immediately
+      console.warn('Defense phase encountered in Hearthstone-style system - this should not happen')
     }
 
     return currentState
@@ -293,24 +295,36 @@ export class AIControllerService {
   // Get priority threshold based on personality
   private getPlayThreshold(): number {
     switch (this.currentPersonality.playStrategy) {
-      case 'aggressive': return 40 // Play more cards
-      case 'defensive': return 60 // Be selective
-      case 'tempo': return 45 // Balanced
-      case 'control': return 55 // Save resources
-      case 'random': return Math.random() * 100 // Random threshold
-      default: return 50
+      case 'aggressive':
+        return 40 // Play more cards
+      case 'defensive':
+        return 60 // Be selective
+      case 'tempo':
+        return 45 // Balanced
+      case 'control':
+        return 55 // Save resources
+      case 'random':
+        return Math.random() * 100 // Random threshold
+      default:
+        return 50
     }
   }
 
   // Get maximum cards to play per turn based on personality
   private getMaxCardPlays(): number {
     switch (this.currentPersonality.level) {
-      case 'tutorial': return 1
-      case 'easy': return 2
-      case 'normal': return 3
-      case 'hard': return 4
-      case 'expert': return 5
-      default: return 3
+      case 'tutorial':
+        return 1
+      case 'easy':
+        return 2
+      case 'normal':
+        return 3
+      case 'hard':
+        return 4
+      case 'expert':
+        return 5
+      default:
+        return 3
     }
   }
 
@@ -344,10 +358,20 @@ export class AIControllerService {
     const player = { ...newState.player2 }
     const card = decision.card
 
-    // Validate bench space for units
-    if (card.type === 'unit' && player.bench.length >= 6) {
-      console.warn(`AI cannot play ${card.name} - bench is full`)
-      return newState // Return unchanged state
+    // Find first empty slot on the battlefield for AI (player2 uses enemyUnits)
+    let targetSlot = -1
+    if (card.type === 'unit') {
+      for (let i = 0; i < newState.battlefield.enemyUnits.length; i++) {
+        if (newState.battlefield.enemyUnits[i] === null) {
+          targetSlot = i
+          break
+        }
+      }
+
+      if (targetSlot === -1) {
+        console.warn(`AI cannot play ${card.name} - battlefield is full`)
+        return newState // Return unchanged state
+      }
     }
 
     // Calculate mana payment
@@ -370,19 +394,20 @@ export class AIControllerService {
 
     // Add to appropriate zone
     if (card.type === 'unit') {
-      const cardInstance: GameCard = {
-        ...card,
-        currentHealth: card.health,
-        position: 'bench',
-      }
-      player.bench.push(cardInstance)
+      // Use battlefield service to place unit on battlefield
+      const newBattlefield = battlefieldService.placeUnit(
+        newState.battlefield,
+        card,
+        'player2',
+        targetSlot
+      )
+      newState.battlefield = newBattlefield
 
-      // Update state and register abilities
+      // Update state
       newState.player2 = player
-      return combatService.registerCardAbilities(cardInstance, newState)
+      return newState
     } else {
-      // Handle spell - add to graveyard for now
-      player.graveyard.push(card)
+      // Handle spell - effects are resolved immediately
       newState.player2 = player
       return newState
     }
@@ -390,9 +415,7 @@ export class AIControllerService {
 
   // Make attack decision
   private makeAttackDecision(gameState: GameState): AttackDecision {
-    const availableAttackers = gameState.player2.bench.filter(
-      unit => (unit.attack || 0) > 0
-    )
+    const availableAttackers = gameState.player2.bench.filter(unit => (unit.attack || 0) > 0)
 
     if (availableAttackers.length === 0) {
       return { attackerIds: [], targetPriority: 'none', confidence: 0 }
@@ -407,7 +430,7 @@ export class AIControllerService {
   }
 
   // Select which units should attack
-  private selectAttackers(availableAttackers: GameCard[], gameState: GameState): string[] {
+  private selectAttackers(availableAttackers: Card[], gameState: GameState): string[] {
     switch (this.currentPersonality.attackStrategy) {
       case 'aggressive':
         // Attack with everything
@@ -425,9 +448,7 @@ export class AIControllerService {
 
       case 'random':
         // Random selection
-        return availableAttackers
-          .filter(() => Math.random() < 0.6)
-          .map(u => u.id)
+        return availableAttackers.filter(() => Math.random() < 0.6).map(u => u.id)
 
       default:
         return availableAttackers.slice(0, 3).map(u => u.id)
@@ -435,7 +456,7 @@ export class AIControllerService {
   }
 
   // Check if attacking with a unit is safe
-  private isAttackSafe(attacker: GameCard, gameState: GameState): boolean {
+  private isAttackSafe(attacker: Card, gameState: GameState): boolean {
     const opponentUnits = gameState.player1.bench
 
     // Safe if no defenders
@@ -443,14 +464,17 @@ export class AIControllerService {
 
     // Check if we can survive counter-attacks
     const wouldSurvive = opponentUnits.every(
-      defender => (defender.attack || 0) < (attacker.currentHealth || attacker.health || 0)
+      defender => (defender.attack || 0) < (attacker.currentHealth || attacker.health || 0),
     )
 
     return wouldSurvive
   }
 
   // Calculate optimal attacker combination
-  private calculateOptimalAttackers(availableAttackers: GameCard[], gameState: GameState): string[] {
+  private calculateOptimalAttackers(
+    availableAttackers: Card[],
+    gameState: GameState,
+  ): string[] {
     const opponentUnits = gameState.player1.bench
 
     if (opponentUnits.length === 0) {
@@ -510,11 +534,16 @@ export class AIControllerService {
     let unfavorableTrades = 0
 
     for (const attacker of attackers) {
-      const bestDefender = defenders.reduce((best, curr) => {
-        const currValue = (curr.attack || 0) - (attacker.currentHealth || attacker.health || 0)
-        const bestValue = best ? (best.attack || 0) - (attacker.currentHealth || attacker.health || 0) : Infinity
-        return currValue < bestValue ? curr : best
-      }, null as GameCard | null)
+      const bestDefender = defenders.reduce(
+        (best, curr) => {
+          const currValue = (curr.attack || 0) - (attacker.currentHealth || attacker.health || 0)
+          const bestValue = best
+            ? (best.attack || 0) - (attacker.currentHealth || attacker.health || 0)
+            : Infinity
+          return currValue < bestValue ? curr : best
+        },
+        null as Card | null,
+      )
 
       if (bestDefender) {
         if ((attacker.attack || 0) >= (bestDefender.currentHealth || bestDefender.health || 0)) {
@@ -528,169 +557,52 @@ export class AIControllerService {
     return favorableTrades / (favorableTrades + unfavorableTrades + 1)
   }
 
-  // Execute attack with selected units
+  // Execute attack with selected units (deprecated - Hearthstone-style uses direct attacks)
   private executeAttack(gameState: GameState, decision: AttackDecision): GameState {
-    const newState = { ...gameState }
-
-    // Clear lanes
-    newState.lanes = newState.lanes.map(lane => ({
-      ...lane,
-      attacker: null,
-      defender: null,
-    }))
-
-    // Place attackers in lanes and remove from bench
-    decision.attackerIds.forEach((attackerId, index) => {
-      if (index >= 6) return // Max 6 lanes
-
-      const unitIndex = newState.player2.bench.findIndex(u => u.id === attackerId)
-      if (unitIndex !== -1) {
-        const unit = newState.player2.bench[unitIndex]
-        newState.lanes[index].attacker = { ...unit, position: 'attacking' }
-        // Remove unit from bench
-        newState.player2.bench.splice(unitIndex, 1)
-      }
-    })
-
-    // Update phase and active player
-    newState.phase = 'declare_defenders'
-    newState.attackingPlayer = 'player2'
-    newState.activePlayer = 'player1'
-
-    console.log(`⚔️ AI attacks with ${decision.attackerIds.length} units (confidence: ${(decision.confidence * 100).toFixed(0)}%)`)
-
-    return newState
+    // In Hearthstone-style system, attacks are executed directly via battlefieldService
+    // This method is deprecated but kept for compatibility
+    console.warn('executeAttack called in Hearthstone-style system - should use directAttack instead')
+    return gameState
   }
 
-  // Make defense decision
+  // Make defense decision (deprecated - no defense phase in Hearthstone-style)
   private makeDefenseDecision(gameState: GameState): DefenseDecision {
-    const attackers = gameState.lanes.filter(lane => lane.attacker).map(lane => lane.attacker!)
-    const availableDefenders = gameState.player2.bench
-
-    if (attackers.length === 0 || availableDefenders.length === 0) {
-      return { assignments: [], strategy: 'none' }
-    }
-
-    // Choose defense strategy based on personality
-    const strategy = this.chooseDefenseStrategy(attackers, availableDefenders, gameState)
-    const assignments = this.assignDefenders(attackers, availableDefenders, strategy, gameState)
-
-    return { assignments, strategy }
+    // Defense decisions are not used in Hearthstone-style system
+    console.warn('makeDefenseDecision called in Hearthstone-style system')
+    return { assignments: [], strategy: 'none' }
   }
 
-  // Choose defense strategy
+  // Choose defense strategy (deprecated)
   private chooseDefenseStrategy(
-    attackers: GameCard[],
-    defenders: GameCard[],
-    gameState: GameState
+    attackers: Card[],
+    defenders: Card[],
+    gameState: GameState,
   ): 'block-all' | 'block-threats' | 'sacrifice' | 'none' {
-    const totalIncomingDamage = attackers.reduce((sum, a) => sum + (a.attack || 0), 0)
-    const playerHealth = gameState.player2.health
-
-    // Take lethal damage seriously
-    if (totalIncomingDamage >= playerHealth) {
-      return 'block-all'
-    }
-
-    switch (this.currentPersonality.playStrategy) {
-      case 'aggressive':
-        return 'block-threats' // Only block big threats
-      case 'defensive':
-        return 'block-all' // Block everything possible
-      case 'control':
-        return defenders.length > attackers.length ? 'block-all' : 'sacrifice'
-      default:
-        return 'block-threats'
-    }
+    console.warn('chooseDefenseStrategy called in Hearthstone-style system')
+    return 'none'
   }
 
-  // Assign defenders to lanes
+  // Assign defenders to lanes (deprecated)
   private assignDefenders(
-    attackers: GameCard[],
-    availableDefenders: GameCard[],
+    attackers: Card[],
+    availableDefenders: Card[],
     strategy: string,
-    gameState: GameState
+    gameState: GameState,
   ): { defenderId: string; laneId: number }[] {
-    const assignments: { defenderId: string; laneId: number }[] = []
-    const remainingDefenders = [...availableDefenders]
-
-    gameState.lanes.forEach((lane, laneId) => {
-      if (!lane.attacker || remainingDefenders.length === 0) return
-
-      const attacker = lane.attacker
-      let defender: GameCard | null = null
-
-      switch (strategy) {
-        case 'block-all':
-          // Block with any available unit
-          defender = remainingDefenders[0]
-          break
-
-        case 'block-threats':
-          // Only block high attack units
-          if ((attacker.attack || 0) >= 3) {
-            defender = this.findBestDefender(attacker, remainingDefenders)
-          }
-          break
-
-        case 'sacrifice':
-          // Use weakest defenders
-          defender = remainingDefenders.sort((a, b) =>
-            (a.currentHealth || a.health || 0) - (b.currentHealth || b.health || 0)
-          )[0]
-          break
-      }
-
-      if (defender) {
-        assignments.push({ defenderId: defender.id, laneId })
-        const idx = remainingDefenders.findIndex(d => d.id === defender!.id)
-        if (idx > -1) remainingDefenders.splice(idx, 1)
-      }
-    })
-
-    return assignments
+    console.warn('assignDefenders called in Hearthstone-style system')
+    return []
   }
 
-  // Find best defender for an attacker
-  private findBestDefender(attacker: GameCard, defenders: GameCard[]): GameCard | null {
-    // Find defender that can kill attacker or survive
-    const ideal = defenders.find(d =>
-      (d.attack || 0) >= (attacker.currentHealth || attacker.health || 0) &&
-      (d.currentHealth || d.health || 0) > (attacker.attack || 0)
-    )
-
-    if (ideal) return ideal
-
-    // Find defender that can at least kill attacker
-    const canKill = defenders.find(d =>
-      (d.attack || 0) >= (attacker.currentHealth || attacker.health || 0)
-    )
-
-    if (canKill) return canKill
-
-    // Use highest health defender
-    return defenders.sort((a, b) =>
-      (b.currentHealth || b.health || 0) - (a.currentHealth || a.health || 0)
-    )[0]
+  // Find best defender for an attacker (deprecated)
+  private findBestDefender(attacker: Card, defenders: Card[]): Card | null {
+    console.warn('findBestDefender called in Hearthstone-style system')
+    return null
   }
 
-  // Execute defense assignments
+  // Execute defense assignments (deprecated)
   private executeDefense(gameState: GameState, decision: DefenseDecision): GameState {
-    const newState = { ...gameState }
-
-    for (const assignment of decision.assignments) {
-      const defender = newState.player2.bench.find(u => u.id === assignment.defenderId)
-      if (defender && newState.lanes[assignment.laneId]) {
-        newState.lanes[assignment.laneId].defender = { ...defender, position: 'defending' }
-      }
-    }
-
-    // Move to combat phase
-    newState.phase = 'combat'
-
-    console.log(`🛡️ AI defends with ${decision.assignments.length} units (strategy: ${decision.strategy})`)
-
-    return newState
+    console.warn('executeDefense called in Hearthstone-style system')
+    return gameState
   }
 
   // Mulligan logic

@@ -10,8 +10,13 @@ tarotSymbol: "X"
 keywords: ["fate", "cycles", "chance"]
 spellType: "ritual"
 effects:
-  - name: "Spin the Wheel"
-    description: "Each player discards their hand, then draws 5 cards. Flip a coin: Heads - draw 2 more cards, Tails - your opponent draws 1 card"
+  upright:
+    - name: "Spin the Wheel"
+      description: "Each player discards their hand, then draws 5 cards. Flip a coin: Heads - draw 2 more cards, Tails - your opponent draws 1 card"
+  reversed:
+    - name: "Wheel of Misfortune"
+      description: "Each player discards their hand, then draws 3 cards. Flip a coin: Heads - opponent draws 2 more cards, Tails - you discard 1 card"
+orientation: "random"
 ---
 
 # Wheel of Fortune

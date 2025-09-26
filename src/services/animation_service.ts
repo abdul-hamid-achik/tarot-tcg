@@ -1,8 +1,7 @@
 'use client'
 
 import type { Card as GameCard } from '@/schemas/schema'
-import type { CellPosition } from '@/store/game_store'
-import { gridMathService } from './grid_math_service'
+import type { BattlefieldPosition } from '@/services/battlefield_service'
 
 export interface AnimationOptions {
   duration?: number
@@ -20,9 +19,9 @@ export interface CardMoveAnimation {
   options: AnimationOptions
 }
 
-export interface GridCellAnimation {
-  cellElement: HTMLElement
-  position: CellPosition
+export interface BattlefieldAnimation {
+  slotElement: HTMLElement
+  position: BattlefieldPosition
   type: 'highlight' | 'shake' | 'pulse' | 'glow'
   options: AnimationOptions
 }
@@ -30,7 +29,6 @@ export interface GridCellAnimation {
 export interface CombatAnimation {
   attackerElement: HTMLElement
   targetElement?: HTMLElement
-  position: CellPosition
   damage?: number
   type: 'attack' | 'defend' | 'damage' | 'heal'
   options: AnimationOptions
@@ -67,7 +65,10 @@ class AnimationService {
   private performanceMode: 'high' | 'medium' | 'low' = 'high'
 
   constructor() {
-    this.startAnimationLoop()
+    // Only start animation loop in browser environment
+    if (typeof window !== 'undefined') {
+      this.startAnimationLoop()
+    }
   }
 
   /**
@@ -95,723 +96,378 @@ class AnimationService {
    * Animate a card moving between positions
    */
   animateCardMove(
-    cardElement: HTMLElement,
-    from: { x: number; y: number } | CellPosition,
-    to: { x: number; y: number } | CellPosition,
+    card: GameCard,
+    from: BattlefieldPosition | 'hand',
+    to: BattlefieldPosition | 'hand' | 'graveyard',
     options: AnimationOptions = {},
   ): Promise<void> {
-    const animationId = this.generateAnimationId('card-move')
+    return new Promise(resolve => {
+      const duration = this.getPerformanceDuration(options.duration || 500)
 
-    // Convert grid positions to screen coordinates if needed
-    const fromCoords = this.isGridPosition(from)
-      ? gridMathService.gridToScreenCoordinates(from)
-      : from
-
-    const toCoords = this.isGridPosition(to) ? gridMathService.gridToScreenCoordinates(to) : to
-
-    const animation = new CardMoveAnimationImpl(animationId, cardElement, fromCoords, toCoords, {
-      duration: this.getPerformanceDuration(options.duration || 500),
-      easing: easingFunctions.easeOutCubic,
-      onStart: () => {},
-      onProgress: () => {},
-      onComplete: () => {},
-      ...options,
-    })
-
-    return this.runAnimation(animation)
-  }
-
-  /**
-   * Animate card being played from hand
-   */
-  animateCardPlay(
-    cardElement: HTMLElement,
-    handPosition: { x: number; y: number },
-    gridPosition: CellPosition,
-    options: AnimationOptions = {},
-  ): Promise<void> {
-    const targetCoords = gridMathService.gridToScreenCoordinates(gridPosition)
-
-    return this.animateCardMove(cardElement, handPosition, targetCoords, {
-      duration: this.getPerformanceDuration(options.duration || 600),
-      easing: easingFunctions.easeOutCubic,
-      onStart: () => {
-        cardElement.style.zIndex = '1000' // Bring to front during animation
-        cardElement.style.transform += ' scale(1.05)' // More subtle scale for performance
-        options.onStart?.()
-      },
-      onComplete: () => {
-        cardElement.style.zIndex = ''
-        cardElement.style.transform = cardElement.style.transform.replace(' scale(1.05)', '')
-        options.onComplete?.()
-      },
-      ...options,
-    })
-  }
-
-  /**
-   * Animate combat attack
-   */
-  animateCombatAttack(
-    attackerElement: HTMLElement,
-    attackerPosition: CellPosition,
-    targetPosition?: CellPosition,
-    options: AnimationOptions = {},
-  ): Promise<void> {
-    const animationId = this.generateAnimationId('combat-attack')
-
-    const animation = new CombatAttackAnimation(
-      animationId,
-      attackerElement,
-      attackerPosition,
-      {
-        duration: 800,
-        easing: easingFunctions.easeInOutQuad,
-        onStart: () => {},
-        onProgress: () => {},
-        onComplete: () => {},
-        ...options,
-      },
-      targetPosition,
-    )
-
-    return this.runAnimation(animation)
-  }
-
-  /**
-   * Animate damage numbers
-   */
-  animateDamage(
-    position: CellPosition,
-    damage: number,
-    type: 'damage' | 'heal' = 'damage',
-    options: AnimationOptions = {},
-  ): Promise<void> {
-    const animationId = this.generateAnimationId('damage-number')
-
-    // Create damage number element
-    const damageElement = this.createDamageElement(damage, type)
-    const coords = gridMathService.gridToScreenCoordinates(position)
-
-    // Position element
-    damageElement.style.position = 'absolute'
-    damageElement.style.left = `${coords.x}px`
-    damageElement.style.top = `${coords.y}px`
-    damageElement.style.pointerEvents = 'none'
-    damageElement.style.zIndex = '2000'
-
-    document.body.appendChild(damageElement)
-
-    const animation = new DamageNumberAnimation(animationId, damageElement, coords, {
-      duration: 1500,
-      easing: easingFunctions.easeOutQuad,
-      onStart: () => {},
-      onProgress: () => {},
-      onComplete: () => {
-        damageElement.remove()
-      },
-      ...options,
-    })
-
-    return this.runAnimation(animation)
-  }
-
-  /**
-   * Animate cell highlighting
-   */
-  animateCellHighlight(
-    cellElement: HTMLElement,
-    type: 'valid' | 'invalid' | 'selected' | 'hover' = 'valid',
-    options: AnimationOptions = {},
-  ): Promise<void> {
-    const animationId = this.generateAnimationId('cell-highlight')
-
-    const animation = new CellHighlightAnimation(animationId, cellElement, type, {
-      duration: 300,
-      easing: easingFunctions.easeOutQuad,
-      onStart: () => {},
-      onProgress: () => {},
-      onComplete: () => {},
-      ...options,
-    })
-
-    return this.runAnimation(animation)
-  }
-
-  /**
-   * Animate multiple cells simultaneously (for combat resolution)
-   */
-  animateMultipleCells(
-    positions: CellPosition[],
-    type: 'shake' | 'glow' | 'pulse',
-    options: AnimationOptions = {},
-  ): Promise<undefined[]> {
-    const promises = positions.map(position => {
-      const cellElement = this.getCellElementAtPosition(position)
-      if (!cellElement) return Promise.resolve()
-
-      return this.animateCellEffect(cellElement, type, options)
-    })
-
-    return Promise.all(promises)
-  }
-
-  /**
-   * Animate card draw from deck
-   */
-  animateCardDraw(
-    cardElement: HTMLElement,
-    deckPosition: { x: number; y: number },
-    handPosition: { x: number; y: number },
-    options: AnimationOptions = {},
-  ): Promise<void> {
-    return this.animateCardMove(cardElement, deckPosition, handPosition, {
-      duration: 400,
-      easing: easingFunctions.easeOutQuad,
-      onStart: () => {
-        cardElement.style.transform += ' scale(0.8)'
-      },
-      onProgress: progress => {
-        const scale = 0.8 + 0.2 * progress
-        cardElement.style.transform = cardElement.style.transform.replace(
-          /scale\([^)]*\)/,
-          `scale(${scale})`,
-        )
-      },
-      ...options,
-    })
-  }
-
-  /**
-   * Stop all animations
-   */
-  stopAllAnimations(): void {
-    this.activeAnimations.forEach(animation => {
-      animation.stop()
-    })
-    this.activeAnimations.clear()
-  }
-
-  /**
-   * Stop specific animation
-   */
-  stopAnimation(animationId: string): void {
-    const animation = this.activeAnimations.get(animationId)
-    if (animation) {
-      animation.stop()
-      this.activeAnimations.delete(animationId)
-    }
-  }
-
-  /**
-   * Check if any animations are running
-   */
-  hasActiveAnimations(): boolean {
-    return this.activeAnimations.size > 0
-  }
-
-  /**
-   * Get active animation count
-   */
-  getActiveAnimationCount(): number {
-    return this.activeAnimations.size
-  }
-
-  /**
-   * Start the main animation loop
-   */
-  private startAnimationLoop(): void {
-    if (this.isRunning) return
-
-    this.isRunning = true
-    const loop = () => {
-      if (this.activeAnimations.size === 0) {
-        this.rafId = requestAnimationFrame(loop)
+      // Get elements for animation
+      const cardElement = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement
+      if (!cardElement) {
+        resolve()
         return
       }
 
-      const currentTime = performance.now()
+      // Calculate positions
+      const fromRect = cardElement.getBoundingClientRect()
+      let toRect: DOMRect
 
-      // Update all active animations
-      this.activeAnimations.forEach((animation, id) => {
-        const completed = animation.update(currentTime)
-        if (completed) {
-          this.activeAnimations.delete(id)
-        }
-      })
+      if (to === 'hand') {
+        const handElement = document.querySelector('[data-hand-area]')
+        toRect = handElement?.getBoundingClientRect() || fromRect
+      } else if (to === 'graveyard') {
+        const graveyardElement = document.querySelector('[data-graveyard]')
+        toRect = graveyardElement?.getBoundingClientRect() || fromRect
+      } else {
+        const slotElement = document.querySelector(
+          `[data-slot="${to.player}-${to.slot}"]`,
+        )
+        toRect = slotElement?.getBoundingClientRect() || fromRect
+      }
 
-      this.rafId = requestAnimationFrame(loop)
-    }
+      // Animate with CSS transitions
+      cardElement.style.transition = `transform ${duration}ms ease-out`
+      cardElement.style.transform = `translate(${toRect.left - fromRect.left}px, ${toRect.top - fromRect.top}px)`
 
-    this.rafId = requestAnimationFrame(loop)
+      setTimeout(() => {
+        cardElement.style.transition = ''
+        cardElement.style.transform = ''
+        options.onComplete?.()
+        resolve()
+      }, duration)
+    })
   }
 
   /**
-   * Run an animation
+   * Animate an attack to the nexus
    */
-  private runAnimation(animation: Animation): Promise<void> {
-    this.activeAnimations.set(animation.id, animation)
-    return animation.promise
+  async animateAttackToNexus(attackerPosition: BattlefieldPosition): Promise<void> {
+    const duration = this.getPerformanceDuration(400)
+    const attackerElement = document.querySelector(
+      `[data-slot="${attackerPosition.player}-${attackerPosition.slot}"] .game-card`,
+    ) as HTMLElement
+
+    if (!attackerElement) return
+
+    // Attack animation - card moves toward opponent's nexus
+    attackerElement.style.transition = `transform ${duration}ms ease-out`
+    attackerElement.style.transform =
+      attackerPosition.player === 'player1' ? 'translateY(-30px) scale(1.1)' : 'translateY(30px) scale(1.1)'
+
+    await this.wait(duration)
+    attackerElement.style.transform = ''
+    await this.wait(100)
   }
 
   /**
-   * Generate unique animation ID
+   * Animate unit combat between two cards
    */
-  private generateAnimationId(prefix: string): string {
-    return `${prefix}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-  }
-
-  /**
-   * Check if position is a grid position
-   */
-  private isGridPosition(pos: unknown): pos is CellPosition {
-    return (
-      typeof pos === 'object' &&
-      pos !== null &&
-      'row' in pos &&
-      'col' in pos &&
-      typeof (pos as { row: unknown }).row === 'number' &&
-      typeof (pos as { col: unknown }).col === 'number'
-    )
-  }
-
-  /**
-   * Create damage number element
-   */
-  private createDamageElement(damage: number, type: 'damage' | 'heal'): HTMLElement {
-    const element = document.createElement('div')
-    element.textContent = type === 'damage' ? `-${damage}` : `+${damage}`
-    element.style.fontSize = '24px'
-    element.style.fontWeight = 'bold'
-    element.style.color = type === 'damage' ? '#ef4444' : '#22c55e'
-    element.style.textShadow = '2px 2px 4px rgba(0,0,0,0.8)'
-    element.style.userSelect = 'none'
-    element.className = 'animate-pulse'
-    return element
-  }
-
-  /**
-   * Get cell element at grid position
-   */
-  private getCellElementAtPosition(position: CellPosition): HTMLElement | null {
-    const selector = `[data-grid-cell="${position.row}-${position.col}"]`
-    const element = document.querySelector(selector)
-    return element instanceof HTMLElement ? element : null
-  }
-
-  /**
-   * Animate cell effects
-   */
-  private animateCellEffect(
-    element: HTMLElement,
-    type: 'shake' | 'glow' | 'pulse',
-    options: AnimationOptions,
+  async animateUnitCombat(
+    attackerPosition: BattlefieldPosition,
+    targetPosition: BattlefieldPosition
   ): Promise<void> {
-    const animationId = this.generateAnimationId(`cell-${type}`)
+    const duration = this.getPerformanceDuration(500)
 
-    const animation = new CellEffectAnimation(animationId, element, type, {
-      duration: 500,
-      easing: easingFunctions.easeOutQuad,
-      onStart: () => {},
-      onProgress: () => {},
-      onComplete: () => {},
-      ...options,
-    })
+    const attackerElement = document.querySelector(
+      `[data-slot="${attackerPosition.player}-${attackerPosition.slot}"] .game-card`,
+    ) as HTMLElement
 
-    return this.runAnimation(animation)
-  }
-}
+    const targetElement = document.querySelector(
+      `[data-slot="${targetPosition.player}-${targetPosition.slot}"] .game-card`,
+    ) as HTMLElement
 
-// Abstract Animation base class
-abstract class Animation {
-  public readonly id: string
-  public readonly promise: Promise<void>
-  protected startTime: number = 0
-  protected isComplete: boolean = false
-  protected resolvePromise!: () => void
-  protected rejectPromise!: (reason?: unknown) => void
+    if (!attackerElement) return
 
-  constructor(
-    id: string,
-    protected options: Required<AnimationOptions>,
-  ) {
-    this.id = id
-    this.promise = new Promise((resolve, reject) => {
-      this.resolvePromise = resolve
-      this.rejectPromise = reject
-    })
-  }
+    // Calculate direction of attack
+    const attackDirection = attackerPosition.player === 'player1' ? -1 : 1
 
-  abstract update(currentTime: number): boolean
+    // Attacker moves toward target
+    attackerElement.style.transition = `transform ${duration}ms ease-out`
+    attackerElement.style.transform = `translateY(${20 * attackDirection}px) scale(1.1)`
 
-  stop(): void {
-    this.isComplete = true
-    this.rejectPromise(new Error('Animation stopped'))
-  }
-
-  protected complete(): void {
-    if (this.isComplete) return
-    this.isComplete = true
-    this.options.onComplete?.()
-    this.resolvePromise()
-  }
-
-  protected getProgress(currentTime: number): number {
-    if (this.startTime === 0) {
-      this.startTime = currentTime
-      this.options.onStart?.()
-      return 0
+    // Target shakes if it exists
+    if (targetElement) {
+      targetElement.classList.add('shake')
     }
 
-    const elapsed = currentTime - this.startTime
-    const progress = Math.min(elapsed / this.options.duration, 1)
-    return this.options.easing(progress)
-  }
-}
+    await this.wait(duration)
 
-// Specific animation implementations
-class CardMoveAnimationImpl extends Animation {
-  constructor(
-    id: string,
-    private element: HTMLElement,
-    private from: { x: number; y: number },
-    private to: { x: number; y: number },
-    options: Required<AnimationOptions>,
-  ) {
-    super(id, options)
-  }
-
-  update(currentTime: number): boolean {
-    if (this.isComplete) return true
-
-    const progress = this.getProgress(currentTime)
-
-    const x = this.from.x + (this.to.x - this.from.x) * progress
-    const y = this.from.y + (this.to.y - this.from.y) * progress
-
-    this.element.style.transform = `translate(${x}px, ${y}px)`
-    this.options.onProgress?.(progress)
-
-    if (progress >= 1) {
-      this.complete()
-      return true
+    // Return to original position
+    attackerElement.style.transform = ''
+    if (targetElement) {
+      targetElement.classList.remove('shake')
     }
 
-    return false
-  }
-}
-
-class CombatAttackAnimation extends Animation {
-  constructor(
-    id: string,
-    private attackerElement: HTMLElement,
-    private attackerPosition: CellPosition,
-    options: Required<AnimationOptions>,
-    private targetPosition?: CellPosition,
-  ) {
-    super(id, options)
+    await this.wait(100)
   }
 
-  update(currentTime: number): boolean {
-    if (this.isComplete) return true
+  /**
+   * Animate nexus damage
+   */
+  async animateNexusDamage(damage: number): Promise<void> {
+    const nexusElement = document.querySelector('[data-player-nexus]') as HTMLElement
+    if (!nexusElement) return
 
-    const progress = this.getProgress(currentTime)
+    // Flash red and shake
+    nexusElement.classList.add('nexus-damage')
 
-    if (progress < 0.5) {
-      // Move towards target
-      const moveProgress = progress * 2
-      if (this.targetPosition) {
-        const attackerCoords = gridMathService.gridToScreenCoordinates(this.attackerPosition)
-        const targetCoords = gridMathService.gridToScreenCoordinates(this.targetPosition)
+    // Create damage number
+    const damageElement = document.createElement('div')
+    damageElement.className = 'nexus-damage-number'
+    damageElement.textContent = `-${damage}`
+    damageElement.style.cssText = `
+      position: absolute;
+      color: #ff0000;
+      font-size: 32px;
+      font-weight: bold;
+      pointer-events: none;
+      animation: damage-float 1.5s ease-out forwards;
+      z-index: 1000;
+    `
 
-        const x = attackerCoords.x + (targetCoords.x - attackerCoords.x) * moveProgress * 0.3
-        const y = attackerCoords.y + (targetCoords.y - attackerCoords.y) * moveProgress * 0.3
+    nexusElement.appendChild(damageElement)
 
-        this.attackerElement.style.transform = `translate(${x - attackerCoords.x}px, ${y - attackerCoords.y}px) scale(${1 + moveProgress * 0.2})`
-      } else {
-        // Attack nexus - just scale up
-        this.attackerElement.style.transform = `scale(${1 + moveProgress * 0.3})`
-      }
-    } else {
-      // Return to original position
-      const returnProgress = (progress - 0.5) * 2
-      const scale = 1.2 - returnProgress * 0.2
+    await this.wait(1500)
 
-      if (this.targetPosition) {
-        const attackerCoords = gridMathService.gridToScreenCoordinates(this.attackerPosition)
-        const targetCoords = gridMathService.gridToScreenCoordinates(this.targetPosition)
-
-        const x =
-          (attackerCoords.x + (targetCoords.x - attackerCoords.x) * 0.3) * (1 - returnProgress)
-        const y =
-          (attackerCoords.y + (targetCoords.y - attackerCoords.y) * 0.3) * (1 - returnProgress)
-
-        this.attackerElement.style.transform = `translate(${x}px, ${y}px) scale(${scale})`
-      } else {
-        this.attackerElement.style.transform = `scale(${scale})`
-      }
-    }
-
-    this.options.onProgress?.(progress)
-
-    if (progress >= 1) {
-      this.attackerElement.style.transform = '' // Reset
-      this.complete()
-      return true
-    }
-
-    return false
-  }
-}
-
-class DamageNumberAnimation extends Animation {
-  constructor(
-    id: string,
-    private element: HTMLElement,
-    private startPosition: { x: number; y: number },
-    options: Required<AnimationOptions>,
-  ) {
-    super(id, options)
+    damageElement.remove()
+    nexusElement.classList.remove('nexus-damage')
   }
 
-  update(currentTime: number): boolean {
-    if (this.isComplete) return true
+  /**
+   * Animate unit taking damage
+   */
+  async animateUnitDamage(
+    position: BattlefieldPosition,
+    damage: number
+  ): Promise<void> {
+    const targetElement = document.querySelector(
+      `[data-slot="${position.player}-${position.slot}"]`,
+    ) as HTMLElement
 
-    const progress = this.getProgress(currentTime)
+    if (!targetElement) return
 
-    // Float upward and fade out
-    const y = this.startPosition.y - progress * 60
-    const opacity = 1 - progress
-    const scale = 1 + progress * 0.5
+    // Create damage number
+    const damageElement = document.createElement('div')
+    damageElement.className = 'damage-number'
+    damageElement.textContent = `-${damage}`
+    damageElement.style.cssText = `
+      position: absolute;
+      color: #ff4444;
+      font-size: 20px;
+      font-weight: bold;
+      pointer-events: none;
+      animation: damage-float 1s ease-out forwards;
+      z-index: 1000;
+      text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    `
 
-    this.element.style.transform = `translate(0, ${y - this.startPosition.y}px) scale(${scale})`
-    this.element.style.opacity = opacity.toString()
+    targetElement.appendChild(damageElement)
 
-    this.options.onProgress?.(progress)
+    // Shake animation
+    targetElement.classList.add('shake')
 
-    if (progress >= 1) {
-      this.complete()
-      return true
-    }
+    await this.wait(1000)
 
-    return false
-  }
-}
-
-class CellHighlightAnimation extends Animation {
-  constructor(
-    id: string,
-    private element: HTMLElement,
-    private highlightType: string,
-    options: Required<AnimationOptions>,
-  ) {
-    super(id, options)
-  }
-
-  update(currentTime: number): boolean {
-    if (this.isComplete) return true
-
-    const progress = this.getProgress(currentTime)
-
-    // Add highlight classes based on type
-    const intensity = Math.sin(progress * Math.PI) // Fade in and out
-
-    switch (this.highlightType) {
-      case 'valid':
-        this.element.style.boxShadow = `0 0 ${20 * intensity}px rgba(34, 197, 94, 0.8)`
-        this.element.style.borderColor = `rgba(34, 197, 94, ${intensity})`
-        break
-      case 'invalid':
-        this.element.style.boxShadow = `0 0 ${20 * intensity}px rgba(239, 68, 68, 0.8)`
-        this.element.style.borderColor = `rgba(239, 68, 68, ${intensity})`
-        break
-      case 'selected':
-        this.element.style.boxShadow = `0 0 ${20 * intensity}px rgba(59, 130, 246, 0.8)`
-        this.element.style.borderColor = `rgba(59, 130, 246, ${intensity})`
-        break
-      case 'hover':
-        this.element.style.boxShadow = `0 0 ${15 * intensity}px rgba(168, 85, 247, 0.6)`
-        this.element.style.borderColor = `rgba(168, 85, 247, ${intensity * 0.8})`
-        break
-    }
-
-    this.options.onProgress?.(progress)
-
-    if (progress >= 1) {
-      // Clean up styles
-      this.element.style.boxShadow = ''
-      this.element.style.borderColor = ''
-      this.complete()
-      return true
-    }
-
-    return false
-  }
-}
-
-class CellEffectAnimation extends Animation {
-  constructor(
-    id: string,
-    private element: HTMLElement,
-    private effectType: 'shake' | 'glow' | 'pulse',
-    options: Required<AnimationOptions>,
-  ) {
-    super(id, options)
+    damageElement.remove()
+    targetElement.classList.remove('shake')
   }
 
-  update(currentTime: number): boolean {
-    if (this.isComplete) return true
+  /**
+   * Highlight a battlefield slot
+   */
+  highlightSlot(position: BattlefieldPosition, type: 'valid' | 'invalid' | 'hover' = 'valid'): void {
+    const slotElement = document.querySelector(
+      `[data-slot="${position.player}-${position.slot}"]`,
+    ) as HTMLElement
 
-    const progress = this.getProgress(currentTime)
+    if (!slotElement) return
 
-    switch (this.effectType) {
-      case 'shake': {
-        const shakeX = Math.sin(progress * Math.PI * 8) * 3 * (1 - progress)
-        const shakeY = Math.cos(progress * Math.PI * 6) * 2 * (1 - progress)
-        this.element.style.transform = `translate(${shakeX}px, ${shakeY}px)`
-        break
-      }
-
-      case 'glow': {
-        const glowIntensity = Math.sin(progress * Math.PI * 2) * 0.5 + 0.5
-        this.element.style.boxShadow = `0 0 ${30 * glowIntensity}px rgba(255, 215, 0, 0.8)`
-        break
-      }
-
-      case 'pulse': {
-        const pulseScale = 1 + Math.sin(progress * Math.PI * 4) * 0.1
-        this.element.style.transform = `scale(${pulseScale})`
-        break
-      }
-    }
-
-    this.options.onProgress?.(progress)
-
-    if (progress >= 1) {
-      // Reset styles
-      this.element.style.transform = ''
-      this.element.style.boxShadow = ''
-      this.complete()
-      return true
-    }
-
-    return false
-  }
-}
-
-// Lazy singleton instance - only created on client side
-let animationServiceInstance: AnimationService | null = null
-
-export const animationService = {
-  getInstance(): AnimationService {
-    if (typeof window === 'undefined') {
-      // Return a no-op service for SSR
-      return {
-        setPerformanceMode: () => {},
-        animateCardMove: () => Promise.resolve(),
-        animateCardPlay: () => Promise.resolve(),
-        animateCombatAttack: () => Promise.resolve(),
-        animateDamage: () => Promise.resolve(),
-        animateCellHighlight: () => Promise.resolve(),
-        animateMultipleCells: () => Promise.resolve([]),
-        animateCardDraw: () => Promise.resolve(),
-        stopAllAnimations: () => {},
-        stopAnimation: () => {},
-        hasActiveAnimations: () => false,
-        getActiveAnimationCount: () => 0,
-      } as unknown as AnimationService
-    }
-
-    if (!animationServiceInstance) {
-      animationServiceInstance = new AnimationService()
-    }
-    return animationServiceInstance
-  },
-
-  // Proxy methods for convenience
-  setPerformanceMode(mode: 'high' | 'medium' | 'low') {
-    return this.getInstance().setPerformanceMode(mode)
-  },
-
-  animateCardMove(
-    cardElement: HTMLElement,
-    from: CellPosition | { x: number; y: number },
-    to: CellPosition | { x: number; y: number },
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateCardMove(cardElement, from, to, options)
-  },
-
-  animateCardPlay(
-    cardElement: HTMLElement,
-    handPosition: { x: number; y: number },
-    gridPosition: CellPosition,
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateCardPlay(cardElement, handPosition, gridPosition, options)
-  },
-
-  animateCombatAttack(
-    attackerElement: HTMLElement,
-    attackerPosition: CellPosition,
-    targetPosition?: CellPosition,
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateCombatAttack(
-      attackerElement,
-      attackerPosition,
-      targetPosition,
-      options,
+    // Remove existing highlights
+    slotElement.classList.remove(
+      'slot-highlight-valid',
+      'slot-highlight-invalid',
+      'slot-highlight-hover',
     )
-  },
 
-  animateDamage(
-    position: CellPosition,
-    damage: number,
-    type: 'damage' | 'heal' = 'damage',
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateDamage(position, damage, type, options)
-  },
+    // Add new highlight
+    slotElement.classList.add(`slot-highlight-${type}`)
+  }
 
-  animateCellHighlight(
-    cellElement: HTMLElement,
-    type?: 'valid' | 'invalid' | 'hover' | 'selected',
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateCellHighlight(cellElement, type, options)
-  },
+  /**
+   * Clear all slot highlights
+   */
+  clearSlotHighlights(): void {
+    document.querySelectorAll('[data-slot]').forEach(element => {
+      element.classList.remove(
+        'slot-highlight-valid',
+        'slot-highlight-invalid',
+        'slot-highlight-hover',
+      )
+    })
+  }
 
-  animateMultipleCells(
-    positions: CellPosition[],
-    type: 'shake' | 'glow' | 'pulse',
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateMultipleCells(positions, type, options)
-  },
+  /**
+   * Animate card draw
+   */
+  async animateCardDraw(card: GameCard): Promise<void> {
+    const duration = this.getPerformanceDuration(400)
 
-  animateCardDraw(
-    cardElement: HTMLElement,
-    deckPosition: { x: number; y: number },
-    handPosition: { x: number; y: number },
-    options?: AnimationOptions,
-  ) {
-    return this.getInstance().animateCardDraw(cardElement, deckPosition, handPosition, options)
-  },
+    const deckElement = document.querySelector('[data-deck]') as HTMLElement
+    const handElement = document.querySelector('[data-hand-area]') as HTMLElement
 
-  stopAllAnimations() {
-    return this.getInstance().stopAllAnimations()
-  },
+    if (!deckElement || !handElement) return
 
-  stopAnimation(animationId: string) {
-    return this.getInstance().stopAnimation(animationId)
-  },
+    // Create temporary card element
+    const tempCard = document.createElement('div')
+    tempCard.className = 'temp-card-draw'
+    tempCard.style.cssText = `
+      position: fixed;
+      width: 80px;
+      height: 120px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border-radius: 8px;
+      z-index: 1000;
+      transition: transform ${duration}ms ease-out;
+    `
 
-  hasActiveAnimations() {
-    return this.getInstance().hasActiveAnimations()
-  },
+    const deckRect = deckElement.getBoundingClientRect()
+    const handRect = handElement.getBoundingClientRect()
 
-  getActiveAnimationCount() {
-    return this.getInstance().getActiveAnimationCount()
-  },
+    tempCard.style.left = `${deckRect.left}px`
+    tempCard.style.top = `${deckRect.top}px`
+
+    document.body.appendChild(tempCard)
+
+    // Animate to hand
+    requestAnimationFrame(() => {
+      tempCard.style.transform = `translate(${handRect.left - deckRect.left}px, ${handRect.top - deckRect.top}px)`
+    })
+
+    await this.wait(duration)
+    tempCard.remove()
+  }
+
+  /**
+   * Animate card play from hand
+   */
+  async animateCardPlay(card: GameCard, to: BattlefieldPosition): Promise<void> {
+    await this.animateCardMove(card, 'hand', to)
+  }
+
+  /**
+   * Animate card death
+   */
+  async animateCardDeath(card: GameCard, position: BattlefieldPosition): Promise<void> {
+    const cardElement = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement
+    if (!cardElement) return
+
+    const duration = this.getPerformanceDuration(500)
+
+    // Mystical death animation with tarot theming
+    cardElement.style.transition = `opacity ${duration}ms, transform ${duration}ms, filter ${duration}ms`
+    cardElement.style.opacity = '0'
+    cardElement.style.transform = 'scale(0.5) rotate(180deg)' // Reversed card effect
+    cardElement.style.filter = 'sepia(1) hue-rotate(270deg)' // Purple mystical effect
+
+    await this.wait(duration)
+
+    // Move to graveyard
+    await this.animateCardMove(card, position, 'graveyard')
+  }
+
+  /**
+   * Animate card being reversed (tarot mechanic)
+   */
+  async animateCardReverse(card: GameCard): Promise<void> {
+    const cardElement = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement
+    if (!cardElement) return
+
+    const duration = this.getPerformanceDuration(600)
+
+    // Mystical flip animation
+    cardElement.style.transition = `transform ${duration}ms ease-in-out`
+    cardElement.style.transform = 'rotateY(180deg) scale(1.1)'
+
+    // Add mystical glow effect
+    cardElement.style.filter = 'drop-shadow(0 0 10px #8b5cf6)'
+
+    await this.wait(duration)
+
+    // Return to normal but keep the reversed state
+    cardElement.style.transform = ''
+    cardElement.style.filter = ''
+  }
+
+  /**
+   * Animate cosmic resonance buildup (zodiac synergy)
+   */
+  async animateCosmicResonance(cards: GameCard[]): Promise<void> {
+    const duration = this.getPerformanceDuration(800)
+
+    for (const card of cards) {
+      const cardElement = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement
+      if (cardElement) {
+        // Pulsing zodiac energy
+        cardElement.style.animation = `cosmic-pulse ${duration}ms ease-in-out`
+        cardElement.style.filter = 'drop-shadow(0 0 15px gold)'
+      }
+    }
+
+    await this.wait(duration)
+
+    // Clear effects
+    for (const card of cards) {
+      const cardElement = document.querySelector(`[data-card-id="${card.id}"]`) as HTMLElement
+      if (cardElement) {
+        cardElement.style.animation = ''
+        cardElement.style.filter = ''
+      }
+    }
+  }
+
+  /**
+   * Wait for a specified duration
+   */
+  private wait(ms: number): Promise<void> {
+    return new Promise(resolve => setTimeout(resolve, ms))
+  }
+
+  /**
+   * Start the animation loop
+   */
+  private startAnimationLoop(): void {
+    // Only run animations in browser environment
+    if (typeof window === 'undefined' || typeof requestAnimationFrame === 'undefined') {
+      return
+    }
+
+    if (this.isRunning) return
+    this.isRunning = true
+
+    const loop = () => {
+      if (this.performanceMode === 'low') {
+        // Skip complex animations in low performance mode
+        this.activeAnimations.clear()
+      }
+
+      if (this.isRunning) {
+        requestAnimationFrame(loop)
+      }
+    }
+
+    requestAnimationFrame(loop)
+  }
+
+  /**
+   * Stop the animation loop
+   */
+  stopAnimationLoop(): void {
+    this.isRunning = false
+  }
 }
+
+// Export singleton instance
+export const animationService = new AnimationService()
