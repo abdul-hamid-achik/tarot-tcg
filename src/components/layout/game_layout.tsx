@@ -10,7 +10,7 @@ interface GameLayoutProps {
 export default function GameLayout({ children, className = '' }: GameLayoutProps) {
   return (
     <div
-      className={`h-full bg-white dark:bg-gray-900 p-2 overflow-hidden relative transition-colors ${className}`}
+      className={`h-screen w-screen bg-white overflow-hidden relative ${className}`}
     >
       {children}
     </div>

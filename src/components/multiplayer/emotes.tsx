@@ -204,7 +204,7 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
                     />
 
                     {/* Emote Panel */}
-                    <div className="absolute bottom-14 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border border-purple-600/50 rounded-xl p-4 min-w-[320px] shadow-2xl">
+                    <div className="absolute bottom-14 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border border-purple-600/50 rounded-xl p-4 w-80 max-w-[90vw] shadow-2xl">
                         <div className="flex flex-col gap-3">
                             {/* Header */}
                             <div className="flex items-center justify-between">

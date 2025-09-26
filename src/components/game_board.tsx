@@ -142,30 +142,9 @@ export default function GameBoard({
 
   return (
     <GameLayout>
-      {/* Background Effects */}
-      <BackgroundEffects />
-
       {/* Attack Arrow for Direct Combat */}
       <AttackArrow />
 
-      {/* Connection Status (top-right) */}
-      <div className="fixed top-4 right-4 z-30">
-        <ConnectionStatus showDetails={true} />
-      </div>
-
-      {/* Emote Wheel (bottom-right) */}
-      <div className="fixed bottom-24 right-4 z-30">
-        <EmoteWheel onEmote={sendEmote} />
-      </div>
-
-      {/* Current Emote Display */}
-      {currentEmote && (
-        <EmoteDisplay
-          emote={currentEmote.emote}
-          playerName={currentEmote.playerName}
-          isOwn={currentEmote.isOwn}
-        />
-      )}
 
       {/* Player Info Panels */}
       {(() => {
@@ -188,27 +167,11 @@ export default function GameBoard({
         ) : null
       })()}
 
-      {/* Main Game Area */}
-      <div className="flex flex-col justify-between h-full pt-16 pb-20 px-4 sm:px-12 md:px-24 lg:px-48 xl:px-64 2xl:px-80 relative">
-        {/* Battlefield */}
-        <div className="flex-1 flex flex-col justify-center">
-          <Battlefield />
-        </div>
+      {/* Main Game Area - Full Screen No Overflow */}
+      <div className="h-screen w-screen flex items-center justify-center relative">
+        <Battlefield />
       </div>
 
-      {/* Action Bar */}
-      {gameState?.phase !== 'mulligan' && (
-        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 pointer-events-none z-[100]">
-          <div className="pointer-events-auto">
-            <ActionBar
-              onAttack={handleAttack}
-              onPass={handlePass}
-              onEndTurn={handlePass}
-              className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-sm border border-gray-300 dark:border-gray-600 rounded-lg shadow-xl p-3 min-w-[280px]"
-            />
-          </div>
-        </div>
-      )}
 
       {/* Hand Components */}
       <HandFan

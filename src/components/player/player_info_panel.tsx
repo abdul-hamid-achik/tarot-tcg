@@ -30,10 +30,10 @@ export default function PlayerInfoPanel({
   const isInAttackMode = interaction.targetingMode === 'attack'
   const hasValidTargets = interaction.validAttackTargets.size > 0
 
-  // Position-specific styles
+  // Position-specific styles - Hearthstone-style compact with proper visibility
   const positionStyles = {
-    'top-left': 'absolute top-4 left-4',
-    'bottom-right': 'absolute bottom-4 right-4',
+    'top-left': 'fixed top-2 left-2 z-50',
+    'bottom-right': 'fixed bottom-16 right-2 z-50', // Moved up to avoid hand overlap
   }
 
   // Player-specific styling
@@ -99,98 +99,87 @@ export default function PlayerInfoPanel({
   }
 
   return (
-    <div className={`${positionStyles[position]} z-[60] w-64 ${className}`}>
-      <div className="space-y-3 p-3 bg-white dark:bg-gray-800 rounded-lg border-2 border-gray-400 shadow-2xl">
-        {/* Player Header */}
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <div
-              className={`w-10 h-10 rounded-full ${playerStyles.avatar} flex items-center justify-center`}
-            >
-              {isCurrentPlayer ? (
-                <Sun className={`w-5 h-5 ${playerStyles.avatarIcon}`} />
-              ) : (
-                <Moon className={`w-5 h-5 ${playerStyles.avatarIcon}`} />
-              )}
-            </div>
+    <div className={`${positionStyles[position]} z-[60] w-36 ${className}`}>
+      <div className={`
+        relative p-2 rounded-lg shadow-md backdrop-blur-sm transition-all duration-300
+        ${isCurrentPlayer 
+          ? 'bg-gray-800 border border-gray-600' 
+          : 'bg-gray-700 border border-gray-500'
+        }
+        ${isActive ? 'ring-1 ring-black' : ''}
+      `}>
 
-            {/* Attack Token Indicator */}
+        {/* Active Turn Glow Effect */}
+        {isActive && (
+          <div className="absolute inset-0 rounded-lg bg-gray-300/20 animate-pulse" />
+        )}
+
+        {/* Compact Player Header */}
+        <div className="flex items-center gap-1 mb-2 relative z-10">
+          <div className={`relative w-6 h-6 rounded-full ${isCurrentPlayer ? 'bg-black' : 'bg-gray-600'
+            } flex items-center justify-center`}>
+            {isCurrentPlayer ? (
+              <Sun className="w-3 h-3 text-white" />
+            ) : (
+              <Moon className="w-3 h-3 text-white" />
+            )}
+
+            {/* Attack Token Overlay */}
             {player?.hasAttackToken && (
-              <div className="absolute -top-1 -right-1 bg-orange-500 rounded-full p-1 animate-pulse">
-                <Sword className="w-2 h-2 text-white" />
+              <div className="absolute -top-0.5 -right-0.5 bg-black rounded-full p-0.5">
+                <Sword className="w-1.5 h-1.5 text-white" />
               </div>
             )}
           </div>
 
           <div className="flex-1">
-            <h3 className="font-bold text-sm text-gray-900 dark:text-white">{player.name}</h3>
-            {player?.hasAttackToken && (
-              <span className="text-xs bg-orange-500/20 text-orange-300 px-2 py-1 rounded">
-                ⚔️ Attack Token
-              </span>
+            <h3 className={`font-bold text-xs ${isCurrentPlayer ? 'text-white' : 'text-white'
+              }`}>
+              {player.name}
+            </h3>
+            {isActive && (
+              <div className="text-xs text-gray-300 font-medium">Active</div>
             )}
           </div>
         </div>
 
-        {/* Player Stats */}
-        <div className="space-y-2 text-xs">
-          {/* Health */}
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-300">Health:</span>
+        {/* Ultra Compact Stats */}
+        <div className="space-y-1 text-xs relative z-10">
+          {/* Health & Mana */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <Heart className={`w-3 h-3 ${playerStyles.healthIcon}`} />
-              <span className={`${playerStyles.health} font-semibold`}>{player.health}</span>
+              <Heart className="w-3 h-3 text-black" />
+              <span className="font-bold text-white">{player.health}</span>
+            </div>
+            <div className="flex items-center gap-1">
+              <Zap className="w-3 h-3 text-gray-600" />
+              <span className="font-bold text-white">{player.mana}/{player.maxMana}</span>
+              {player.spellMana > 0 && (
+                <span className="text-gray-300">+{player.spellMana}</span>
+              )}
             </div>
           </div>
 
-          {/* Mana */}
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-300">Mana:</span>
-            {renderManaDisplay()}
-          </div>
-
-          {/* Hand Size */}
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-300">Hand:</span>
-            <span className="text-gray-900 dark:text-white font-semibold">
-              {player.hand.length} cards
-            </span>
-          </div>
-
-          {/* Bench Size */}
-          <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-300">Battlefield:</span>
-            <span className="text-gray-900 dark:text-white font-semibold">
-              {gameState ? (player.id === 'player1'
-                ? gameState.battlefield.playerUnits.filter(u => u !== null).length
-                : gameState.battlefield.enemyUnits.filter(u => u !== null).length
-              ) : 0}/7 units
-            </span>
-          </div>
-        </div>
-
-        {/* Status Indicators */}
-        <div className="text-xs text-slate-400">
-          {isActive && (
+          {/* Hand & Units */}
+          <div className="flex items-center justify-between">
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-              <span>Active Turn</span>
+              <div className="w-3 h-3 rounded bg-gray-600 flex items-center justify-center">
+                <span className="text-white text-xs font-bold">{player.hand.length}</span>
+              </div>
+              <span className="text-gray-300">Hand</span>
             </div>
-          )}
-
-          {!isActive && isActionPhase(gameState) && (
             <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-slate-400 rounded-full" />
-              <span>Waiting</span>
+              <div className="w-3 h-3 rounded bg-black flex items-center justify-center">
+                <span className="text-white text-xs font-bold">
+                  {gameState ? (player.id === 'player1'
+                    ? gameState.battlefield.playerUnits.filter(u => u !== null).length
+                    : gameState.battlefield.enemyUnits.filter(u => u !== null).length
+                  ) : 0}
+                </span>
+              </div>
+              <span className="text-gray-300">Units</span>
             </div>
-          )}
-
-          {isCombatPhase(gameState) && (
-            <div className="flex items-center gap-1">
-              <div className="w-2 h-2 bg-red-400 rounded-full animate-pulse" />
-              <span>Combat</span>
-            </div>
-          )}
+          </div>
         </div>
       </div>
     </div>

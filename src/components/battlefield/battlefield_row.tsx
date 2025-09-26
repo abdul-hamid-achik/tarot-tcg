@@ -65,7 +65,10 @@ export function BattlefieldRow({
 
   return (
     <div
-      className="flex justify-center gap-3 min-h-[140px] p-3 rounded-xl bg-gradient-to-r from-purple-900/10 via-indigo-900/5 to-blue-900/10 border border-purple-500/20 backdrop-blur-sm"
+      className={`flex justify-center gap-2 min-h-[100px] p-2 rounded-lg transition-all duration-300 ${player === 'player1'
+        ? 'bg-gray-100 hover:bg-gray-200'
+        : 'bg-gray-200 hover:bg-gray-300'
+        }`}
       role="list"
       aria-label={player === 'player1' ? 'Player battlefield row' : 'Opponent battlefield row'}
       onDragOver={handleRowDragOver}
@@ -77,11 +80,11 @@ export function BattlefieldRow({
         const isHighlighted = highlightedSlots.has(slotKey)
         const isValidDropZone = validDropZones.has(slotKey)
         const isHovered = interaction.hoveredSlot?.player === player &&
-                          interaction.hoveredSlot?.slot === index
+          interaction.hoveredSlot?.slot === index
 
         return (
           <BattlefieldSlot
-            key={unit ? unit.id : `${player}-empty-${index}`}
+            key={`${player}-slot-${index}`}
             position={position}
             card={unit}
             isHighlighted={isHighlighted}

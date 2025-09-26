@@ -21,6 +21,7 @@ export default function Tutorial() {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [message, setMessage] = useState('🎴 Welcome to the Tarot TCG!')
   const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>('ongoing')
+  const [showTutorialTips, setShowTutorialTips] = useState(false)
 
   const { executeAI } = useAIController({
     enabled: true,
@@ -134,23 +135,31 @@ export default function Tutorial() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-950 via-indigo-950 to-purple-950">
-      {/* Tutorial Header */}
-      <div className="fixed top-4 left-4 right-4 z-50 flex justify-between items-center">
-        <div className="bg-gray-900/90 backdrop-blur-sm border border-purple-600/50 rounded-lg px-4 py-2">
-          <h1 className="text-lg font-bold text-purple-400">🎴 Tarot TCG Tutorial</h1>
-          <p className="text-sm text-gray-300">{message}</p>
-        </div>
-
+    <div className="h-screen w-screen bg-white overflow-hidden relative">
+      {/* Floating Settings Cog */}
+      <div className="fixed top-4 right-4 z-50">
         <Button
           onClick={resetGame}
-          className="bg-purple-600 hover:bg-purple-700 text-white"
+          className="bg-black hover:bg-gray-800 text-white rounded-full w-12 h-12 p-0 shadow-lg"
+          title="Game Settings & Reset"
         >
-          🔄 Reset Game
+          ⚙️
         </Button>
       </div>
 
-      {/* Game Board */}
+      {/* Floating End Turn Button */}
+      {gameState?.activePlayer === 'player1' && gameState?.phase === 'action' && (
+        <div className="fixed bottom-4 right-4 z-50">
+          <Button
+            onClick={handleEndTurn}
+            className="bg-black hover:bg-gray-800 text-white px-6 py-3 text-lg font-bold rounded-lg shadow-lg"
+          >
+            End Turn
+          </Button>
+        </div>
+      )}
+
+      {/* Game Board - Full Screen */}
       {gameState && (
         <TarotGameBoard
           gameState={gameState}
@@ -179,19 +188,6 @@ export default function Tutorial() {
         </div>
       )}
 
-      {/* Tutorial Tips */}
-      <div className="fixed bottom-4 left-4 max-w-sm">
-        <div className="bg-indigo-900/90 backdrop-blur-sm border border-indigo-600/50 rounded-lg p-4">
-          <h3 className="text-sm font-bold text-indigo-400 mb-2">💡 Tutorial Tips</h3>
-          <ul className="text-xs text-indigo-200 space-y-1">
-            <li>• Click cards in hand to play them</li>
-            <li>• Click your units to attack with them</li>
-            <li>• Click enemy units or player to target</li>
-            <li>• Watch for reversed cards (🔄) - they have different effects!</li>
-            <li>• Pay attention to zodiac buffs (seasonal bonuses)</li>
-          </ul>
-        </div>
-      </div>
     </div>
   )
 }

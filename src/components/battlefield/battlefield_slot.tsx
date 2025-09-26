@@ -104,17 +104,24 @@ export function BattlefieldSlot({
   return (
     <div
       className={cn(
-        'relative w-24 h-32 rounded-xl border-2 transition-all duration-300 cursor-pointer shadow-md',
-        'flex items-center justify-center backdrop-blur-sm',
-        isEmpty && 'border-dashed border-gray-400/40 hover:border-purple-400/60 bg-gray-900/10',
-        !isEmpty && 'border-solid border-gray-600/40 bg-gray-800/20',
-        isHighlighted && 'ring-2 ring-yellow-400 ring-offset-2 shadow-yellow-400/30',
-        isValidDropZone && 'border-green-500 bg-green-500/15 scale-105 shadow-green-500/30',
-        isHovered && 'scale-110 shadow-xl shadow-purple-500/40',
-        card && isValidTarget(card.id) && 'border-red-500 bg-red-500/15 scale-105 shadow-red-500/30 animate-pulse',
-        card && isAttacking(card.id) && 'border-orange-500 bg-orange-500/15 scale-110 shadow-orange-500/50',
-        position.player === 'player2' && 'border-red-800/40 hover:border-red-600/60',
-        position.player === 'player1' && 'border-blue-800/40 hover:border-blue-600/60'
+        'relative w-20 h-28 rounded-lg border-2 transition-all duration-200 cursor-pointer',
+        'flex items-center justify-center group',
+        // Base styling by player
+        position.player === 'player1' ? (
+          isEmpty 
+            ? 'border-dashed border-gray-400 hover:border-gray-600 bg-white'
+            : 'border-solid border-gray-600 bg-gray-100'
+        ) : (
+          isEmpty
+            ? 'border-dashed border-gray-500 hover:border-gray-700 bg-gray-50'
+            : 'border-solid border-gray-700 bg-gray-200'
+        ),
+        // Special states
+        isHighlighted && 'ring-2 ring-black shadow-black/30',
+        isValidDropZone && 'border-black bg-gray-300 scale-105 ring-1 ring-black/40',
+        isHovered && 'scale-105 shadow-lg',
+        card && isValidTarget(card.id) && 'border-black bg-gray-300 scale-105 animate-pulse',
+        card && isAttacking(card.id) && 'border-black bg-gray-400 scale-105'
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -122,10 +129,6 @@ export function BattlefieldSlot({
       onClick={handleSlotClick}
       data-slot={`${position.player}-${position.slot}`}
     >
-      {/* Slot Number (for debugging) */}
-      <div className="absolute top-1 left-1 text-xs text-muted-foreground/50">
-        {position.slot}
-      </div>
 
       {/* Card or Empty State */}
       {card ? (

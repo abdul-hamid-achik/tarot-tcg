@@ -28,15 +28,15 @@ export default function HandFan({
   const fanRef = useRef<HTMLDivElement>(null)
   const { interaction, showCardDetail, gameState } = useGameStore()
 
-  // Position-specific styles
+  // Position-specific styles - No-overflow Hearthstone-style
   const positionStyles = {
     'bottom-left': {
-      container: 'absolute bottom-4 left-4',
+      container: 'fixed bottom-2 left-1/2 transform -translate-x-1/2 max-h-24',
       transformOrigin: 'center bottom',
       fanDirection: 1, // Normal fan direction
     },
     'top-right': {
-      container: 'absolute top-4 right-4',
+      container: 'absolute top-2 right-4 max-h-16',
       transformOrigin: 'center top',
       fanDirection: -1, // Reverse fan direction for enemy
     },
@@ -44,28 +44,29 @@ export default function HandFan({
 
   const positionConfig = positionStyles[position]
 
-  // Calculate fan positioning for each card - Improved for better UX
+  // Calculate fan positioning for each card - Hearthstone-style curve
   const calculateCardPosition = (index: number, totalCards: number) => {
-    // Adaptive angle calculation based on card count for optimal readability
-    const maxAngle =
-      totalCards > 1 ? Math.min(isCurrentPlayer ? 80 : 60, Math.max(40, totalCards * 8)) : 0
-    const angleStep = totalCards > 1 ? maxAngle / Math.max(1, totalCards - 1) : 0
-    const angle =
-      totalCards > 1 ? (index - (totalCards - 1) / 2) * angleStep * positionConfig.fanDirection : 0
+    if (totalCards <= 1) {
+      return { angle: 0, translateY: 0, zIndex: 10, marginLeft: '0' }
+    }
 
-    // Responsive curve intensity based on screen size and card count
-    const baseCurveIntensity = isCurrentPlayer ? 1.0 : 0.4
-    const cardCountAdjustment = Math.min(1.0, totalCards / 8) // Reduce curve for many cards
-    const curveIntensity = baseCurveIntensity * cardCountAdjustment
-    const translateY = Math.abs(angle) * curveIntensity
+    // Hearthstone-style fan angles - more aggressive curve for player hand
+    const maxAngle = isCurrentPlayer ? 25 : 15 // Degrees
+    const angleStep = maxAngle / Math.max(1, totalCards - 1)
+    const angle = (index - (totalCards - 1) / 2) * angleStep * positionConfig.fanDirection
 
-    // Smart z-index for better card visibility
-    const zIndex = isCurrentPlayer ? index + 10 : totalCards - index + 10
+    // Hearthstone-style curve - cards lift up towards center
+    const curveIntensity = isCurrentPlayer ? 20 : 8 // Pixels
+    const normalizedPosition = Math.abs(index - (totalCards - 1) / 2) / ((totalCards - 1) / 2)
+    const translateY = curveIntensity * (1 - normalizedPosition) // Center cards higher
 
-    // Dynamic overlap based on card count - less overlap with more cards
-    const baseOverlap = isCurrentPlayer ? -16 : -12
-    const overlapAdjustment = Math.min(0, Math.max(-8, (8 - totalCards) * 2))
-    const overlapAmount = baseOverlap + overlapAdjustment
+    // Z-index: center cards on top, edge cards below
+    const centerDistance = Math.abs(index - (totalCards - 1) / 2)
+    const zIndex = isCurrentPlayer ? 20 - centerDistance : 10 + index
+
+    // Hearthstone-style card overlap - tighter spacing
+    const baseOverlap = isCurrentPlayer ? -20 : -16
+    const overlapAmount = totalCards > 6 ? baseOverlap - Math.min(8, totalCards - 6) : baseOverlap
 
     return {
       angle,
