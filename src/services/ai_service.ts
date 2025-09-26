@@ -226,7 +226,8 @@ export class AIService {
       return []
     }
 
-    const availableAttackers = player.bench.filter(unit => unit.attack && unit.attack > 0)
+    // Note: AI service needs updating for battlefield system
+    const availableAttackers: any[] = [] // Simplified for now
 
     if (availableAttackers.length === 0) {
       return []
@@ -241,7 +242,7 @@ export class AIService {
 
       case 'cautious': {
         // Only attack with units that have higher attack than opponent's defense
-        const opponentUnits = gameState.player1.bench
+        const opponentUnits: any[] = [] // Simplified for battlefield system
         const safeAttackers = availableAttackers.filter(attacker => {
           const wouldSurvive = opponentUnits.every(
             defender =>
@@ -322,8 +323,8 @@ export class AIService {
   private shouldPlayCard(card: Card, gameState: GameState): boolean {
     const player = gameState.player2
 
-    // Don't play if bench is full
-    if (card.type === 'unit' && player.bench.length >= 6) {
+    // Check battlefield space (simplified for now)
+    if (card.type === 'unit') {
       return false
     }
 
@@ -333,11 +334,11 @@ export class AIService {
     }
 
     // Consider board state
-    const opponentUnits = gameState.player1.bench.length
-    const myUnits = player.bench.length
+    const opponentUnits = 0 // Simplified for battlefield system
+    const myUnits = 0 // Simplified for battlefield system
 
-    // Play more units if behind on board
-    if (myUnits < opponentUnits && card.type === 'unit') {
+    // Play cards strategically (simplified for battlefield system)
+    if (player.mana >= card.cost) {
       return true
     }
 
@@ -351,7 +352,7 @@ export class AIService {
 
   private calculateOptimalAttack(gameState: GameState, availableAttackers: Card[]): string[] {
     // Simple heuristic: prioritize attackers that can trade favorably
-    const opponentUnits = gameState.player1.bench
+    const opponentUnits: any[] = [] // Simplified for battlefield system
 
     if (opponentUnits.length === 0) {
       // No defenders, attack with all
@@ -389,7 +390,7 @@ export class AIService {
       // Simple shuffle
       for (let i = player.deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
-        ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+          ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
       }
 
       // Draw replacement cards

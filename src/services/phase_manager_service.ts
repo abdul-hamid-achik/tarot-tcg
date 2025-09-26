@@ -5,8 +5,6 @@ export type Phase =
   | 'mulligan'
   | 'round_start'
   | 'action'
-  | 'attack_declaration'
-  | 'defense_declaration'
   | 'combat_resolution'
   | 'end_round'
 
@@ -18,7 +16,8 @@ export interface PhaseTransition {
 }
 
 /**
- * Manages game phases and transitions following LoR-style flow
+ * Manages game phases and transitions for direct attack system
+ * No separate attack/defense declarations - combat resolves immediately
  */
 export class PhaseManagerService {
   private transitions: Map<string, PhaseTransition> = new Map()
@@ -28,7 +27,7 @@ export class PhaseManagerService {
   }
 
   /**
-   * Register all valid phase transitions
+   * Register all valid phase transitions for direct attack system
    */
   private registerTransitions(): void {
     // Mulligan → Round Start
@@ -41,10 +40,8 @@ export class PhaseManagerService {
       execute: state => {
         const newState = { ...state }
         newState.phase = 'round_start'
-        newState.priorityPlayer = 'player1' // Player 1 gets first priority
-        newState.passCount = 0
-
-        // State will be synced by StateManager
+        newState.priorityPlayer = 'player1'
+        newState.canRespond = false
 
         GameLogger.state('Phase transition: Mulligan → Round Start')
         return newState
@@ -59,80 +56,32 @@ export class PhaseManagerService {
       execute: state => {
         const newState = { ...state }
         newState.phase = 'action'
-        newState.passCount = 0
-
-        // Draw cards for both players at round start
-        if (newState.round > 1) {
-          // Draw logic handled elsewhere
-        }
+        newState.priorityPlayer = state.activePlayer
+        newState.canRespond = false
+        newState.waitingForAction = true
 
         GameLogger.state('Phase transition: Round Start → Action')
         return newState
       },
     })
 
-    // Action → Attack Declaration (when attack declared)
+    // Action → Combat Resolution (when attacks are declared)
     this.addTransition({
       from: 'action',
-      to: 'attack_declaration',
-      validate: state => {
-        const player = state[state.activePlayer]
-        return player.hasAttackToken && player.bench.length > 0
-      },
-      execute: state => {
-        const newState = { ...state }
-        newState.phase = 'attack_declaration'
-        newState.attackingPlayer = state.activePlayer
-        newState.priorityPlayer = state.activePlayer
-        newState.canRespond = false
-
-        GameLogger.state('Phase transition: Action → Attack Declaration')
-        return newState
-      },
-    })
-
-    // Attack Declaration → Defense Declaration
-    this.addTransition({
-      from: 'attack_declaration',
-      to: 'defense_declaration',
-      validate: state => {
-        // Must have at least one attacker declared
-        // Check if any units are ready to attack (in battlefield system)
-        const activePlayerUnits = state.activePlayer === 'player1'
-          ? state.battlefield.playerUnits
-          : state.battlefield.enemyUnits
-        return activePlayerUnits.some(unit => unit !== null && !unit.hasAttackedThisTurn)
-      },
-      execute: state => {
-        const newState = { ...state }
-        newState.phase = 'defense_declaration'
-        const defender = state.activePlayer === 'player1' ? 'player2' : 'player1'
-        newState.priorityPlayer = defender
-        newState.canRespond = true
-
-        GameLogger.state('Phase transition: Attack Declaration → Defense Declaration')
-        return newState
-      },
-    })
-
-    // Defense Declaration → Combat Resolution
-    this.addTransition({
-      from: 'defense_declaration',
       to: 'combat_resolution',
-      validate: () => true,
+      validate: () => true, // Attacks are resolved immediately
       execute: state => {
         const newState = { ...state }
         newState.phase = 'combat_resolution'
+        newState.priorityPlayer = state.activePlayer
         newState.canRespond = false
 
-        // Combat state ready
-
-        GameLogger.state('Phase transition: Defense Declaration → Combat Resolution')
+        GameLogger.state('Phase transition: Action → Combat Resolution')
         return newState
       },
     })
 
-    // Combat Resolution → Action
+    // Combat Resolution → Action (back to action for more plays)
     this.addTransition({
       from: 'combat_resolution',
       to: 'action',
@@ -141,41 +90,32 @@ export class PhaseManagerService {
         const newState = { ...state }
         newState.phase = 'action'
         newState.combatResolved = true
-        newState.attackingPlayer = null
-        newState.passCount = 0
-
-        // Reset unit attack flags after combat
-        newState.battlefield.playerUnits = newState.battlefield.playerUnits.map(unit =>
-          unit ? { ...unit, hasAttackedThisTurn: false } : null
-        )
-        newState.battlefield.enemyUnits = newState.battlefield.enemyUnits.map(unit =>
-          unit ? { ...unit, hasAttackedThisTurn: false } : null
-        )
-
-        // Combat state cleared
+        newState.priorityPlayer = state.activePlayer
 
         GameLogger.state('Phase transition: Combat Resolution → Action')
         return newState
       },
     })
 
-    // Action → End Round (when both players pass)
+    // Action → End Round (when player passes or time expires)
     this.addTransition({
       from: 'action',
       to: 'end_round',
       validate: state => {
-        return state.passCount >= 2 // Both players passed
+        const player = state[state.activePlayer]
+        return player.hasPassed || state.passCount >= 2
       },
       execute: state => {
         const newState = { ...state }
         newState.phase = 'end_round'
+        newState.waitingForAction = false
 
         GameLogger.state('Phase transition: Action → End Round')
         return newState
       },
     })
 
-    // End Round → Round Start
+    // End Round → Round Start (new round)
     this.addTransition({
       from: 'end_round',
       to: 'round_start',
@@ -183,18 +123,18 @@ export class PhaseManagerService {
       execute: state => {
         const newState = { ...state }
         newState.phase = 'round_start'
-        newState.round++
+        newState.combatResolved = false
         newState.passCount = 0
 
-        // Switch attack token
-        newState.player1.hasAttackToken = !newState.player1.hasAttackToken
-        newState.player2.hasAttackToken = !newState.player2.hasAttackToken
+        // Switch active player and update round/turn
+        newState.activePlayer = state.activePlayer === 'player1' ? 'player2' : 'player1'
+        newState.turn++
 
-        // Reset turn actions
-        newState.player1.actionsThisTurn = 0
-        newState.player2.actionsThisTurn = 0
+        if (newState.turn % 2 === 1) {
+          newState.round++
+        }
 
-        GameLogger.state(`Phase transition: End Round → Round Start (Round ${newState.round})`)
+        GameLogger.state('Phase transition: End Round → Round Start')
         return newState
       },
     })
@@ -211,130 +151,115 @@ export class PhaseManagerService {
   /**
    * Attempt to transition to a new phase
    */
-  transitionTo(state: GameState, targetPhase: Phase): GameState | null {
+  public tryTransition(state: GameState, targetPhase: Phase): GameState {
     const key = `${state.phase}->${targetPhase}`
     const transition = this.transitions.get(key)
 
     if (!transition) {
-      GameLogger.error(`Invalid phase transition: ${key}`)
-      return null
+      GameLogger.state(`Invalid phase transition: ${state.phase} → ${targetPhase}`)
+      return state
     }
 
     if (!transition.validate(state)) {
-      GameLogger.error(`Phase transition validation failed: ${key}`)
-      return null
+      GameLogger.state(`Phase transition validation failed: ${state.phase} → ${targetPhase}`)
+      return state
     }
 
     return transition.execute(state)
   }
 
   /**
-   * Get valid transitions from current phase
+   * Get all valid transitions from current phase
    */
-  getValidTransitions(state: GameState): Phase[] {
-    const validPhases: Phase[] = []
+  public getValidTransitions(currentPhase: Phase): Phase[] {
+    const validTransitions: Phase[] = []
 
     for (const [key, transition] of this.transitions) {
-      if (key.startsWith(`${state.phase}->`) && transition.validate(state)) {
-        validPhases.push(transition.to)
+      if (transition.from === currentPhase) {
+        validTransitions.push(transition.to)
       }
     }
 
-    return validPhases
+    return validTransitions
   }
 
   /**
-   * Handle priority passing (LoR-style)
+   * Auto-advance phases when conditions are met
    */
-  passPriority(state: GameState): GameState {
-    const newState = { ...state }
+  public autoAdvancePhase(state: GameState): GameState {
+    let currentState = state
+    let changed = false
 
-    // Increment pass count
-    newState.passCount = (newState.passCount || 0) + 1
+    // Try to auto-advance through valid transitions
+    const validTransitions = this.getValidTransitions(currentState.phase)
 
-    // Switch priority to other player
-    newState.priorityPlayer = newState.priorityPlayer === 'player1' ? 'player2' : 'player1'
+    for (const targetPhase of validTransitions) {
+      const key = `${currentState.phase}->${targetPhase}`
+      const transition = this.transitions.get(key)
 
-    GameLogger.action(`${state.activePlayer} passes priority (${newState.passCount} passes)`)
-
-    // Check if we should auto-transition
-    if (newState.passCount >= 2 && state.phase === 'action') {
-      // Both passed in action phase - try to end round
-      const endRoundState = this.transitionTo(newState, 'end_round')
-      if (endRoundState) {
-        return endRoundState
+      if (transition && transition.validate(currentState)) {
+        currentState = transition.execute(currentState)
+        changed = true
+        break // Only advance one phase at a time
       }
     }
 
-    return newState
+    return changed ? currentState : state
   }
 
   /**
-   * Reset pass count when an action is taken
+   * Check if a player can act in the current phase
    */
-  actionTaken(state: GameState): GameState {
-    const newState = { ...state }
-    newState.passCount = 0
+  public canPlayerAct(state: GameState, playerId: 'player1' | 'player2'): boolean {
+    // In most phases, only the active player can act
+    if (state.activePlayer !== playerId) {
+      return false
+    }
 
-    // Switch priority after action
-    newState.priorityPlayer = newState.priorityPlayer === 'player1' ? 'player2' : 'player1'
-
-    return newState
+    switch (state.phase) {
+      case 'mulligan':
+        return !state[playerId].mulliganComplete
+      case 'action':
+        return !state[playerId].hasPassed
+      case 'round_start':
+      case 'combat_resolution':
+      case 'end_round':
+        return false // System-controlled phases
+      default:
+        return false
+    }
   }
 
   /**
-   * Check if a player can take an action
+   * Get human-readable phase description
    */
-  canTakeAction(state: GameState, player: 'player1' | 'player2'): boolean {
-    // During mulligan, always can act
-    if (state.phase === 'mulligan') {
-      return true
-    }
-
-    // During attack declaration, only attacker can act
-    if (state.phase === 'attack_declaration') {
-      return player === state.attackingPlayer
-    }
-
-    // During defense declaration, only defender can act
-    if (state.phase === 'defense_declaration') {
-      return player !== state.attackingPlayer
-    }
-
-    // During action phase, check priority
-    if (state.phase === 'action') {
-      return player === (state.priorityPlayer || state.activePlayer)
-    }
-
-    return false
-  }
-
-  /**
-   * Get current phase description for UI
-   */
-  getPhaseDescription(state: GameState): string {
+  public getPhaseDescription(state: GameState): string {
     switch (state.phase) {
       case 'mulligan':
         return 'Choose cards to mulligan'
       case 'round_start':
-        return `Round ${state.round} starting...`
+        return 'Starting new round...'
       case 'action': {
         const tokenHolder = state.player1.hasAttackToken ? 'Player 1' : 'Player 2'
         return `Action Phase (${tokenHolder} has attack token)`
       }
-      case 'attack_declaration':
-        return 'Declare your attackers'
-      case 'defense_declaration':
-        return 'Declare your blockers'
       case 'combat_resolution':
         return 'Resolving combat...'
       case 'end_round':
-        return 'Round ending...'
+        return 'Ending round...'
       default:
-        return state.phase
+        return `Unknown phase: ${state.phase}`
     }
+  }
+
+  /**
+   * Reset phase manager (for new games)
+   */
+  public reset(): void {
+    // Phase manager is stateless, no reset needed
+    GameLogger.state('Phase manager reset')
   }
 }
 
-// Singleton instance
-export const phaseManager = new PhaseManagerService()
+// Export singleton instance
+export const phaseManagerService = new PhaseManagerService()

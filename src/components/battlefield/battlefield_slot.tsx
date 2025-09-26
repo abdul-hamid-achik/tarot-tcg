@@ -4,6 +4,7 @@ import type React from 'react'
 import { useCallback } from 'react'
 import { useGameStore } from '@/store/game_store'
 import { useGameActions } from '@/hooks/use_game_actions'
+import { useCombatActions } from '@/hooks/use_combat_actions'
 import { GameCard } from '@/components/game_card'
 import type { Card } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
@@ -34,6 +35,13 @@ export function BattlefieldSlot({
     endCardDrag,
   } = useGameStore()
   const { playCard } = useGameActions()
+  const {
+    handleUnitClick,
+    handleTargetClick,
+    isValidTarget,
+    isAttacking,
+    isInTargetingMode
+  } = useCombatActions()
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     if (isValidDropZone && isEmpty) {
@@ -62,22 +70,36 @@ export function BattlefieldSlot({
   }, [isValidDropZone, interaction.draggedCard, isEmpty, position, setHoveredSlot, endCardDrag, playCard])
 
   const handleSlotClick = useCallback(async () => {
-    if (isEmpty && interaction.selectedCards.size > 0) {
+    if (isEmpty && interaction.selectedCard) {
       // Playing a card from hand via click-then-click
       console.log('🎮 [Click-to-Play] Playing card to slot:', position)
-      const selectedCardIds = Array.from(interaction.selectedCards)
-      if (selectedCardIds.length > 0) {
-        // Get the selected card from the game state
-        // For now, we need to find the card in the player's hand
-        // This would need to be improved to get the actual card object
-        console.log('🎮 [Click-to-Play] Selected card ID:', selectedCardIds[0])
-        // TODO: Implement click-to-place logic when we have access to the full card object
+      try {
+        await playCard(interaction.selectedCard, position)
+        console.log('🎮 [Click-to-Play] Successfully played card')
+      } catch (error) {
+        console.error('🎮 [Click-to-Play] Failed to play card:', error)
       }
     } else if (card && canInteract) {
-      // Selecting/targeting a card
-      console.log('Selected card:', card.name)
+      if (isInTargetingMode() && isValidTarget(card.id)) {
+        // Being targeted in attack mode
+        handleTargetClick(card.id, 'unit')
+      } else if (!isInTargetingMode()) {
+        // Start attack with this unit
+        handleUnitClick(card)
+      }
     }
-  }, [isEmpty, card, canInteract, position, interaction.selectedCards])
+  }, [
+    isEmpty,
+    card,
+    canInteract,
+    position,
+    interaction.selectedCard,
+    isInTargetingMode,
+    isValidTarget,
+    handleTargetClick,
+    handleUnitClick,
+    playCard
+  ])
 
   return (
     <div
@@ -89,6 +111,8 @@ export function BattlefieldSlot({
         isHighlighted && 'ring-2 ring-yellow-400 ring-offset-2 shadow-yellow-400/30',
         isValidDropZone && 'border-green-500 bg-green-500/15 scale-105 shadow-green-500/30',
         isHovered && 'scale-110 shadow-xl shadow-purple-500/40',
+        card && isValidTarget(card.id) && 'border-red-500 bg-red-500/15 scale-105 shadow-red-500/30 animate-pulse',
+        card && isAttacking(card.id) && 'border-orange-500 bg-orange-500/15 scale-110 shadow-orange-500/50',
         position.player === 'player2' && 'border-red-800/40 hover:border-red-600/60',
         position.player === 'player1' && 'border-blue-800/40 hover:border-blue-600/60'
       )}
@@ -109,7 +133,7 @@ export function BattlefieldSlot({
           <GameCard
             card={card}
             size="medium"
-            onClick={canInteract ? () => {/* Handle card click */} : undefined}
+            onClick={canInteract ? () => {/* Handle card click */ } : undefined}
           />
         </div>
       ) : (
@@ -126,11 +150,15 @@ export function BattlefieldSlot({
         <div className="absolute bottom-1 right-1 flex flex-col gap-1">
           {card.hasAttackedThisTurn && (
             <div className="w-2 h-2 bg-orange-500 rounded-full opacity-75"
-                 title="Has attacked this turn" />
+              title="Has attacked this turn" />
           )}
-          {interaction.selectedAttackers.has(card.id) && (
+          {isAttacking(card.id) && (
             <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse"
-                 title="Selected for attack" />
+              title="Ready to attack" />
+          )}
+          {isInTargetingMode() && isValidTarget(card.id) && (
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-bounce"
+              title="Valid attack target" />
           )}
           {card.divineShield && (
             <span className="text-xs animate-pulse" title="Divine Shield">🛡️</span>
@@ -149,7 +177,7 @@ export function BattlefieldSlot({
           )}
           {card.chakraResonance && card.chakraResonance.length > 0 && (
             <span className="text-xs text-gradient-to-r from-violet-400 to-purple-400"
-                  title={`Active Chakras: ${card.chakraResonance.join(', ')}`}>🕉️</span>
+              title={`Active Chakras: ${card.chakraResonance.join(', ')}`}>🕉️</span>
           )}
         </div>
       )}
@@ -169,13 +197,13 @@ export function BattlefieldSlot({
           {/* Cosmic Resonance Indicator */}
           {card.cosmicResonance && card.cosmicResonance > 0 && (
             <div className="w-3 h-3 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 border border-purple-300 animate-pulse"
-                 title={`Cosmic Resonance: ${card.cosmicResonance}`} />
+              title={`Cosmic Resonance: ${card.cosmicResonance}`} />
           )}
 
           {/* Tarot Power Indicator */}
           {card.tarotPower && card.tarotPower > 0 && (
             <div className="w-3 h-3 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 border border-amber-300"
-                 title={`Tarot Power: ${card.tarotPower}`} />
+              title={`Tarot Power: ${card.tarotPower}`} />
           )}
         </div>
       )}

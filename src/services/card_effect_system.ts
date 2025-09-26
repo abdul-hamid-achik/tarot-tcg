@@ -351,13 +351,11 @@ export class CardEffectSystem {
   private findCardInGameState(cardId: string, event: GameEvent): Card | null {
     const gameState = this.getGameStateFromEvent(event)
 
-    // Search in all zones
+    // Search in all zones (battlefield-only system)
     const allCards = [
       ...gameState.player1.hand,
-      ...gameState.player1.bench,
       ...gameState.player1.deck,
       ...gameState.player2.hand,
-      ...gameState.player2.bench,
       ...gameState.player2.deck,
       ...gameState.battlefield.playerUnits.filter(Boolean),
       ...gameState.battlefield.enemyUnits.filter(Boolean),
@@ -400,7 +398,6 @@ export class CardEffectSystem {
         spellMana: 0,
         hand: [],
         deck: [],
-        bench: [],
         hasAttackToken: false,
         mulliganComplete: true,
         selectedForMulligan: [],
@@ -416,7 +413,6 @@ export class CardEffectSystem {
         spellMana: 0,
         hand: [],
         deck: [],
-        bench: [],
         hasAttackToken: false,
         mulliganComplete: true,
         selectedForMulligan: [],

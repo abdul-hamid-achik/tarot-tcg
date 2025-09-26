@@ -27,8 +27,8 @@ export default function PlayerInfoPanel({
   const { gameState, interaction } = useGameStore()
 
   const isActive = gameState?.activePlayer === player?.id
-  const selectedAttackersCount = interaction.selectedAttackers.size
-  const _defenderAssignmentsCount = interaction.defenderAssignments.size
+  const isInAttackMode = interaction.targetingMode === 'attack'
+  const hasValidTargets = interaction.validAttackTargets.size > 0
 
   // Position-specific styles
   const positionStyles = {
@@ -62,7 +62,7 @@ export default function PlayerInfoPanel({
     isCurrentPlayer &&
     player?.hasAttackToken &&
     gameState?.phase === 'action' &&
-    selectedAttackersCount > 0
+    isInAttackMode
 
   // Check if must defend (simplified - combat phase)
   // Note: In Hearthstone-style, there's no separate combat phase
@@ -159,9 +159,12 @@ export default function PlayerInfoPanel({
 
           {/* Bench Size */}
           <div className="flex justify-between">
-            <span className="text-gray-600 dark:text-gray-300">Bench:</span>
+            <span className="text-gray-600 dark:text-gray-300">Battlefield:</span>
             <span className="text-gray-900 dark:text-white font-semibold">
-              {player.bench.length}/6 units
+              {gameState ? (player.id === 'player1'
+                ? gameState.battlefield.playerUnits.filter(u => u !== null).length
+                : gameState.battlefield.enemyUnits.filter(u => u !== null).length
+              ) : 0}/7 units
             </span>
           </div>
         </div>

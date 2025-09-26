@@ -98,7 +98,10 @@ export class WinConditionService {
       toggleable: true,
       checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
         const player = gameState[playerId]
-        const unitsControlled = player.bench.length
+        const playerUnits = playerId === 'player1'
+          ? gameState.battlefield.playerUnits
+          : gameState.battlefield.enemyUnits
+        const unitsControlled = playerUnits.filter(u => u !== null).length
         const turnsRequired = 3
 
         const historyKey = `board_domination_${playerId}`
@@ -167,7 +170,10 @@ export class WinConditionService {
         const playedMajorArcana = new Set<string>()
 
         // Check all zones for Major Arcana cards
-        const allPlayerCards = [...player.hand, ...player.bench, ...player.deck]
+        const battlefieldCards = playerId === 'player1'
+          ? gameState.battlefield.playerUnits.filter(u => u !== null)
+          : gameState.battlefield.enemyUnits.filter(u => u !== null)
+        const allPlayerCards = [...player.hand, ...battlefieldCards, ...player.deck]
 
         for (const card of allPlayerCards) {
           if (card.tarotSymbol && this.isMajorArcana(card.tarotSymbol)) {
@@ -205,8 +211,11 @@ export class WinConditionService {
         const player = gameState[playerId]
         const elementsOnField = new Set<string>()
 
-        // Check bench for different elements
-        for (const card of player.bench) {
+        // Check battlefield for different elements
+        const playerBattlefieldCards = playerId === 'player1'
+          ? gameState.battlefield.playerUnits.filter(u => u !== null)
+          : gameState.battlefield.enemyUnits.filter(u => u !== null)
+        for (const card of playerBattlefieldCards) {
           if (card.element) {
             elementsOnField.add(card.element)
           }

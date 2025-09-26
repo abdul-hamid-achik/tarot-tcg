@@ -80,14 +80,14 @@ export default function HandFan({
     if (!isCurrentPlayer) return
     if (!gameState) return
 
-    const { selectCard, unselectCard: deselectCard, interaction } = useGameStore.getState()
+    const { selectCard, clearSelection, interaction } = useGameStore.getState()
 
     // Check if card is already selected
-    const isSelected = interaction.selectedCards.has(card.id)
+    const isSelected = interaction.selectedCard?.id === card.id
 
     if (isSelected) {
       // Deselect if already selected
-      deselectCard(card.id)
+      clearSelection()
       return
     }
 
@@ -99,7 +99,7 @@ export default function HandFan({
 
     if (isOurTurn && isAction && canAfford) {
       // Select the card for click-to-place (works for all card types)
-      selectCard(card.id)
+      selectCard(card)
       console.log(`Selected ${card.name} for placement`)
       return
     }
@@ -207,7 +207,7 @@ export default function HandFan({
 
   // Check if card is selected for placement
   const isSelectedForPlacement = (cardId: string): boolean => {
-    return interaction.selectedCards.has(cardId)
+    return interaction.selectedCard?.id === cardId
   }
 
   // Render individual card
@@ -220,13 +220,11 @@ export default function HandFan({
     return (
       <div
         key={card.id}
-        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${
-          isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
-        } ${
-          isPlacementSelected
+        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
+          } ${isPlacementSelected
             ? 'ring-2 ring-blue-400 ring-opacity-80 shadow-lg shadow-blue-400/30'
             : ''
-        }`}
+          }`}
         style={{
           transform: `rotate(${cardPosition.angle}deg) translateY(${position.includes('bottom') ? '-' : ''}${cardPosition.translateY}px)`,
           zIndex: cardPosition.zIndex,

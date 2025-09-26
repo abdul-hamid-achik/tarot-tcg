@@ -5,14 +5,13 @@ import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_se
 
 export interface InteractionState {
   mode: 'click' | 'drag' | 'hybrid'
-  selectedCards: Set<string>
+  selectedCard: GameCard | null // Single selection for direct attacks
   draggedCard: GameCard | null
   dragStartPosition: { x: number; y: number } | null
   hoveredSlot: BattlefieldPosition | null
-  selectedAttackers: Set<string>
-  defenderAssignments: Map<string, string>  // Legacy for compatibility
-  targetingMode: boolean
-  validTargets: Set<string>
+  attackSource: string | null // Unit starting attack
+  validAttackTargets: Set<string> // Valid targets for current attack
+  targetingMode: 'none' | 'attack' | 'spell'
 }
 
 export interface UIState {
@@ -20,6 +19,14 @@ export interface UIState {
   activeOverlay: 'none' | 'cardDetail' | 'mulligan' | 'gameOutcome'
   isAnimating: boolean
   performanceMode: 'high' | 'medium' | 'low'
+}
+
+// Multiplayer state for future PVP implementation
+export interface MultiplayerState {
+  sessionId: string | null
+  playerId: 'player1' | 'player2' | null
+  connectionStatus: 'disconnected' | 'connecting' | 'connected'
+  lastSyncVersion: number
 }
 
 export interface GameStore {
@@ -30,6 +37,9 @@ export interface GameStore {
   interaction: InteractionState
   ui: UIState
 
+  // Multiplayer state (for future PVP)
+  multiplayer: MultiplayerState
+
   // Battlefield visual state
   highlightedSlots: Set<string>
   validDropZones: Set<string>
@@ -39,14 +49,16 @@ export interface GameStore {
   updateBattlefield: (battlefield: Battlefield) => void
 
   // Interaction actions
-  selectCard: (cardId: string) => void
-  unselectCard: (cardId: string) => void
+  selectCard: (card: GameCard) => void
   clearSelection: () => void
   startCardDrag: (card: GameCard, position: { x: number; y: number }) => void
   endCardDrag: () => void
   setHoveredSlot: (position: BattlefieldPosition | null) => void
-  addAttacker: (cardId: string) => void
-  clearAttackers: () => void
+
+  // Direct attack actions
+  startAttack: (unitId: string) => void
+  executeAttack: (targetId: string, targetType: 'unit' | 'player') => void
+  cancelAttack: () => void
 
   // Visual feedback
   highlightSlots: (positions: BattlefieldPosition[]) => void
@@ -63,6 +75,29 @@ export interface GameStore {
 // Helper to create slot key
 export const createSlotKey = (position: BattlefieldPosition): string =>
   `${position.player}-${position.slot}`
+
+// Helper to calculate valid attack targets
+function calculateValidTargets(gameState: GameState, attackerId: string): Set<string> {
+  // Simple implementation - would be expanded for real game logic
+  const validTargets = new Set<string>()
+
+  // Add enemy units as valid targets
+  const opponent = gameState.activePlayer === 'player1' ? 'player2' : 'player1'
+  const enemyUnits = opponent === 'player1'
+    ? gameState.battlefield.playerUnits
+    : gameState.battlefield.enemyUnits
+
+  enemyUnits.forEach(unit => {
+    if (unit) {
+      validTargets.add(unit.id)
+    }
+  })
+
+  // Add player as valid target (unless taunt units present)
+  validTargets.add(opponent)
+
+  return validTargets
+}
 
 export const useGameStore = create<GameStore>()(
   devtools(
@@ -82,7 +117,6 @@ export const useGameStore = create<GameStore>()(
           spellMana: 0,
           hand: [],
           deck: [],
-          bench: [],
           hasAttackToken: true,
           mulliganComplete: false,
           selectedForMulligan: [],
@@ -98,7 +132,6 @@ export const useGameStore = create<GameStore>()(
           spellMana: 0,
           hand: [],
           deck: [],
-          bench: [],
           hasAttackToken: false,
           mulliganComplete: false,
           selectedForMulligan: [],
@@ -118,14 +151,13 @@ export const useGameStore = create<GameStore>()(
 
       interaction: {
         mode: 'hybrid',
-        selectedCards: new Set(),
+        selectedCard: null,
         draggedCard: null,
         dragStartPosition: null,
         hoveredSlot: null,
-        selectedAttackers: new Set(),
-        defenderAssignments: new Map(),
-        targetingMode: false,
-        validTargets: new Set(),
+        attackSource: null,
+        validAttackTargets: new Set(),
+        targetingMode: 'none',
       },
 
       ui: {
@@ -133,6 +165,13 @@ export const useGameStore = create<GameStore>()(
         activeOverlay: 'none',
         isAnimating: false,
         performanceMode: 'high',
+      },
+
+      multiplayer: {
+        sessionId: null,
+        playerId: null,
+        connectionStatus: 'disconnected',
+        lastSyncVersion: 0,
       },
 
       highlightedSlots: new Set(),
@@ -155,31 +194,22 @@ export const useGameStore = create<GameStore>()(
         }))
       },
 
-      selectCard: cardId =>
+      selectCard: card =>
         set(state => ({
           interaction: {
             ...state.interaction,
-            selectedCards: new Set([...state.interaction.selectedCards, cardId]),
+            selectedCard: card,
           },
         })),
-
-      unselectCard: cardId =>
-        set(state => {
-          const newSelectedCards = new Set(state.interaction.selectedCards)
-          newSelectedCards.delete(cardId)
-          return {
-            interaction: {
-              ...state.interaction,
-              selectedCards: newSelectedCards,
-            },
-          }
-        }),
 
       clearSelection: () =>
         set(state => ({
           interaction: {
             ...state.interaction,
-            selectedCards: new Set(),
+            selectedCard: null,
+            attackSource: null,
+            targetingMode: 'none',
+            validAttackTargets: new Set(),
           },
         })),
 
@@ -209,19 +239,45 @@ export const useGameStore = create<GameStore>()(
           },
         })),
 
-      addAttacker: cardId =>
+      // Direct attack actions
+      startAttack: (unitId: string) =>
         set(state => ({
           interaction: {
             ...state.interaction,
-            selectedAttackers: new Set([...state.interaction.selectedAttackers, cardId]),
+            attackSource: unitId,
+            targetingMode: 'attack',
+            validAttackTargets: calculateValidTargets(state.gameState, unitId),
           },
         })),
 
-      clearAttackers: () =>
+      executeAttack: async (targetId: string, targetType: 'unit' | 'player') => {
+        const { gameState, interaction } = get()
+        if (!interaction.attackSource) return
+
+        // This would integrate with the game logic
+        // const newState = await declareAttack(gameState, {
+        //   attackerId: interaction.attackSource,
+        //   targetType,
+        //   targetId
+        // })
+
         set(state => ({
           interaction: {
             ...state.interaction,
-            selectedAttackers: new Set(),
+            attackSource: null,
+            targetingMode: 'none',
+            validAttackTargets: new Set(),
+          },
+        }))
+      },
+
+      cancelAttack: () =>
+        set(state => ({
+          interaction: {
+            ...state.interaction,
+            attackSource: null,
+            targetingMode: 'none',
+            validAttackTargets: new Set(),
           },
         })),
 

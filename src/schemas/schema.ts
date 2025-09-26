@@ -30,19 +30,25 @@ export const TargetTypeSchema = z.enum(['self', 'ally', 'enemy', 'any', 'all'])
 
 export const CardTypeSchema = z.enum(['unit', 'spell'])
 
-export const CardPositionSchema = z.enum(['bench', 'attacking', 'defending'])
+// Removed CardPositionSchema - using battlefield-only system
 
 export const PhaseSchema = z.enum([
   'mulligan',
   'round_start',
   'action',
-  'attack_declaration', // Attack token holder declares attackers
-  'defense_declaration', // Opponent declares blockers
-  'combat_resolution', // Damage resolves
+  'combat_resolution', // Immediate after attack
   'end_round',
 ])
 
 export const PlayerIdSchema = z.enum(['player1', 'player2'])
+
+// Direct attack schema for Hearthstone-style combat
+export const DirectAttackSchema = z.object({
+  attackerId: z.string(),
+  targetType: z.enum(['unit', 'player']),
+  targetId: z.string().optional(),
+  targetSlot: z.number().optional(),
+})
 
 // Battlefield position schemas
 export const BattlefieldSlotSchema = z.number().min(0).max(6)
@@ -90,7 +96,6 @@ export const CardSchema = z.object({
   description: z.string().optional(),
   reversedDescription: z.string().optional(), // Different effect when reversed
   tarotSymbol: z.string().optional(),
-  position: CardPositionSchema.optional(),
   isReversed: z.boolean().optional(), // Critical tarot mechanic
 
   // Zodiac system properties
@@ -105,6 +110,7 @@ export const CardSchema = z.object({
   effects: z.array(SpellEffectSchema).optional(),
 
   // Runtime state
+  owner: PlayerIdSchema.optional(), // Which player owns this card
   statusEffects: z.array(StatusEffectSchema).optional(),
   counters: z.record(z.string(), z.number()).optional(),
 
@@ -167,7 +173,6 @@ export const PlayerSchema = z.object({
   spellMana: z.number(),
   hand: z.array(CardSchema),
   deck: z.array(CardSchema),
-  bench: z.array(CardSchema),  // Added missing bench field
   hasAttackToken: z.boolean(),
   mulliganComplete: z.boolean(),
   selectedForMulligan: z.array(z.string()),
@@ -277,7 +282,6 @@ export const CardEventDataSchema = z.object({
 })
 
 export const CombatEventDataSchema = z.object({
-  laneId: z.number().optional(),
   attackerId: z.string().optional(),
   defenderId: z.string().optional(),
   damage: z.number().optional(),
@@ -482,7 +486,7 @@ export const WinConditionConfigSchema = z.object({
   requiredZodiacs: z.array(z.string()).optional(),
 
   // Zone requirements
-  targetZones: z.array(z.enum(['hand', 'bench', 'deck', 'lanes'])).optional(),
+  targetZones: z.array(z.enum(['hand', 'battlefield', 'deck'])).optional(),
 
   // State requirements
   consecutiveTurns: z.boolean().optional(),
@@ -539,7 +543,7 @@ export const WinConditionSchema = z.object({
       maxTurn: z.number().optional(),
       specificCards: z.array(z.string()).optional(),
       cardTypes: z.array(z.string()).optional(),
-      zones: z.array(z.enum(['hand', 'bench', 'deck'])).optional(),
+      zones: z.array(z.enum(['hand', 'battlefield', 'deck'])).optional(),
     })
     .optional(),
 
@@ -623,7 +627,7 @@ export type Rarity = z.infer<typeof RaritySchema>
 export type SpellType = z.infer<typeof SpellTypeSchema>
 export type TargetType = z.infer<typeof TargetTypeSchema>
 export type CardType = z.infer<typeof CardTypeSchema>
-export type CardPosition = z.infer<typeof CardPositionSchema>
+export type DirectAttack = z.infer<typeof DirectAttackSchema>
 export type Phase = z.infer<typeof PhaseSchema>
 export type PlayerId = z.infer<typeof PlayerIdSchema>
 export type BattlefieldSlot = z.infer<typeof BattlefieldSlotSchema>
@@ -785,10 +789,7 @@ export const getPlayerHand = (gameState: unknown, playerId: 'player1' | 'player2
   return player?.hand || []
 }
 
-export const getPlayerBench = (gameState: unknown, playerId: 'player1' | 'player2'): Card[] => {
-  const player = getPlayer(gameState, playerId)
-  return player?.bench || []
-}
+// getPlayerBench completely removed - use getPlayerUnits from compatibility layer
 
 // ================================
 // PHASE CHECKING HELPERS

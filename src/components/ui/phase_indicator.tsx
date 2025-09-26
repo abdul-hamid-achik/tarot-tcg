@@ -2,14 +2,14 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useImprovedGameActions } from '@/hooks/use_improved_game_actions'
+import { useGameActions } from '@/hooks/use_game_actions'
 
 interface PhaseIndicatorProps {
   className?: string
 }
 
 export function PhaseIndicator({ className = '' }: PhaseIndicatorProps) {
-  const { getPhaseInfo, passPriority } = useImprovedGameActions()
+  const { getPhaseInfo, passPriority } = useGameActions()
   const phaseInfo = getPhaseInfo()
 
   if (!phaseInfo) {

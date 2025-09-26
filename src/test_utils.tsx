@@ -51,7 +51,6 @@ export const createTestPlayer = (id: 'player1' | 'player2', overrides: Partial<P
       cost: Math.floor(i / 10) + 1
     })
   ),
-  bench: [],
   hasAttackToken: id === 'player1',
   mulliganComplete: true,
   selectedForMulligan: [],
@@ -97,11 +96,9 @@ export const withCombatSetup = (gameState: GameState): GameState => {
     },
     player1: {
       ...gameState.player1,
-      bench: []
     },
     player2: {
       ...gameState.player2,
-      bench: []
     }
   }
 }
@@ -121,22 +118,46 @@ export const withMulliganSetup = (gameState: GameState): GameState => ({
   }
 })
 
-export const withUnitsOnBench = (gameState: GameState, playerId: 'player1' | 'player2', count: number = 2): GameState => {
-  const units = Array(count).fill(null).map((_, i) =>
-    createTestCard({
-      id: `${playerId}-bench-${i}`,
-      name: `Bench Unit ${i}`,
-      position: 'bench'
-    })
-  )
+// NEW: Battlefield helpers for single-state system
+export const placeUnitsOnBattlefield = (
+  state: GameState,
+  player: 'player1' | 'player2',
+  units: Partial<Card>[]
+): GameState => {
+  const newState = { ...state }
+  const battlefield = player === 'player1'
+    ? newState.battlefield.playerUnits
+    : newState.battlefield.enemyUnits
 
-  return {
-    ...gameState,
-    [playerId]: {
-      ...gameState[playerId],
-      bench: units
+  units.forEach((unit, i) => {
+    if (i < 7) {
+      battlefield[i] = createTestCard({
+        ...unit,
+        id: unit.id || `${player}-unit-${i}`,
+        owner: player,
+        hasSummoningSickness: false, // Test units ready to act
+        hasAttackedThisTurn: false,
+        currentHealth: unit.health || unit.currentHealth || 3,
+      })
     }
-  }
+  })
+
+  return newState
+}
+
+export const withUnitsOnBattlefield = (
+  gameState: GameState,
+  playerId: 'player1' | 'player2',
+  count: number = 2
+): GameState => {
+  const units = Array(count).fill(null).map((_, i) => ({
+    id: `${playerId}-battlefield-${i}`,
+    name: `Battlefield Unit ${i}`,
+    attack: 2 + i,
+    health: 3 + i,
+  }))
+
+  return placeUnitsOnBattlefield(gameState, playerId, units)
 }
 
 // Mock timer utilities
@@ -148,38 +169,53 @@ export const fastForwardTime = (seconds: number) => {
   advanceTimers(seconds * 1000)
 }
 
-// Mock game store
+// Mock game store for new direct attack system
 export const createMockGameStore = (gameState: GameState = createTestGameState()) => ({
   gameState,
   setGameState: vi.fn(),
-  clearAttackers: vi.fn(),
-  clearDefenderAssignments: vi.fn(),
+  clearSelection: vi.fn(),
   setAnimationState: vi.fn(),
+  startAttack: vi.fn(),
+  executeAttack: vi.fn(),
+  cancelAttack: vi.fn(),
   ui: {
-    activeOverlay: null,
+    activeOverlay: 'none',
     cardDetailOverlay: null,
-    selectedCard: null,
-    hoveredCard: null,
-    draggedCard: null,
     isAnimating: false,
+    performanceMode: 'high',
   },
   interaction: {
-    selectedAttackers: new Set<string>(),
-    defenderAssignments: new Map<number, string>(),
-    hoveredCells: new Set<string>(),
-    validDropZones: new Set<string>(),
+    mode: 'hybrid',
+    selectedCard: null,
+    draggedCard: null,
+    dragStartPosition: null,
+    hoveredSlot: null,
+    attackSource: null,
+    validAttackTargets: new Set<string>(),
+    targetingMode: 'none',
   },
-  highlightCells: vi.fn(),
+  multiplayer: {
+    sessionId: null,
+    playerId: null,
+    connectionStatus: 'disconnected',
+    lastSyncVersion: 0,
+  },
+  highlightedSlots: new Set<string>(),
+  validDropZones: new Set<string>(),
+  highlightSlots: vi.fn(),
   clearHighlights: vi.fn(),
   setValidDropZones: vi.fn(),
   clearValidDropZones: vi.fn(),
   showCardDetail: vi.fn(),
   hideCardDetail: vi.fn(),
 })
-// Assert helpers for game state
+// Assert helpers for battlefield-only system
 export const expectPlayerHasCard = (gameState: GameState, playerId: 'player1' | 'player2', cardId: string) => {
   const player = gameState[playerId]
-  const hasCard = [...player.hand, ...player.bench, ...player.deck].some(card => card.id === cardId)
+  const battlefieldUnits = playerId === 'player1'
+    ? gameState.battlefield.playerUnits.filter(u => u !== null)
+    : gameState.battlefield.enemyUnits.filter(u => u !== null)
+  const hasCard = [...player.hand, ...player.deck, ...battlefieldUnits].some(card => card?.id === cardId)
   expect(hasCard).toBe(true)
 }
 

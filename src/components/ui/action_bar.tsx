@@ -3,7 +3,7 @@
 import { Clock } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { getPlayerBench, isActionPhase } from '@/schemas/schema'
+import { isActionPhase } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
 
 interface ActionBarProps {
@@ -38,9 +38,9 @@ export default function ActionBar({
   const isPlayerTurn = gameState?.activePlayer === 'player1'
   const canPass = isPlayerTurn && gameState?.phase === 'action'
   const isInCombat = gameState?.phase === 'combat_resolution'
-  const selectedAttackersCount = interaction.selectedAttackers.size
-  const selectedDefendersCount = interaction.defenderAssignments.size
-  const isDefendPhase = gameState?.phase === 'defense_declaration'
+  const isInAttackMode = interaction.targetingMode === 'attack'
+  const hasValidTargets = interaction.validAttackTargets.size > 0
+  const isDefendPhase = false // No defense phase in direct attack system
 
   // Phase display
   const getPhaseDisplay = () => {
@@ -49,10 +49,7 @@ export default function ActionBar({
         return { text: 'Mulligan Phase', color: 'bg-gray-300 text-black border border-gray-400' }
       case 'action':
         return { text: 'Action Phase', color: 'bg-gray-200 text-black border border-gray-400' }
-      case 'attack_declaration':
-        return { text: 'Declare Attackers', color: 'bg-gray-400 text-black border border-gray-500' }
-      case 'defense_declaration':
-        return { text: 'Declare Defenders', color: 'bg-gray-300 text-black border border-gray-400' }
+      // Removed attack_declaration and defense_declaration phases
       case 'combat_resolution':
         return { text: 'Combat!', color: 'bg-black text-white border border-gray-800' }
       case 'end_round':
@@ -76,15 +73,15 @@ export default function ActionBar({
       return { enabled: false, tooltip: 'Can only attack during action phase' }
     }
     // Check if there are any units that can attack (battlefield units)
-    const benchUnits = getPlayerBench(gameState, 'player1').length
-    // In Hearthstone-style, units attack directly from the battlefield
-    if (benchUnits === 0) {
+    // Check battlefield units for attack capability
+    const battlefieldUnits = gameState?.battlefield.playerUnits.filter(u => u !== null).length || 0
+    if (battlefieldUnits === 0) {
       return { enabled: true, tooltip: 'Pass priority (no units to attack with)' }
     }
-    if (selectedAttackersCount === 0) {
-      return { enabled: true, tooltip: 'Pass priority or select units to attack with' }
+    if (!isInAttackMode) {
+      return { enabled: true, tooltip: 'Pass priority or click units to attack' }
     }
-    return { enabled: true, tooltip: `Attack with ${selectedAttackersCount} units` }
+    return { enabled: hasValidTargets, tooltip: 'Choose attack targets' }
   }
 
   const attackState = getAttackButtonState()
@@ -98,13 +95,14 @@ export default function ActionBar({
       return { enabled: false, tooltip: 'Can only defend during defender declaration' }
     }
 
-    const hasDefenders = getPlayerBench(gameState, 'player1').length > 0
+    // No defense phase in direct attack system
+    const hasDefenders = false
 
     return {
       enabled: true, // Always enabled - player can always skip block
       tooltip: hasDefenders
-        ? selectedDefendersCount > 0
-          ? `Commit ${selectedDefendersCount} defenders`
+        ? false // No defense phase in direct attack system
+          ? 'No defense needed'
           : 'Assign defenders or skip to take damage'
         : 'No units to defend with - skip to take damage',
     }
@@ -121,24 +119,23 @@ export default function ActionBar({
           <>
             {gameState?.player1?.hasAttackToken ? (
               <Button
-                onClick={selectedAttackersCount > 0 ? onAttack : onPass}
+                onClick={isInAttackMode ? onAttack : onPass}
                 disabled={!attackState.enabled}
                 className={`
                   w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                  ${
-                    attackState.enabled
-                      ? selectedAttackersCount > 0
-                        ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-xl border-2 border-orange-400 hover:shadow-2xl'
-                        : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
-                      : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+                  ${attackState.enabled
+                    ? isInAttackMode
+                      ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-xl border-2 border-orange-400 hover:shadow-2xl'
+                      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
+                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
                   }
                 `}
                 title={attackState.tooltip}
               >
-                {selectedAttackersCount > 0 ? 'ATTACK' : 'PASS PRIORITY'}
-                {selectedAttackersCount > 0 && (
+                {isInAttackMode ? 'ATTACK' : 'PASS PRIORITY'}
+                {isInAttackMode && (
                   <span className="ml-2 bg-orange-800 px-3 py-1 rounded-full text-sm font-bold">
-                    {selectedAttackersCount}
+                    ⚔️
                   </span>
                 )}
               </Button>
@@ -148,10 +145,9 @@ export default function ActionBar({
                 disabled={!canPass}
                 className={`
                   w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                  ${
-                    canPass
-                      ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
-                      : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+                  ${canPass
+                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
+                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
                   }
                 `}
                 title={canPass ? 'End your turn' : 'Cannot end turn yet'}
@@ -169,18 +165,17 @@ export default function ActionBar({
             disabled={!defendState.enabled}
             className={`
                 w-full justify-center text-lg px-6 py-4 min-h-[50px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-200
-                ${
-                  defendState.enabled
-                    ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg border-2 border-green-400'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
-                }
+                ${defendState.enabled
+                ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg border-2 border-green-400'
+                : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+              }
               `}
             title={defendState.tooltip}
           >
-            {selectedDefendersCount > 0 ? 'DEFEND' : 'SKIP BLOCK'}
-            {selectedDefendersCount > 0 && (
+            {'NO DEFENSE NEEDED'}
+            {false && (
               <span className="ml-2 bg-green-800 px-2 py-1 rounded-full text-sm">
-                {selectedDefendersCount}
+                🛡️
               </span>
             )}
           </Button>
@@ -220,11 +215,11 @@ export default function ActionBar({
         {!['action', 'defense_declaration', 'combat_resolution', 'end_round', 'mulligan'].includes(
           gameState?.phase || '',
         ) && (
-          <div className="flex items-center gap-2 text-gray-600 text-sm px-4 py-2 bg-gray-100/80 rounded border border-gray-300">
-            <Clock className="w-4 h-4 animate-pulse" />
-            <span>Waiting...</span>
-          </div>
-        )}
+            <div className="flex items-center gap-2 text-gray-600 text-sm px-4 py-2 bg-gray-100/80 rounded border border-gray-300">
+              <Clock className="w-4 h-4 animate-pulse" />
+              <span>Waiting...</span>
+            </div>
+          )}
 
         {/* Always show End Turn button when it's player's turn and not in mulligan */}
         {isPlayerTurn && gameState?.phase !== 'mulligan' && !canPass && (

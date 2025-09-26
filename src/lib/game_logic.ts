@@ -1,16 +1,90 @@
 import { createRandomDeck, createZodiacDeck, getAllCards } from '@/lib/card_loader'
 import { GameLogger } from '@/lib/game_logger'
-import type { Card, GameState, Player } from '@/schemas/schema'
+import type { Card, GameState, Player, DirectAttack } from '@/schemas/schema'
 import { cardEffectSystem } from '@/services/card_effect_system'
 import { effectStackService } from '@/services/effect_stack_service'
 import { createEventHelpers, eventManager } from '@/services/event_manager'
 import { winConditionService } from '@/services/win_condition_service'
 
-// Game Constants
+// Battlefield helper functions
+function findFirstEmptySlot(battlefield: any, playerId: 'player1' | 'player2'): number {
+  const units = playerId === 'player1'
+    ? battlefield.playerUnits
+    : battlefield.enemyUnits
+
+  return units.findIndex((u: any) => u === null)
+}
+
+function placeUnitOnBattlefield(
+  gameState: GameState,
+  playerId: 'player1' | 'player2',
+  unit: Card,
+  targetSlot?: number
+): { success: boolean; slot: number | null } {
+  const units = playerId === 'player1'
+    ? gameState.battlefield.playerUnits
+    : gameState.battlefield.enemyUnits
+
+  const slot = targetSlot !== undefined
+    ? targetSlot
+    : findFirstEmptySlot(gameState.battlefield, playerId)
+
+  if (slot === -1 || slot >= units.length || units[slot] !== null) {
+    return { success: false, slot: null }
+  }
+
+  units[slot] = {
+    ...unit,
+    currentHealth: unit.health,
+    owner: playerId,
+    hasSummoningSickness: true,
+    hasAttackedThisTurn: false,
+  }
+
+  return { success: true, slot }
+}
+
+function removeUnitFromBattlefield(
+  gameState: GameState,
+  playerId: 'player1' | 'player2',
+  unitId: string
+): boolean {
+  const units = playerId === 'player1'
+    ? gameState.battlefield.playerUnits
+    : gameState.battlefield.enemyUnits
+
+  for (let i = 0; i < units.length; i++) {
+    if (units[i]?.id === unitId) {
+      units[i] = null
+      return true
+    }
+  }
+  return false
+}
+
+function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): Card[] {
+  const units = playerId === 'player1'
+    ? gameState.battlefield.playerUnits
+    : gameState.battlefield.enemyUnits
+  return units.filter(u => u !== null) as Card[]
+}
+
+function getUnitAt(battlefield: any, slot: number, playerId: 'player1' | 'player2'): Card | null {
+  const units = playerId === 'player1'
+    ? battlefield.playerUnits
+    : battlefield.enemyUnits
+  return units[slot] || null
+}
+
+// Game Constants - Battlefield-only system
 const GAME_CONFIG = {
   BATTLEFIELD_SLOTS: 7,
-  LANE_COUNT: 6,  // Legacy compatibility
-  MAX_BENCH_SIZE: 6,  // Legacy compatibility
+  MAX_UNITS_PER_PLAYER: 7,
+  // Tarot-specific mechanics
+  ORIENTATION_CHANCE: 0.5, // 50% reversed
+  ZODIAC_BUFF_MULTIPLIER: 1.2,
+  ELEMENTAL_SYNERGY_BONUS: 1,
+  // Core game rules
   MAX_DECK_SIZE: 40,
   STARTING_DECK_SIZE: 40,
   MAX_SPELL_MANA: 3,
@@ -89,7 +163,6 @@ export function createInitialGameState(
     spellMana: 0,
     hand: player1Cards.slice(0, GAME_CONFIG.STARTING_HAND_SIZE),
     deck: player1Cards.slice(GAME_CONFIG.STARTING_HAND_SIZE),
-    bench: [],
     hasAttackToken: true, // Player 1 starts with attack token
     mulliganComplete: false,
     selectedForMulligan: [],
@@ -106,7 +179,6 @@ export function createInitialGameState(
     spellMana: 0,
     hand: player2Cards.slice(0, GAME_CONFIG.STARTING_HAND_SIZE),
     deck: player2Cards.slice(GAME_CONFIG.STARTING_HAND_SIZE),
-    bench: [],
     hasAttackToken: false,
     mulliganComplete: false,
     selectedForMulligan: [],
@@ -156,56 +228,100 @@ export function canPlayCard(state: GameState, card: Card): boolean {
   // Check mana
   if (card.cost > totalMana) return false
 
-  // Check bench limit
-  if (card.type === 'unit' && player.bench.length >= GAME_CONFIG.MAX_BENCH_SIZE) return false
+  // Check battlefield space for units
+  if (card.type === 'unit') {
+    const availableSlot = findFirstEmptySlot(state.battlefield, state.activePlayer)
+    if (availableSlot === -1) return false
+  }
 
   return true
 }
 
-export async function playCard(state: GameState, card: Card): Promise<GameState> {
-  if (!canPlayCard(state, card)) return state
+export async function playCard(
+  state: GameState,
+  card: Card,
+  targetSlot?: number
+): Promise<GameState> {
+  const player = state[state.activePlayer]
+
+  // Validation
+  if (!canPlayCard(state, card)) {
+    throw new Error('Cannot play card')
+  }
 
   const newState = { ...state }
-  const player = { ...newState[state.activePlayer] }
+  const newPlayer = { ...player }
   const eventHelpers = createEventHelpers(newState)
 
-  // Calculate mana usage
-  const manaCost = card.cost
-  const manaToUse = Math.min(player.mana, manaCost)
-  const spellManaToUse = Math.max(0, manaCost - manaToUse)
+  // CRITICAL: Determine orientation (tarot mechanic)
+  const isReversed = Math.random() < GAME_CONFIG.ORIENTATION_CHANCE
 
-  player.mana -= manaToUse
-  player.spellMana -= spellManaToUse
-  player.hand = player.hand.filter(c => c.id !== card.id)
+  // Check zodiac buff (simplified version)
+  const currentMonth = new Date().getMonth() + 1
+  const hasZodiacBuff = checkZodiacAlignment(card.zodiacClass, currentMonth)
+
+  // Calculate mana usage
+  const { manaUsed, spellManaUsed } = payManaCost(player, card.cost)
+
+  // Pay mana and remove from hand
+  newPlayer.mana -= manaUsed
+  newPlayer.spellMana -= spellManaUsed
+  newPlayer.hand = newPlayer.hand.filter(c => c.id !== card.id)
 
   GameLogger.action(`${state.activePlayer} plays ${card.name}`, {
-    cost: manaCost,
-    manaUsed: manaToUse,
-    spellManaUsed: spellManaToUse,
-    remainingMana: player.mana,
-    remainingSpellMana: player.spellMana,
+    cost: card.cost,
+    manaUsed,
+    spellManaUsed,
+    isReversed,
+    hasZodiacBuff,
+    remainingMana: newPlayer.mana,
+    remainingSpellMana: newPlayer.spellMana,
   })
 
   // Emit card played event
-  await eventHelpers.cardPlayed(card.id, card.name, manaCost)
+  await eventHelpers.cardPlayed(card.id, card.name, card.cost)
 
   if (card.type === 'unit') {
-    const newCard = {
+    // Find slot (use provided or find first empty)
+    if (targetSlot === undefined) {
+      targetSlot = findFirstEmptySlot(state.battlefield, state.activePlayer)
+      if (targetSlot === -1) throw new Error('Battlefield full')
+    }
+
+    // Create unit with runtime properties and tarot mechanics
+    const unit: Card = {
       ...card,
       currentHealth: card.health,
-      position: 'bench' as const,
+      isReversed,
+      hasSummoningSickness: true,
+      hasAttackedThisTurn: false,
       owner: state.activePlayer,
+      // Apply zodiac buff to stats
+      attack: card.attack + (hasZodiacBuff ? 1 : 0),
+      health: card.health + (hasZodiacBuff ? 1 : 0),
+      astrologyBonus: hasZodiacBuff ? 1 : 0,
     }
-    player.bench.push(newCard)
+
+    // Place ONLY on battlefield (not bench!)
+    const result = placeUnitOnBattlefield(newState, state.activePlayer, unit, targetSlot)
+    if (!result.success) {
+      throw new Error('Failed to place unit on battlefield')
+    }
 
     // Emit unit summoned event
-    await eventHelpers.unitSummoned(card.id, card.name, card.attack, card.health)
+    await eventHelpers.unitSummoned(card.id, card.name, unit.attack, unit.health)
+
+    // Apply battlecry based on orientation
+    if (isReversed && card.reversedDescription) {
+      await applyReversedEffect(newState, unit)
+    } else {
+      await applyUprightEffect(newState, unit)
+    }
 
     // Register card abilities with the effect system
     if (card.abilities && card.abilities.length > 0) {
-      // Convert abilities to triggered abilities for the effect system
       const triggeredAbilities = convertAbilitiesToTriggeredAbilities(card.abilities)
-      cardEffectSystem.registerCardAbilities(newCard, triggeredAbilities)
+      cardEffectSystem.registerCardAbilities(unit, triggeredAbilities)
     }
   } else if (card.type === 'spell') {
     // Queue spell effects on the stack for proper resolution
@@ -214,12 +330,62 @@ export async function playCard(state: GameState, card: Card): Promise<GameState>
     }
   }
 
-  newState[state.activePlayer] = player
+  newState[state.activePlayer] = newPlayer
 
   // Resolve the effect stack after playing a card
   await resolveEffectStack(newState)
 
   return newState
+}
+
+// Helper functions for new playCard system
+function payManaCost(player: Player, cost: number): { manaUsed: number; spellManaUsed: number } {
+  const manaToUse = Math.min(player.mana, cost)
+  const spellManaToUse = Math.max(0, cost - manaToUse)
+  return { manaUsed: manaToUse, spellManaUsed: spellManaToUse }
+}
+
+function checkZodiacAlignment(zodiacClass: string, currentMonth: number): boolean {
+  // Simplified zodiac alignment check
+  const zodiacMonths: Record<string, number[]> = {
+    'aries': [3, 4],
+    'taurus': [4, 5],
+    'gemini': [5, 6],
+    'cancer': [6, 7],
+    'leo': [7, 8],
+    'virgo': [8, 9],
+    'libra': [9, 10],
+    'scorpio': [10, 11],
+    'sagittarius': [11, 12],
+    'capricorn': [12, 1],
+    'aquarius': [1, 2],
+    'pisces': [2, 3],
+  }
+
+  const months = zodiacMonths[zodiacClass]
+  return months ? months.includes(currentMonth) : false
+}
+
+async function applyReversedEffect(state: GameState, unit: Card): Promise<void> {
+  // Apply reversed tarot effects - simplified implementation
+  if (unit.reversedDescription?.toLowerCase().includes('draw')) {
+    // Reversed effect: draw a card
+    const player = state[unit.owner!]
+    if (player.deck.length > 0) {
+      player.hand.push(player.deck.shift()!)
+      GameLogger.action(`${unit.name} reversed effect: draw card`)
+    }
+  }
+}
+
+async function applyUprightEffect(state: GameState, unit: Card): Promise<void> {
+  // Apply upright tarot effects - simplified implementation
+  if (unit.description?.toLowerCase().includes('damage')) {
+    // Upright effect might deal damage
+    const opponent = unit.owner === 'player1' ? 'player2' : 'player1'
+    state[opponent].health -= 1
+    GameLogger.action(`${unit.name} upright effect: deal 1 damage`)
+  }
 }
 
 // Helper function to convert old abilities to triggered abilities for the effect system
@@ -375,10 +541,13 @@ function executeAbilities(
       const healthMatch = description.match(/(\d+)\s*or\s*less\s*health/)
       const maxHealth = healthMatch ? parseInt(healthMatch[1], 10) : 3
 
-      // Remove enemy units with health <= maxHealth
-      state[opponent].bench = state[opponent].bench.filter(
-        unit => (unit.currentHealth || unit.health) > maxHealth,
-      )
+      // Remove enemy units with health <= maxHealth (using compatibility layer)
+      const enemyUnits = getPlayerUnits(state, opponent)
+      enemyUnits.forEach(unit => {
+        if ((unit.currentHealth || unit.health) <= maxHealth) {
+          removeUnitFromBattlefield(state, opponent, unit.id)
+        }
+      })
     }
 
     if (description.includes('cost') && description.includes('less')) {
@@ -389,106 +558,109 @@ function executeAbilities(
   })
 }
 
-// Hearthstone-style direct attack - no lane declarations needed
-export function directAttack(
+// NEW: Direct Attack System (Hearthstone-style)
+export async function declareAttack(
   state: GameState,
-  attackerId: string,
-  target: { player: 'player1' | 'player2'; slot: number } | 'nexus',
-): GameState {
-  if (!state[state.activePlayer].hasAttackToken) return state
-  if (state.phase !== 'action') return state
-
+  attack: DirectAttack
+): Promise<GameState> {
   const newState = { ...state }
 
-  // Find attacker on battlefield (check correct side based on active player)
-  let attacker = null
-  let attackerPosition = null
+  // Find attacker on battlefield
+  const attackerPos = findUnitPosition(state.battlefield, attack.attackerId)
+  if (!attackerPos) throw new Error('Attacker not found')
 
-  // Check the correct units array based on active player
-  const attackerUnits = state.activePlayer === 'player1' ? newState.battlefield.playerUnits : newState.battlefield.enemyUnits
-  const attackerPlayer = state.activePlayer
+  const attacker = getUnitAt(state.battlefield, attackerPos.slot, attackerPos.player)
+  if (!attacker) throw new Error('Invalid attacker')
 
-  for (let i = 0; i < attackerUnits.length; i++) {
-    const unit = attackerUnits[i]
-    if (unit && unit.id === attackerId) {
-      attacker = unit
-      attackerPosition = { player: attackerPlayer, slot: i }
-      break
-    }
+  // Validate can attack
+  if (attacker.hasSummoningSickness) {
+    throw new Error('Summoning sickness')
+  }
+  if (attacker.hasAttackedThisTurn) {
+    throw new Error('Already attacked')
   }
 
-  if (!attacker || attacker.hasAttackedThisTurn) return state
+  // Check for taunt units
+  const opponent = state.activePlayer === 'player1' ? 'player2' : 'player1'
+  const tauntUnits = getUnitsWithKeyword(state.battlefield, opponent, 'taunt')
+
+  if (tauntUnits.length > 0 && attack.targetType === 'player') {
+    throw new Error('Must attack taunt first')
+  }
 
   GameLogger.combat(`${state.activePlayer} attacks with ${attacker.name}`, {
-    target: target === 'nexus' ? 'nexus' : `${target.player} slot ${target.slot}`,
+    target: attack.targetType === 'player' ? 'player' : attack.targetId,
   })
 
-  // Mark attacker as having attacked
+  // Execute attack immediately (no separate combat phase)
+  if (attack.targetType === 'unit' && attack.targetId) {
+    // Unit combat
+    const targetPos = findUnitPosition(state.battlefield, attack.targetId)
+    if (!targetPos) throw new Error('Target not found')
+
+    const target = getUnitAt(state.battlefield, targetPos.slot, targetPos.player)
+    if (!target) throw new Error('Invalid target')
+
+    // Simultaneous damage (Hearthstone-style)
+    const attackerDamage = attacker.attack || 0
+    const defenderDamage = target.attack || 0
+
+    attacker.currentHealth = (attacker.currentHealth || attacker.health) - defenderDamage
+    target.currentHealth = (target.currentHealth || target.health) - attackerDamage
+
+    // Process deaths
+    if (attacker.currentHealth <= 0) {
+      removeUnitFromBattlefield(newState, attackerPos.player, attacker.id)
+      GameLogger.combat(`${attacker.name} dies`)
+    }
+    if (target.currentHealth <= 0) {
+      removeUnitFromBattlefield(newState, targetPos.player, target.id)
+      GameLogger.combat(`${target.name} dies`)
+    }
+
+  } else if (attack.targetType === 'player') {
+    // Face damage
+    const damage = attacker.attack || 0
+    newState[opponent].health -= damage
+    GameLogger.combat(`${attacker.name} deals ${damage} damage to ${opponent}`)
+  }
+
+  // Mark as attacked
   attacker.hasAttackedThisTurn = true
 
-  // Apply damage immediately (Hearthstone style)
-  if (target === 'nexus') {
-    const opponent = state.activePlayer === 'player1' ? 'player2' : 'player1'
-    newState[opponent].health -= attacker.attack
-  } else {
-    // Unit vs Unit combat
-    const targetUnits = target.player === 'player1' ? newState.battlefield.playerUnits : newState.battlefield.enemyUnits
-    const defender = targetUnits[target.slot]
+  return newState
+}
 
-    if (defender) {
-      // Simultaneous damage
-      defender.currentHealth = (defender.currentHealth || defender.health) - attacker.attack
-      attacker.currentHealth = (attacker.currentHealth || attacker.health) - defender.attack
-
-      // Remove dead units
-      if (defender.currentHealth <= 0) {
-        targetUnits[target.slot] = null
-      }
-      if (attacker.currentHealth <= 0) {
-        if (attackerPosition) {
-          const attackerUnits = attackerPosition.player === 'player1' ? newState.battlefield.playerUnits : newState.battlefield.enemyUnits
-          attackerUnits[attackerPosition.slot] = null
-        }
-      }
+// Helper functions for new combat system
+function findUnitPosition(battlefield: any, unitId: string): { player: 'player1' | 'player2'; slot: number } | null {
+  // Check player1 units
+  for (let i = 0; i < battlefield.playerUnits.length; i++) {
+    if (battlefield.playerUnits[i]?.id === unitId) {
+      return { player: 'player1', slot: i }
     }
   }
 
-  return newState
+  // Check player2 units
+  for (let i = 0; i < battlefield.enemyUnits.length; i++) {
+    if (battlefield.enemyUnits[i]?.id === unitId) {
+      return { player: 'player2', slot: i }
+    }
+  }
+
+  return null
+}
+
+function getUnitsWithKeyword(battlefield: any, playerId: 'player1' | 'player2', keyword: string): any[] {
+  const units = getPlayerUnits({ battlefield } as any, playerId)
+  return units.filter(unit =>
+    unit.keywords?.includes(keyword) || unit.keywords?.includes(keyword.charAt(0).toUpperCase() + keyword.slice(1))
+  )
 }
 
 // Simplified battlefield system - no complex declarations needed
 // Units can be placed directly in battlefield slots
 
-// Legacy function stubs for tutorial compatibility (deprecated)
-export function declareAttackers(state: GameState, _attackerArrangement: any): GameState {
-  console.warn('declareAttackers is deprecated - use directAttack instead')
-  return state
-}
-
-export function declareDefenders(state: GameState, _defenderAssignments: any): GameState {
-  console.warn('declareDefenders is deprecated - use directAttack instead')
-  return state
-}
-
-export async function resolveCombat(state: GameState): Promise<GameState> {
-  console.warn('resolveCombat is deprecated - attacks are resolved immediately')
-  return state
-}
-
-export function rearrangeAttackers(state: GameState, _newArrangement: any): GameState {
-  console.warn('rearrangeAttackers is deprecated')
-  return state
-}
-
-export function rearrangeDefenders(state: GameState, _newArrangement: any): GameState {
-  console.warn('rearrangeDefenders is deprecated')
-  return state
-}
-
-export function commitToCombat(state: GameState): GameState {
-  console.warn('commitToCombat is deprecated')
-  return state
-}
+// Legacy functions completely removed - use direct attack system
 
 // Battlefield system uses directAttack() instead of complex lane combat
 // No separate combat resolution phase needed
@@ -627,7 +799,8 @@ export async function endTurn(state: GameState): Promise<GameState> {
   Object.assign(newState, updatedState)
 
   // Reset attack flags for all units (Hearthstone style)
-  newState[state.activePlayer].bench.forEach(unit => {
+  const playerUnits = getPlayerUnits(newState, state.activePlayer)
+  playerUnits.forEach(unit => {
     unit.hasAttackedThisTurn = false
   })
 
@@ -717,10 +890,11 @@ export async function aiTurn(state: GameState): Promise<GameState> {
       return bValue - aValue
     })
 
-  // Play units until bench is full or mana is depleted
+  // Play units until battlefield is full or mana is depleted
   const cardsPlayed: string[] = []
   for (const card of playableCards) {
-    if (ai.bench.length >= GAME_CONFIG.MAX_BENCH_SIZE) break
+    const emptySlot = findFirstEmptySlot(newState.battlefield, 'player2')
+    if (card.type === 'unit' && emptySlot === -1) break // Battlefield full
     if (canPlayCard(newState, card)) {
       newState = await playCard(newState, card)
       cardsPlayed.push(card.name)
@@ -732,14 +906,25 @@ export async function aiTurn(state: GameState): Promise<GameState> {
   }
 
   // Phase 2: Attack if has attack token (Hearthstone style)
-  if (ai.hasAttackToken && ai.bench.length > 0) {
+  if (ai.hasAttackToken) {
+    const aiUnits = getPlayerUnits(newState, 'player2')
+
     // Simple AI strategy: attack with all units that can attack
-    for (const unit of ai.bench) {
-      if (!unit.hasAttackedThisTurn) {
-        // AI targets nexus directly (simple strategy)
-        // In a more advanced AI, we could add logic to target enemy units with taunt or make tactical decisions
-        newState = directAttack(newState, unit.id, 'nexus')
-        GameLogger.ai(`AI attacks nexus with ${unit.name}`)
+    for (const unit of aiUnits) {
+      if (!unit.hasAttackedThisTurn && !unit.hasSummoningSickness) {
+        try {
+          // AI targets player directly (simple strategy)
+          // In a more advanced AI, we could add logic to target enemy units with taunt or make tactical decisions
+          const attack: DirectAttack = {
+            attackerId: unit.id,
+            targetType: 'player'
+          }
+          newState = await declareAttack(newState, attack)
+          GameLogger.ai(`AI attacks player with ${unit.name}`)
+        } catch (error) {
+          // Attack failed (e.g., taunt units present), skip
+          console.log(`AI attack failed: ${error}`)
+        }
       }
     }
   }
@@ -905,6 +1090,6 @@ export function aiMulligan(
 function shuffleDeck(player: Player): void {
   for (let i = player.deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+      ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
   }
 }

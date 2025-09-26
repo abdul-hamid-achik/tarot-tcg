@@ -7,6 +7,9 @@ import { Battlefield } from '@/components/battlefield/battlefield'
 import CardDetailOverlay from '@/components/card_detail_overlay'
 import BackgroundEffects from '@/components/effects/background_effects'
 import HandFan from '@/components/hand/hand_fan'
+import { AttackArrow } from '@/components/combat/attack_arrow'
+import { EmoteWheel, EmoteDisplay, useEmotes } from '@/components/multiplayer/emotes'
+import { ConnectionStatus } from '@/components/multiplayer/connection_status'
 
 // Layout Components
 import GameLayout from '@/components/layout/game_layout'
@@ -60,6 +63,9 @@ export default function GameBoard({
     autoEndTurn: true,
   })
 
+  // Use emote system
+  const { currentEmote, sendEmote, clearEmote } = useEmotes()
+
   // Initialize game state
   React.useEffect(() => {
     if (initialGameState) {
@@ -74,11 +80,12 @@ export default function GameBoard({
     }
   }, [isTimerExpired, gameState?.activePlayer])
 
-  // Handle action bar events
+  // Handle action bar events (simplified for direct attack system)
   const handleAttack = async () => {
-    const attackerIds = Array.from(interaction.selectedAttackers)
-    await declareAttack(attackerIds)
-    onAttack?.(attackerIds)
+    // In direct attack system, attacks are initiated by clicking units
+    // This method kept for compatibility but simplified
+    console.log('Attack mode - click units to attack')
+    onAttack?.([])
   }
 
   const handleDirectAttack = async (attackerId: string, target: 'nexus') => {
@@ -137,6 +144,28 @@ export default function GameBoard({
     <GameLayout>
       {/* Background Effects */}
       <BackgroundEffects />
+
+      {/* Attack Arrow for Direct Combat */}
+      <AttackArrow />
+
+      {/* Connection Status (top-right) */}
+      <div className="fixed top-4 right-4 z-30">
+        <ConnectionStatus showDetails={true} />
+      </div>
+
+      {/* Emote Wheel (bottom-right) */}
+      <div className="fixed bottom-24 right-4 z-30">
+        <EmoteWheel onEmote={sendEmote} />
+      </div>
+
+      {/* Current Emote Display */}
+      {currentEmote && (
+        <EmoteDisplay
+          emote={currentEmote.emote}
+          playerName={currentEmote.playerName}
+          isOwn={currentEmote.isOwn}
+        />
+      )}
 
       {/* Player Info Panels */}
       {(() => {

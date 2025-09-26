@@ -1,11 +1,12 @@
 'use client'
 
-import type React from 'react'
 import { useCallback } from 'react'
-import { useGameStore, createSlotKey } from '@/store/game_store'
-import { BattlefieldSlot } from './battlefield_slot'
+import type React from 'react'
+import { useGameActions } from '@/hooks/use_game_actions'
 import type { Card, PlayerId } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
+import { createSlotKey, useGameStore } from '@/store/game_store'
+import { BattlefieldSlot } from './battlefield_slot'
 
 interface BattlefieldRowProps {
   player: PlayerId
@@ -17,7 +18,7 @@ interface BattlefieldRowProps {
 export function BattlefieldRow({
   player,
   units,
-  isActive,
+  isActive: _isActive,
   canInteract,
 }: BattlefieldRowProps) {
   const {
@@ -27,34 +28,46 @@ export function BattlefieldRow({
     setHoveredSlot,
     endCardDrag,
   } = useGameStore()
+  const { playCard } = useGameActions()
 
-  const handleRowDragOver = useCallback((e: React.DragEvent) => {
-    if (interaction.draggedCard && canInteract) {
-      e.preventDefault()
-    }
-  }, [interaction.draggedCard, canInteract])
-
-  const handleRowDrop = useCallback((e: React.DragEvent) => {
-    e.preventDefault()
-    if (interaction.draggedCard && canInteract) {
-      // Find first empty slot for auto-placement
-      const emptySlotIndex = units.indexOf(null)
-      if (emptySlotIndex !== -1) {
-        const position: BattlefieldPosition = {
-          player,
-          slot: emptySlotIndex,
-        }
-        // Trigger card placement logic here
-        console.log('Auto-placing card in slot:', position)
+  const handleRowDragOver = useCallback(
+    (e: React.DragEvent) => {
+      if (interaction.draggedCard && canInteract) {
+        e.preventDefault()
       }
-    }
-    setHoveredSlot(null)
-    endCardDrag()
-  }, [interaction.draggedCard, canInteract, units, player, setHoveredSlot, endCardDrag])
+    },
+    [interaction.draggedCard, canInteract],
+  )
+
+  const handleRowDrop = useCallback(
+    async (e: React.DragEvent) => {
+      e.preventDefault()
+      if (interaction.draggedCard && canInteract) {
+        const emptySlotIndex = units.indexOf(null)
+        if (emptySlotIndex !== -1) {
+          const position: BattlefieldPosition = {
+            player,
+            slot: emptySlotIndex,
+          }
+          console.log('Auto-placing card in slot:', position)
+          try {
+            await playCard(interaction.draggedCard, position)
+          } catch (error) {
+            console.error('Auto-place failed:', error)
+          }
+        }
+      }
+      setHoveredSlot(null)
+      endCardDrag()
+    },
+    [interaction.draggedCard, canInteract, units, player, setHoveredSlot, endCardDrag, playCard],
+  )
 
   return (
     <div
       className="flex justify-center gap-3 min-h-[140px] p-3 rounded-xl bg-gradient-to-r from-purple-900/10 via-indigo-900/5 to-blue-900/10 border border-purple-500/20 backdrop-blur-sm"
+      role="list"
+      aria-label={player === 'player1' ? 'Player battlefield row' : 'Opponent battlefield row'}
       onDragOver={handleRowDragOver}
       onDrop={handleRowDrop}
     >
@@ -68,7 +81,7 @@ export function BattlefieldRow({
 
         return (
           <BattlefieldSlot
-            key={`${player}-${index}`}
+            key={unit ? unit.id : `${player}-empty-${index}`}
             position={position}
             card={unit}
             isHighlighted={isHighlighted}
