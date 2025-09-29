@@ -138,7 +138,7 @@ export default function ActionBar({
           </Button>
         )}
 
-        {/* Combat Phase - LoR Style */}
+        {/* Combat Resolution */}
         {isInCombat && (
           <Button
             disabled
@@ -148,7 +148,7 @@ export default function ActionBar({
           </Button>
         )}
 
-        {/* Opponent Turn Indicator - LoR Style */}
+        {/* Opponent Turn Indicator */}
         {!isPlayerTurn && gameState?.phase === 'action' && (
           <Button
             disabled
@@ -158,7 +158,7 @@ export default function ActionBar({
           </Button>
         )}
 
-        {/* End Round Button - LoR Style */}
+        {/* End Round Button */}
         {gameState?.phase === 'end_round' && isPlayerTurn && (
           <Button
             onClick={onEndTurn}

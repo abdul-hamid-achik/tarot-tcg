@@ -597,9 +597,19 @@ export class EffectStackService {
   }
 
   private getCurrentGameState(): GameState {
-    // This would need to be implemented based on how game state is accessible
-    // For now, return a placeholder
-    throw new Error('getCurrentGameState needs to be implemented')
+    // Get game state from the most recent context
+    // If we're currently resolving, use that context's game state
+    if (this.state.currentlyResolving?.context.gameState) {
+      return this.state.currentlyResolving.context.gameState
+    }
+
+    // Otherwise, get from the most recent item on stack
+    if (this.state.items.length > 0 && this.state.items[0].context.gameState) {
+      return this.state.items[0].context.gameState
+    }
+
+    // If no game state available, throw error
+    throw new Error('No game state available in effect stack context')
   }
 
   private setupEventListeners(): void {

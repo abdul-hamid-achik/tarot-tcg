@@ -1,18 +1,19 @@
 import { createRandomDeck, createZodiacDeck, getAllCards } from '@/lib/card_loader'
 import { GameLogger } from '@/lib/game_logger'
-import type { Card, GameState, Player, DirectAttack } from '@/schemas/schema'
+import type { Card, GameState, Player, DirectAttack, Battlefield, CardEffect, EffectContext, TriggeredAbility } from '@/schemas/schema'
 import { cardEffectSystem } from '@/services/card_effect_system'
 import { effectStackService } from '@/services/effect_stack_service'
 import { createEventHelpers, eventManager } from '@/services/event_manager'
 import { winConditionService } from '@/services/win_condition_service'
+import { declareAttack } from '@/lib/combat_logic'
 
 // Battlefield helper functions
-function findFirstEmptySlot(battlefield: any, playerId: 'player1' | 'player2'): number {
+function findFirstEmptySlot(battlefield: Battlefield, playerId: 'player1' | 'player2'): number {
   const units = playerId === 'player1'
     ? battlefield.playerUnits
     : battlefield.enemyUnits
 
-  return units.findIndex((u: any) => u === null)
+  return units.findIndex((u: Card | null) => u === null)
 }
 
 function placeUnitOnBattlefield(
@@ -69,7 +70,7 @@ function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): 
   return units.filter(u => u !== null) as Card[]
 }
 
-function getUnitAt(battlefield: any, slot: number, playerId: 'player1' | 'player2'): Card | null {
+function getUnitAt(battlefield: Battlefield, slot: number, playerId: 'player1' | 'player2'): Card | null {
   const units = playerId === 'player1'
     ? battlefield.playerUnits
     : battlefield.enemyUnits
@@ -261,7 +262,13 @@ export async function playCard(
   const hasZodiacBuff = checkZodiacAlignment(card.zodiacClass, currentMonth)
 
   // Calculate mana usage
-  const { manaUsed, spellManaUsed } = payManaCost(player, card.cost)
+  const manaCost = payManaCost(player, card.cost)
+
+  if (!manaCost) {
+    throw new Error(`Not enough mana to play ${card.name}. Required: ${card.cost}, Available: ${player.mana + player.spellMana}`)
+  }
+
+  const { manaUsed, spellManaUsed } = manaCost
 
   // Pay mana and remove from hand
   newPlayer.mana -= manaUsed
@@ -333,15 +340,23 @@ export async function playCard(
   newState[state.activePlayer] = newPlayer
 
   // Resolve the effect stack after playing a card
-  await resolveEffectStack(newState)
+  const stateAfterEffects = await resolveEffectStack(newState)
 
-  return newState
+  return stateAfterEffects
 }
 
 // Helper functions for new playCard system
-function payManaCost(player: Player, cost: number): { manaUsed: number; spellManaUsed: number } {
+function payManaCost(player: Player, cost: number): { manaUsed: number; spellManaUsed: number } | null {
   const manaToUse = Math.min(player.mana, cost)
-  const spellManaToUse = Math.max(0, cost - manaToUse)
+  const remainingCost = cost - manaToUse
+  const spellManaToUse = Math.min(player.spellMana, remainingCost)
+
+  // Validate we have enough total mana
+  const totalAvailable = player.mana + player.spellMana
+  if (totalAvailable < cost) {
+    return null // Not enough mana
+  }
+
   return { manaUsed: manaToUse, spellManaUsed: spellManaToUse }
 }
 
@@ -391,7 +406,7 @@ async function applyUprightEffect(state: GameState, unit: Card): Promise<void> {
 // Helper function to convert old abilities to triggered abilities for the effect system
 function convertAbilitiesToTriggeredAbilities(
   abilities: { name?: string; description?: string }[],
-): any[] { // TODO: Fix types for battlefield system
+): TriggeredAbility[] {
   return abilities.map((ability, index) => ({
     id: `ability_${index}`,
     name: ability.name || `Ability ${index + 1}`,
@@ -405,7 +420,7 @@ function convertAbilitiesToTriggeredAbilities(
       name: ability.name || `Ability Effect ${index + 1}`,
       description: ability.description || '',
       type: 'instant' as const,
-      execute: (context: any) => {
+      execute: (context: EffectContext) => {
         // Convert old ability logic to new effect system
         const gameState = context.gameState
         executeAbilities(
@@ -428,18 +443,18 @@ async function queueSpellEffectsOnStack(
   card: Card,
 ): Promise<void> {
   for (const effect of effects) {
-    const cardEffect: any = { // TODO: Fix types for battlefield system
+    const cardEffect: CardEffect = {
       id: `spell_effect_${card.id}`,
       name: effect.name || 'Spell Effect',
       description: effect.description || '',
       type: 'instant',
-      execute: (context: any) => {
+      execute: (context: EffectContext) => {
         executeSpellEffects(context.gameState, [effect], castingPlayer)
         return { success: true, newGameState: context.gameState }
       },
     }
 
-    const effectContext: any = { // TODO: Fix types for battlefield system
+    const effectContext: EffectContext = {
       gameState: state,
       source: card,
     }
@@ -463,18 +478,18 @@ async function _executeSpellEffectsThroughEventSystem(
   card: Card,
 ): Promise<void> {
   for (const effect of effects) {
-    const cardEffect: any = { // TODO: Fix types for battlefield system
+    const cardEffect: CardEffect = {
       id: `spell_effect_${card.id}`,
       name: effect.name || 'Spell Effect',
       description: effect.description || '',
       type: 'instant',
-      execute: (context: any) => {
+      execute: (context: EffectContext) => {
         executeSpellEffects(context.gameState, [effect], castingPlayer)
         return { success: true, newGameState: context.gameState }
       },
     }
 
-    const effectContext: any = { // TODO: Fix types for battlefield system
+    const effectContext: EffectContext = {
       gameState: state,
       source: card,
     }
@@ -558,112 +573,8 @@ function executeAbilities(
   })
 }
 
-// NEW: Direct Attack System (Hearthstone-style)
-export async function declareAttack(
-  state: GameState,
-  attack: DirectAttack
-): Promise<GameState> {
-  const newState = { ...state }
-
-  // Find attacker on battlefield
-  const attackerPos = findUnitPosition(state.battlefield, attack.attackerId)
-  if (!attackerPos) throw new Error('Attacker not found')
-
-  const attacker = getUnitAt(state.battlefield, attackerPos.slot, attackerPos.player)
-  if (!attacker) throw new Error('Invalid attacker')
-
-  // Validate can attack
-  if (attacker.hasSummoningSickness) {
-    throw new Error('Summoning sickness')
-  }
-  if (attacker.hasAttackedThisTurn) {
-    throw new Error('Already attacked')
-  }
-
-  // Check for taunt units
-  const opponent = state.activePlayer === 'player1' ? 'player2' : 'player1'
-  const tauntUnits = getUnitsWithKeyword(state.battlefield, opponent, 'taunt')
-
-  if (tauntUnits.length > 0 && attack.targetType === 'player') {
-    throw new Error('Must attack taunt first')
-  }
-
-  GameLogger.combat(`${state.activePlayer} attacks with ${attacker.name}`, {
-    target: attack.targetType === 'player' ? 'player' : attack.targetId,
-  })
-
-  // Execute attack immediately (no separate combat phase)
-  if (attack.targetType === 'unit' && attack.targetId) {
-    // Unit combat
-    const targetPos = findUnitPosition(state.battlefield, attack.targetId)
-    if (!targetPos) throw new Error('Target not found')
-
-    const target = getUnitAt(state.battlefield, targetPos.slot, targetPos.player)
-    if (!target) throw new Error('Invalid target')
-
-    // Simultaneous damage (Hearthstone-style)
-    const attackerDamage = attacker.attack || 0
-    const defenderDamage = target.attack || 0
-
-    attacker.currentHealth = (attacker.currentHealth || attacker.health) - defenderDamage
-    target.currentHealth = (target.currentHealth || target.health) - attackerDamage
-
-    // Process deaths
-    if (attacker.currentHealth <= 0) {
-      removeUnitFromBattlefield(newState, attackerPos.player, attacker.id)
-      GameLogger.combat(`${attacker.name} dies`)
-    }
-    if (target.currentHealth <= 0) {
-      removeUnitFromBattlefield(newState, targetPos.player, target.id)
-      GameLogger.combat(`${target.name} dies`)
-    }
-
-  } else if (attack.targetType === 'player') {
-    // Face damage
-    const damage = attacker.attack || 0
-    newState[opponent].health -= damage
-    GameLogger.combat(`${attacker.name} deals ${damage} damage to ${opponent}`)
-  }
-
-  // Mark as attacked
-  attacker.hasAttackedThisTurn = true
-
-  return newState
-}
-
-// Helper functions for new combat system
-function findUnitPosition(battlefield: any, unitId: string): { player: 'player1' | 'player2'; slot: number } | null {
-  // Check player1 units
-  for (let i = 0; i < battlefield.playerUnits.length; i++) {
-    if (battlefield.playerUnits[i]?.id === unitId) {
-      return { player: 'player1', slot: i }
-    }
-  }
-
-  // Check player2 units
-  for (let i = 0; i < battlefield.enemyUnits.length; i++) {
-    if (battlefield.enemyUnits[i]?.id === unitId) {
-      return { player: 'player2', slot: i }
-    }
-  }
-
-  return null
-}
-
-function getUnitsWithKeyword(battlefield: any, playerId: 'player1' | 'player2', keyword: string): any[] {
-  const units = getPlayerUnits({ battlefield } as any, playerId)
-  return units.filter(unit =>
-    unit.keywords?.includes(keyword) || unit.keywords?.includes(keyword.charAt(0).toUpperCase() + keyword.slice(1))
-  )
-}
-
-// Simplified battlefield system - no complex declarations needed
-// Units can be placed directly in battlefield slots
-
-// Legacy functions completely removed - use direct attack system
-
-// Battlefield system uses directAttack() instead of complex lane combat
-// No separate combat resolution phase needed
+// Combat logic is now centralized in combat_logic.ts
+// declareAttack is imported above - no duplicate implementation needed
 
 // Game outcome detection with win conditions
 export function checkGameOutcome(state: GameState): 'player1_wins' | 'player2_wins' | 'ongoing' {
@@ -692,21 +603,38 @@ export function checkGameOutcome(state: GameState): 'player1_wins' | 'player2_wi
 }
 
 // Resolve the effect stack until empty
-async function resolveEffectStack(_gameState: GameState): Promise<void> {
+async function resolveEffectStack(gameState: GameState): Promise<GameState> {
   try {
-    // For now, just clear the stack since tests don't have proper game state management
-    // In a real game, this would resolve the stack properly
-    effectStackService.clearStack()
+    // Get current stack state
+    const stackState = effectStackService.getStackState()
 
-    // TODO: Implement proper stack resolution when integrated with UI state management
-    // const results = await effectStackService.resolveStack();
-    // if (results.length > 0) {
-    //   GameLogger.state(`Resolved ${results.length} effects from stack`);
-    // }
+    if (stackState.items.length === 0) {
+      return gameState
+    }
+
+    GameLogger.state(`Resolving effect stack with ${stackState.items.length} items`)
+
+    // Resolve all items on the stack
+    // Note: The service needs game state, so we pass it through context
+    const results = await effectStackService.resolveStack()
+
+    if (results.resolved.length > 0) {
+      GameLogger.state(`Resolved ${results.resolved.length} effects from stack`)
+    }
+
+    if (results.failed.length > 0) {
+      GameLogger.state(`Failed to resolve ${results.failed.length} effects`, {
+        failed: results.failed.map(f => f.effect.name)
+      })
+    }
+
+    // Return the updated game state from the resolution
+    return results.newGameState || gameState
   } catch (error) {
     console.error('Error resolving effect stack:', error)
     // Fallback: clear the stack to prevent infinite loops
     effectStackService.clearStack()
+    return gameState
   }
 }
 
@@ -730,12 +658,12 @@ export async function respondToStackEffect(
   try {
     if (responseType === 'counter' && responseCard) {
       // Add counter spell to stack
-      const counterEffect: any = { // TODO: Fix types for battlefield system
+      const counterEffect: CardEffect = {
         id: `counter_${responseCard.id}`,
         name: responseCard.name,
         description: `Counter target spell or ability`,
         type: 'instant',
-        execute: (context: any) => {
+        execute: (context: EffectContext) => {
           // Counter the targeted effect from stack
           const success = effectStackService.counterEffect(stackItemId, 'player1')
           if (success) {
@@ -745,7 +673,7 @@ export async function respondToStackEffect(
         },
       }
 
-      const effectContext: any = { // TODO: Fix types for battlefield system
+      const effectContext: EffectContext = {
         gameState,
         source: responseCard,
       }
