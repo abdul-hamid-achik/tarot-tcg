@@ -69,19 +69,14 @@ export default function CardDetailOverlay({
                   </>
                 )}
 
-                <Badge
-                  className={`${
-                    card.rarity === 'legendary'
-                      ? 'bg-black text-white'
-                      : card.rarity === 'rare'
-                        ? 'bg-gray-800 text-white'
-                        : card.rarity === 'uncommon'
-                          ? 'bg-gray-700 text-white'
-                          : 'bg-gray-600 text-white'
-                  }`}
-                >
-                  {card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1)}
-                </Badge>
+                <div className={`w-4 h-4 rounded-full ${card.rarity === 'legendary'
+                    ? 'bg-purple-500'
+                    : card.rarity === 'rare'
+                      ? 'bg-blue-500'
+                      : card.rarity === 'uncommon'
+                        ? 'bg-green-500'
+                        : 'bg-gray-500'
+                  }`} />
               </div>
 
               {/* Zodiac & Element */}

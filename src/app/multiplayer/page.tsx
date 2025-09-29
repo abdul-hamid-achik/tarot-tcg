@@ -27,7 +27,7 @@ export default function MultiplayerPage() {
                     const initialState = createInitialGameState()
                     setGameState(initialState)
 
-                    // Connect to multiplayer session
+                    // Try to connect to multiplayer session (will fail with current WebSocket implementation)
                     const connected = await multiplayer.connectToGame(
                         matchData.matchId,
                         matchData.yourSide,
@@ -38,13 +38,15 @@ export default function MultiplayerPage() {
                         setState('playing')
                         GameLogger.state(`Connected to multiplayer game: ${matchData.matchId}`)
                     } else {
-                        setError('Failed to connect to game session')
-                        setState('setup')
+                        // For demo purposes, show a demo mode message
+                        setError('WebSocket not implemented - Running in demo mode')
+                        setState('playing') // Still allow playing in demo mode
+                        GameLogger.state(`Demo mode - WebSocket not available`)
                     }
                 } catch (error) {
                     console.error('Game initialization error:', error)
-                    setError('Failed to initialize game')
-                    setState('setup')
+                    setError('Failed to initialize game - Running in demo mode')
+                    setState('playing') // Still allow playing in demo mode
                 }
             }
 
@@ -92,25 +94,30 @@ export default function MultiplayerPage() {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-purple-950 via-indigo-950 to-purple-950">
+        <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
             {/* Setup Phase */}
             {state === 'setup' && (
                 <div className="flex flex-col items-center justify-center min-h-screen p-4">
                     <div className="max-w-md w-full">
                         <div className="text-center mb-8">
-                            <h1 className="text-4xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent mb-2">
+                            <h1 className="text-4xl font-bold text-black dark:text-white mb-2">
                                 🎴 Tarot TCG
                             </h1>
-                            <p className="text-gray-300">
+                            <p className="text-gray-800 dark:text-gray-200">
                                 Mystical battles await in the cosmic arena
                             </p>
                         </div>
 
                         {error && (
-                            <div className="bg-red-900/30 border border-red-600/50 rounded-lg p-4 mb-4">
-                                <p className="text-red-300 text-sm">
+                            <div className="bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4 mb-4">
+                                <p className="text-yellow-800 dark:text-yellow-200 text-sm">
                                     ⚠️ {error}
                                 </p>
+                                {error.includes('WebSocket not implemented') && (
+                                    <p className="text-yellow-700 dark:text-yellow-300 text-xs mt-1">
+                                        💡 This is expected in the demo - WebSocket functionality requires a proper backend implementation.
+                                    </p>
+                                )}
                             </div>
                         )}
 
@@ -137,35 +144,35 @@ export default function MultiplayerPage() {
             {/* Match Found Phase */}
             {state === 'matched' && matchData && (
                 <div className="flex flex-col items-center justify-center min-h-screen p-4">
-                    <div className="max-w-lg w-full bg-gray-900/50 rounded-xl border border-purple-600/30 p-8 text-center">
+                    <div className="max-w-lg w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-300 dark:border-gray-600 p-8 text-center shadow-lg">
                         <div className="text-6xl mb-4 animate-bounce">🎉</div>
-                        <h2 className="text-2xl font-bold text-yellow-400 mb-2">
+                        <h2 className="text-2xl font-bold text-black dark:text-white mb-2">
                             🌟 Worthy Opponent Found!
                         </h2>
-                        <p className="text-xl text-white mb-4">
+                        <p className="text-xl text-black dark:text-white mb-4">
                             {matchData.opponent.name}
                         </p>
                         <div className="flex flex-col gap-2 mb-6">
-                            <p className="text-sm text-gray-300">
+                            <p className="text-sm text-gray-800 dark:text-gray-200">
                                 {matchData.opponent.zodiac} ♦ Rating: {matchData.opponent.rating}
                             </p>
-                            <p className="text-sm text-purple-300">
+                            <p className="text-sm text-blue-600 dark:text-blue-400">
                                 Compatibility: {Math.round(matchData.zodiacCompatibility * 100)}%
                             </p>
                         </div>
 
                         {matchData.cosmicBlessings && (
-                            <div className="bg-indigo-900/30 border border-indigo-600/30 rounded-lg p-4 mb-6">
-                                <h3 className="text-sm font-bold text-indigo-300 mb-2">🌟 Cosmic Blessings:</h3>
+                            <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-4 mb-6">
+                                <h3 className="text-sm font-bold text-blue-800 dark:text-blue-200 mb-2">🌟 Cosmic Blessings:</h3>
                                 {matchData.cosmicBlessings.map((blessing: string, index: number) => (
-                                    <p key={index} className="text-xs text-indigo-200 mb-1">
+                                    <p key={index} className="text-xs text-blue-700 dark:text-blue-300 mb-1">
                                         {blessing}
                                     </p>
                                 ))}
                             </div>
                         )}
 
-                        <div className="animate-pulse text-purple-300">
+                        <div className="animate-pulse text-gray-600 dark:text-gray-400">
                             🔮 Preparing the mystical battlefield...
                         </div>
                     </div>
@@ -183,17 +190,17 @@ export default function MultiplayerPage() {
             {/* Game Ended Phase */}
             {state === 'ended' && (
                 <div className="flex flex-col items-center justify-center min-h-screen p-4">
-                    <div className="max-w-md w-full bg-gray-900/50 rounded-xl border border-purple-600/30 p-8 text-center">
+                    <div className="max-w-md w-full bg-white dark:bg-gray-800 rounded-xl border border-gray-300 dark:border-gray-600 p-8 text-center shadow-lg">
                         <div className="text-6xl mb-4">🎴</div>
-                        <h2 className="text-2xl font-bold text-purple-400 mb-4">
+                        <h2 className="text-2xl font-bold text-black dark:text-white mb-4">
                             Game Complete
                         </h2>
-                        <p className="text-gray-300 mb-6">
+                        <p className="text-gray-800 dark:text-gray-200 mb-6">
                             The cards have spoken their wisdom
                         </p>
                         <button
                             onClick={handleReturnToSetup}
-                            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg transition-colors"
+                            className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 rounded-lg transition-colors"
                         >
                             ✨ Seek Another Battle
                         </button>

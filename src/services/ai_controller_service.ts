@@ -53,6 +53,17 @@ export class AIControllerService {
 
   // Main entry point for AI turn execution
   async executeAITurn(gameState: GameState): Promise<GameState> {
+    console.log('🤖 AI executeAITurn called with:', {
+      activePlayer: gameState.activePlayer,
+      phase: gameState.phase,
+      aiHand: gameState.player2.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })),
+      aiMana: gameState.player2.mana,
+      battlefield: {
+        playerUnits: gameState.battlefield.playerUnits.filter(u => u !== null).length,
+        enemyUnits: gameState.battlefield.enemyUnits.filter(u => u !== null).length
+      }
+    })
+
     if (gameState.activePlayer !== 'player2') {
       console.warn('executeAITurn called when not AI turn')
       return gameState
@@ -75,11 +86,14 @@ export class AIControllerService {
 
     // Phase 2: Action phase
     if (currentState.phase === 'action') {
+      console.log('🤖 AI in action phase, executing turn...')
+
       // Simulate thinking time
       await this.simulateThinking()
 
       // Make card play decisions
       currentState = await this.executeCardPlays(currentState)
+      console.log('🤖 AI card plays completed')
 
       // Small delay between actions for visual clarity
       await new Promise(resolve => setTimeout(resolve, 300))
@@ -99,6 +113,7 @@ export class AIControllerService {
 
       // Actually end the turn using game logic
       currentState = await endTurn(currentState)
+      console.log('🤖 AI turn ended')
       return currentState
     }
 
@@ -109,8 +124,11 @@ export class AIControllerService {
 
   // Card play logic with strategic evaluation
   private async executeCardPlays(gameState: GameState): Promise<GameState> {
+    console.log('🤖 AI executeCardPlays starting...')
     let currentState = { ...gameState }
     const decisions = this.evaluateCardPlays(currentState)
+
+    console.log(`🤖 AI found ${decisions.length} potential card plays`)
 
     // Sort by priority and play cards based on personality
     const sortedDecisions = decisions.sort((a, b) => b.priority - a.priority)
@@ -118,16 +136,28 @@ export class AIControllerService {
     let playsThisTurn = 0
 
     for (const decision of sortedDecisions) {
-      if (playsThisTurn >= maxPlays) break
+      console.log(`🤖 AI considering ${decision.card.name} with priority ${decision.priority}`)
+
+      if (playsThisTurn >= maxPlays) {
+        console.log(`🤖 AI reached max plays (${maxPlays})`)
+        break
+      }
 
       // Check if we should play this card based on priority threshold
-      if (!this.shouldPlayCard(decision, currentState)) continue
+      if (!this.shouldPlayCard(decision, currentState)) {
+        console.log(`🤖 AI skipping ${decision.card.name} - priority too low`)
+        continue
+      }
 
       // Check mana availability
       const totalMana = currentState.player2.mana + currentState.player2.spellMana
-      if (decision.card.cost > totalMana) continue
+      if (decision.card.cost > totalMana) {
+        console.log(`🤖 AI skipping ${decision.card.name} - insufficient mana (${decision.card.cost} > ${totalMana})`)
+        continue
+      }
 
       // Play the card
+      console.log(`🤖 AI playing ${decision.card.name}`)
       currentState = this.playCard(currentState, decision)
       playsThisTurn++
 
@@ -142,6 +172,8 @@ export class AIControllerService {
         playerId: 'player2',
         cardsPlayed: playsThisTurn,
       })
+    } else {
+      console.log('🤖 AI played no cards this turn')
     }
 
     return currentState
@@ -152,12 +184,41 @@ export class AIControllerService {
     const player = gameState.player2
     const decisions: CardPlayDecision[] = []
 
+    console.log('🤖 AI evaluating cards:', player.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })))
+    console.log('🤖 AI mana:', player.mana, 'spell mana:', player.spellMana)
+    console.log('🤖 AI battlefield slots available:', gameState.battlefield.enemyUnits.filter(u => u === null).length)
+
     for (const card of player.hand) {
+      console.log(`🤖 AI card properties:`, {
+        name: card.name,
+        cost: card.cost,
+        type: card.type,
+        hasType: !!card.type,
+        allProps: Object.keys(card)
+      })
+
       const totalMana = player.mana + player.spellMana
-      if (card.cost > totalMana) continue
+      console.log(`🤖 AI checking ${card.name}: cost ${card.cost}, available mana ${totalMana}`)
+
+      if (card.cost > totalMana) {
+        console.log(`🤖 AI skipping ${card.name} - insufficient mana`)
+        continue
+      }
+
+      // Check if unit cards can be placed (battlefield not full)
+      if (card.type === 'unit') {
+        const availableSlots = gameState.battlefield.enemyUnits.filter(u => u === null).length
+        console.log(`🤖 AI checking unit placement for ${card.name}, available slots: ${availableSlots}`)
+        if (availableSlots === 0) {
+          console.log(`🤖 AI skipping ${card.name} - no empty battlefield slots`)
+          continue
+        }
+      }
 
       const priority = this.calculateCardPriority(card, gameState)
       const reasoning = this.getCardPlayReasoning(card, gameState)
+
+      console.log(`🤖 AI card ${card.name} priority: ${priority}`)
 
       decisions.push({
         card,
@@ -166,6 +227,7 @@ export class AIControllerService {
       })
     }
 
+    console.log(`🤖 AI found ${decisions.length} playable cards`)
     return decisions
   }
 
@@ -366,6 +428,7 @@ export class AIControllerService {
 
   // Execute card play and update game state
   private playCard(gameState: GameState, decision: CardPlayDecision): GameState {
+    console.log(`🤖 AI playCard: attempting to play ${decision.card.name}`)
     const newState = { ...gameState }
     const player = { ...newState.player2 }
     const card = decision.card
@@ -373,15 +436,18 @@ export class AIControllerService {
     // Find first empty slot on the battlefield for AI (player2 uses enemyUnits)
     let targetSlot = -1
     if (card.type === 'unit') {
+      console.log(`🤖 AI looking for empty slot for unit ${card.name}`)
       for (let i = 0; i < newState.battlefield.enemyUnits.length; i++) {
         if (newState.battlefield.enemyUnits[i] === null) {
           targetSlot = i
+          console.log(`🤖 AI found empty slot at index ${i}`)
           break
         }
       }
 
       if (targetSlot === -1) {
         console.warn(`AI cannot play ${card.name} - battlefield is full`)
+        console.log('🤖 AI battlefield state:', newState.battlefield.enemyUnits)
         return newState // Return unchanged state
       }
     }

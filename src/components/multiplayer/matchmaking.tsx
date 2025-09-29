@@ -135,16 +135,16 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
 
     return (
         <div className={cn(
-            'flex flex-col gap-6 p-6 bg-gradient-to-br from-purple-900/50 to-indigo-900/50',
-            'border border-purple-600/30 rounded-xl backdrop-blur-sm shadow-2xl',
+            'flex flex-col gap-6 p-6 bg-white dark:bg-gray-800',
+            'border border-gray-300 dark:border-gray-600 rounded-xl shadow-2xl',
             className
         )}>
             {/* Header */}
             <div className="text-center">
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-purple-400 to-pink-400 bg-clip-text text-transparent">
+                <h2 className="text-2xl font-bold text-black dark:text-white">
                     🔮 Mystical Matchmaking
                 </h2>
-                <p className="text-gray-300 text-sm mt-1">
+                <p className="text-gray-800 dark:text-gray-200 text-sm mt-1">
                     Find a worthy opponent in the cosmic arena
                 </p>
             </div>
@@ -154,17 +154,17 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     {/* Player Setup */}
                     <div className="flex flex-col gap-4">
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-purple-300">Your Name</label>
+                            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Your Name</label>
                             <Input
                                 value={playerName}
                                 onChange={(e) => setPlayerName(e.target.value)}
                                 placeholder="Enter your mystical name..."
-                                className="bg-gray-800/50 border-purple-600/30 text-white"
+                                className="bg-gray-50 dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-black dark:text-white"
                             />
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-purple-300">Zodiac Sign</label>
+                            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Zodiac Sign</label>
                             <Select
                                 value={favoriteZodiac}
                                 onValueChange={(value) => setFavoriteZodiac(value as ZodiacClass)}
@@ -185,7 +185,7 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                         </div>
 
                         <div className="flex flex-col gap-2">
-                            <label className="text-sm font-medium text-purple-300">Game Mode</label>
+                            <label className="text-sm font-medium text-gray-800 dark:text-gray-200">Game Mode</label>
                             <Select value={gameMode} onValueChange={setGameMode}>
                                 <option value="standard">🎴 Standard - Classic gameplay</option>
                                 <option value="arcana_master">🃏 Arcana Master - Complete Major Arcana</option>
@@ -200,7 +200,7 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     <Button
                         onClick={handleStartMatchmaking}
                         disabled={!playerName.trim()}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-bold py-3"
+                        className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3"
                     >
                         ✨ Seek Opponent in the Cosmic Realm
                     </Button>
@@ -212,8 +212,9 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     {/* Searching Animation */}
                     <div className="relative">
                         <div className="w-16 h-16 mx-auto">
-                            <div className="absolute inset-0 border-4 border-purple-600/30 rounded-full"></div>
-                            <div className="absolute inset-0 border-4 border-purple-600 rounded-full animate-spin border-t-transparent"></div>
+                            <div className="absolute inset-0 border-2 border-gray-300 dark:border-gray-600 rounded-full animate-pulse"></div>
+                            <div className="absolute inset-0 border-2 border-black dark:border-white rounded-full animate-spin opacity-75"></div>
+                            <div className="absolute inset-0 border-2 border-blue-500 dark:border-blue-400 rounded-full animate-spin opacity-50" style={{ animationDirection: 'reverse', animationDuration: '1.5s' }}></div>
                             <div className="absolute inset-2 flex items-center justify-center text-2xl">
                                 🔮
                             </div>
@@ -222,10 +223,10 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
 
                     {/* Status Info */}
                     <div className="flex flex-col gap-2">
-                        <h3 className="text-xl font-bold text-purple-400">
+                        <h3 className="text-xl font-bold text-black dark:text-white">
                             Consulting the Oracle...
                         </h3>
-                        <p className="text-gray-300">
+                        <p className="text-gray-800 dark:text-gray-200">
                             {matchStatus.estimatedWait || 'Searching for a worthy opponent'}
                         </p>
 
@@ -242,8 +243,8 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
 
                     {/* Cosmic Advice */}
                     {matchStatus.cosmicAdvice && (
-                        <div className="bg-indigo-900/30 border border-indigo-600/30 rounded-lg p-3">
-                            <p className="text-indigo-300 text-sm font-medium">
+                        <div className="bg-blue-50 dark:bg-blue-900/30 border border-blue-200 dark:border-blue-700 rounded-lg p-3">
+                            <p className="text-blue-800 dark:text-blue-200 text-sm font-medium">
                                 {matchStatus.cosmicAdvice}
                             </p>
                         </div>
@@ -253,7 +254,7 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     <Button
                         onClick={handleCancelMatchmaking}
                         variant="outline"
-                        className="border-red-600/50 text-red-400 hover:bg-red-600/10"
+                        className="border-red-300 dark:border-red-600 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
                     >
                         Cancel Search
                     </Button>
@@ -271,20 +272,20 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     </div>
 
                     <div className="flex flex-col gap-2">
-                        <h3 className="text-xl font-bold text-yellow-400">
+                        <h3 className="text-xl font-bold text-green-600 dark:text-green-400">
                             🌟 Match Found!
                         </h3>
-                        <p className="text-lg text-white">
+                        <p className="text-lg text-black dark:text-white">
                             vs {matchStatus.matchData.opponent.name}
                         </p>
-                        <p className="text-sm text-gray-300">
+                        <p className="text-sm text-gray-800 dark:text-gray-200">
                             {matchStatus.matchData.opponent.zodiac} ♦ Rating: {matchStatus.matchData.opponent.rating}
                         </p>
                     </div>
 
                     {/* Zodiac Compatibility */}
-                    <div className="bg-yellow-900/20 border border-yellow-600/30 rounded-lg p-3">
-                        <p className="text-yellow-300 text-sm font-medium">
+                    <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-700 rounded-lg p-3">
+                        <p className="text-green-800 dark:text-green-200 text-sm font-medium">
                             Zodiac Compatibility: {Math.round(matchStatus.matchData.zodiacCompatibility * 100)}%
                         </p>
                     </div>
@@ -292,9 +293,9 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     {/* Cosmic Blessings */}
                     {matchStatus.matchData.cosmicBlessings && (
                         <div className="flex flex-col gap-1">
-                            <p className="text-sm font-medium text-purple-300">Cosmic Blessings:</p>
+                            <p className="text-sm font-medium text-gray-800 dark:text-gray-200">Cosmic Blessings:</p>
                             {matchStatus.matchData.cosmicBlessings.map((blessing: string, index: number) => (
-                                <p key={index} className="text-xs text-gray-300">
+                                <p key={index} className="text-xs text-gray-600 dark:text-gray-400">
                                     {blessing}
                                 </p>
                             ))}

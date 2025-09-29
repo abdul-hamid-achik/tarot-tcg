@@ -125,7 +125,7 @@ export default function TarotCard({
           className="w-full h-full object-cover"
           onError={e => {
             // Fallback if image fails to load
-            ;(e.target as HTMLImageElement).src = getCardBackImagePath()
+            ; (e.target as HTMLImageElement).src = getCardBackImagePath()
           }}
         />
       </div>
@@ -141,9 +141,7 @@ export default function TarotCard({
             </div>
 
             {/* Rarity Badge */}
-            <Badge className={`text-xs px-1 py-0 ${getRarityColor(card)}`}>
-              {card.rarity || 'C'}
-            </Badge>
+            <div className={`w-3 h-3 rounded-full ${getRarityColor(card)}`} />
           </div>
 
           {/* Bottom overlay with stats and type */}

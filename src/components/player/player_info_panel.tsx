@@ -33,7 +33,7 @@ export default function PlayerInfoPanel({
   // Position-specific styles - Hearthstone-style compact with proper visibility
   const positionStyles = {
     'top-left': 'fixed top-2 left-2 z-50',
-    'bottom-right': 'fixed bottom-16 right-2 z-50', // Moved up to avoid hand overlap
+    'bottom-right': 'fixed bottom-20 right-2 z-50', // Position above action bar
   }
 
   // Player-specific styling
@@ -102,8 +102,8 @@ export default function PlayerInfoPanel({
     <div className={`${positionStyles[position]} z-[60] w-36 ${className}`}>
       <div className={`
         relative p-2 rounded-lg shadow-md backdrop-blur-sm transition-all duration-300
-        ${isCurrentPlayer 
-          ? 'bg-gray-800 border border-gray-600' 
+        ${isCurrentPlayer
+          ? 'bg-gray-800 border border-gray-600'
           : 'bg-gray-700 border border-gray-500'
         }
         ${isActive ? 'ring-1 ring-black' : ''}
@@ -181,6 +181,7 @@ export default function PlayerInfoPanel({
             </div>
           </div>
         </div>
+
       </div>
     </div>
   )

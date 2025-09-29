@@ -5,7 +5,7 @@ import { useCallback } from 'react'
 import { useGameStore } from '@/store/game_store'
 import { useGameActions } from '@/hooks/use_game_actions'
 import { useCombatActions } from '@/hooks/use_combat_actions'
-import { GameCard } from '@/components/game_card'
+import TarotCard from '@/components/tarot_card'
 import type { Card } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
 import { cn } from '@/lib/utils'
@@ -108,7 +108,7 @@ export function BattlefieldSlot({
         'flex items-center justify-center group',
         // Base styling by player
         position.player === 'player1' ? (
-          isEmpty 
+          isEmpty
             ? 'border-dashed border-gray-400 hover:border-gray-600 bg-white'
             : 'border-solid border-gray-600 bg-gray-100'
         ) : (
@@ -127,15 +127,16 @@ export function BattlefieldSlot({
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={handleSlotClick}
-      data-slot={`${position.player}-${position.slot}`}
+      data-player={position.player}
+      data-slot={position.slot}
     >
 
       {/* Card or Empty State */}
       {card ? (
         <div className="w-full h-full">
-          <GameCard
+          <TarotCard
             card={card}
-            size="medium"
+            size="battlefield"
             onClick={canInteract ? () => {/* Handle card click */ } : undefined}
           />
         </div>

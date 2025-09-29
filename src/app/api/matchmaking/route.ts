@@ -147,12 +147,12 @@ async function findMatch(
 ): Promise<PlayerProfile | null> {
     const candidates: PlayerProfile[] = []
 
-    // Get all candidates from pool
+    // Get all candidates from pool (excluding current player)
     for (const candidateId of pool) {
         if (candidateId === player.id) continue
 
         const candidate = playerProfiles.get(candidateId)
-        if (candidate) {
+        if (candidate && candidate.id !== player.id) {
             candidates.push(candidate)
         }
     }

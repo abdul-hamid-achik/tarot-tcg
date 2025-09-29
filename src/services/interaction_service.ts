@@ -253,6 +253,8 @@ class InteractionService {
       this.dragState.dragElement.style.position = 'fixed'
       this.dragState.dragElement.style.zIndex = '9999'
       this.dragState.dragElement.style.pointerEvents = 'none'
+      // Store original transform to restore later
+      this.dragState.dragElement.dataset.originalTransform = this.dragState.dragElement.style.transform || ''
     }
   }
 
@@ -260,13 +262,18 @@ class InteractionService {
    * End the drag operation
    */
   private endDrag(): void {
-    // Remove drag visual class
+    // Remove drag visual class and restore original styles
     if (this.dragState.dragElement) {
       this.dragState.dragElement.classList.remove('dragging')
       this.dragState.dragElement.style.position = ''
       this.dragState.dragElement.style.zIndex = ''
       this.dragState.dragElement.style.pointerEvents = ''
-      this.dragState.dragElement.style.transform = ''
+      this.dragState.dragElement.style.left = ''
+      this.dragState.dragElement.style.top = ''
+      // Restore original transform
+      const originalTransform = this.dragState.dragElement.dataset.originalTransform || ''
+      this.dragState.dragElement.style.transform = originalTransform
+      delete this.dragState.dragElement.dataset.originalTransform
     }
 
     this.callbacks.onHideTooltip?.()
@@ -278,11 +285,13 @@ class InteractionService {
   private updateDragVisual(x: number, y: number): void {
     if (!this.dragState.dragElement) return
 
-    const rect = this.dragState.dragElement.getBoundingClientRect()
-    const offsetX = x - rect.width / 2
-    const offsetY = y - rect.height / 2
+    // Position the element at the cursor position, centered on the cursor
+    const offsetX = x - this.dragState.dragElement.offsetWidth / 2
+    const offsetY = y - this.dragState.dragElement.offsetHeight / 2
 
-    this.dragState.dragElement.style.transform = `translate(${offsetX}px, ${offsetY}px)`
+    this.dragState.dragElement.style.left = `${offsetX}px`
+    this.dragState.dragElement.style.top = `${offsetY}px`
+    this.dragState.dragElement.style.transform = 'none' // Remove any existing transform
   }
 
   /**

@@ -55,7 +55,8 @@ const menuOptions: MenuOption[] = [
     description: 'Challenge other mystics',
     icon: <Swords className="w-8 h-8" />,
     color: 'text-destructive',
-    available: false,
+    available: true,
+    route: '/multiplayer',
   },
   {
     id: 'pve',

@@ -32,6 +32,7 @@ import {
   isMulliganPhase,
 } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
+import { interactionService } from '@/services/interaction_service'
 
 interface GameBoardProps {
   gameState: GameState
@@ -48,7 +49,17 @@ export default function GameBoard({
   onEndTurn,
   onMulligan,
 }: GameBoardProps) {
-  const { ui, interaction, hideCardDetail, showCardDetail, setGameState } = useGameStore()
+  const {
+    ui,
+    interaction,
+    hideCardDetail,
+    showCardDetail,
+    setGameState,
+    highlightSlots,
+    clearHighlights,
+    setValidDropZones,
+    clearValidDropZones
+  } = useGameStore()
 
   const { playCard, declareAttack, attackTarget, completeMulligan, reverseCard } =
     useGameActions()
@@ -72,6 +83,72 @@ export default function GameBoard({
       setGameState(initialGameState)
     }
   }, [initialGameState, setGameState])
+
+  // Set up interaction service callbacks
+  React.useEffect(() => {
+    const callbacks = {
+      getValidDropZones: (card: GameCard, from: BattlefieldPosition | 'hand'): BattlefieldPosition[] => {
+        if (from === 'hand' && card.type === 'unit') {
+          // Find all empty slots on player's battlefield
+          const validSlots: BattlefieldPosition[] = []
+          const battlefield = gameState?.battlefield
+          if (battlefield) {
+            battlefield.playerUnits.forEach((unit, index) => {
+              if (unit === null) {
+                validSlots.push({ player: 'player1', slot: index })
+              }
+            })
+          }
+          return validSlots
+        }
+        return []
+      },
+      canDropOn: (position: BattlefieldPosition, card: GameCard, from: BattlefieldPosition | 'hand'): boolean => {
+        if (from === 'hand' && position.player === 'player1') {
+          const battlefield = gameState?.battlefield
+          if (battlefield) {
+            return battlefield.playerUnits[position.slot] === null
+          }
+        }
+        return false
+      },
+      onCardMove: async (card: GameCard, from: BattlefieldPosition | 'hand', to: BattlefieldPosition) => {
+        if (from === 'hand') {
+          await playCard(card, to)
+        }
+      },
+      onSlotHighlight: (positions: BattlefieldPosition[], type: 'valid' | 'invalid' | 'hover') => {
+        if (type === 'valid') {
+          setValidDropZones(positions)
+        } else if (type === 'hover') {
+          highlightSlots(positions)
+        }
+      },
+      onClearHighlights: () => {
+        clearHighlights()
+        clearValidDropZones()
+      }
+    }
+
+    interactionService.setCallbacks(callbacks)
+
+    // Set up global pointer event listeners for drag and drop
+    const handlePointerMove = (event: PointerEvent) => {
+      interactionService.handlePointerMove(event)
+    }
+
+    const handlePointerUp = (event: PointerEvent) => {
+      interactionService.handlePointerUp(event)
+    }
+
+    document.addEventListener('pointermove', handlePointerMove)
+    document.addEventListener('pointerup', handlePointerUp)
+
+    return () => {
+      document.removeEventListener('pointermove', handlePointerMove)
+      document.removeEventListener('pointerup', handlePointerUp)
+    }
+  }, [gameState, playCard])
 
   // Auto-end turn when timer expires
   React.useEffect(() => {
@@ -128,7 +205,8 @@ export default function GameBoard({
       // Spell cards don't need target position
       await playCard(card)
     }
-    onCardPlay?.(card)
+    // Remove the onCardPlay callback to prevent double playing
+    // onCardPlay?.(card)
   }
 
   const handleMulligan = async (selectedCards: string[]) => {
@@ -167,9 +245,19 @@ export default function GameBoard({
         ) : null
       })()}
 
-      {/* Main Game Area - Full Screen No Overflow */}
-      <div className="h-screen w-screen flex items-center justify-center relative">
-        <Battlefield />
+      {/* Action Bar - Positioned next to player profile in bottom-right */}
+      <ActionBar
+        onAttack={handleAttack}
+        onPass={handlePass}
+        onEndTurn={handleEndTurn}
+        className="fixed bottom-4 right-4 z-40"
+      />
+
+      {/* Main Game Area */}
+      <div className="h-full w-full flex items-center justify-center relative p-4">
+        <div className="flex flex-col items-center justify-center w-full max-w-6xl">
+          <Battlefield />
+        </div>
       </div>
 
 

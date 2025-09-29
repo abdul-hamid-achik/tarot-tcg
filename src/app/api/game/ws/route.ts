@@ -78,36 +78,43 @@ export async function GET(request: NextRequest) {
     return response
 }
 
-// WebSocket upgrade utility (simplified - would use proper WebSocket library)
+// WebSocket upgrade utility - requires proper WebSocket server implementation
 function upgradeWebSocket(request: NextRequest): {
     socket: WebSocket;
     response: Response
 } {
-    // This is a simplified implementation
-    // In production, you'd use a proper WebSocket library like 'ws' or Vercel's WebSocket support
+    // For proper WebSocket implementation, you would need:
+    // 1. Install 'ws' package: npm install ws @types/ws
+    // 2. Create a custom server or use Socket.IO
+    // 3. Handle the WebSocket upgrade properly
 
     if (request.headers.get('upgrade') !== 'websocket') {
         throw new Error('Expected websocket upgrade')
     }
 
-    // Create a mock WebSocket for the example
-    // In real implementation, this would create actual WebSocket connection
+    // Return an error response since WebSocket is not properly implemented
+    const response = new Response(JSON.stringify({
+        error: 'WebSocket not implemented',
+        message: 'This demo uses mock WebSocket. For production, implement proper WebSocket server.'
+    }), {
+        status: 501,
+        headers: {
+            'Content-Type': 'application/json',
+        }
+    })
+
+    // Return a mock socket that will cause immediate failure
     const socket = {
         send: (data: string) => {
-            console.log('Mock WebSocket send:', data)
+            console.error('WebSocket not implemented - attempted to send:', data)
         },
         onmessage: null as ((event: { data: string }) => void) | null,
         onclose: null as (() => void) | null,
         onerror: null as ((error: any) => void) | null,
-    } as any
-
-    const response = new Response(null, {
-        status: 101,
-        headers: {
-            'Upgrade': 'websocket',
-            'Connection': 'Upgrade',
+        close: () => {
+            console.log('Mock WebSocket closed')
         }
-    })
+    } as any
 
     return { socket, response }
 }

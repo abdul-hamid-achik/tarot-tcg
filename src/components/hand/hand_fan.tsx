@@ -31,12 +31,12 @@ export default function HandFan({
   // Position-specific styles - No-overflow Hearthstone-style
   const positionStyles = {
     'bottom-left': {
-      container: 'fixed bottom-2 left-1/2 transform -translate-x-1/2 max-h-24',
+      container: 'fixed bottom-5 left-1/2 transform -translate-x-1/2 max-h-24',
       transformOrigin: 'center bottom',
       fanDirection: 1, // Normal fan direction
     },
     'top-right': {
-      container: 'absolute top-2 right-4 max-h-16',
+      container: 'absolute top-2 right-10 max-h-16',
       transformOrigin: 'center top',
       fanDirection: -1, // Reverse fan direction for enemy
     },
@@ -304,13 +304,6 @@ export default function HandFan({
           <div className="w-20 h-32 border-2 border-dashed border-blue-400 rounded-lg bg-blue-900/10 flex items-center justify-center">
             <span className="text-blue-400 text-xs">Dragging...</span>
           </div>
-        </div>
-      )}
-
-      {/* Development helper - show hand position */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-0 left-0 text-xs text-slate-500 opacity-50">
-          {position} ({cards.length})
         </div>
       )}
     </div>

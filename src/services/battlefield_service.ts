@@ -39,7 +39,14 @@ export class BattlefieldService {
    * Place a unit on the battlefield
    */
   placeUnit(battlefield: Battlefield, card: Card, player: PlayerId, slot: number): Battlefield {
+    console.log(`🎯 [BattlefieldService] Attempting to place ${card.name} for ${player} at slot ${slot}`)
+    console.log(`🎯 [BattlefieldService] Current battlefield state:`, {
+      playerUnits: battlefield.playerUnits.filter(u => u !== null).map(u => u?.name),
+      enemyUnits: battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name)
+    })
+
     if (!this.isSlotEmpty(battlefield, player, slot)) {
+      console.error(`🎯 [BattlefieldService] Slot ${slot} is occupied for ${player}`)
       throw new Error('Slot is occupied')
     }
 
@@ -52,8 +59,11 @@ export class BattlefieldService {
     const units = player === 'player1' ? newBattlefield.playerUnits : newBattlefield.enemyUnits
     units[slot] = card
 
-    console.log(`🎯 [BattlefieldService] Placed ${card.name} for ${player} at slot ${slot}`)
-    console.log(`🎯 [BattlefieldService] New ${player} units:`, units.filter(u => u !== null).map(u => u.name))
+    console.log(`🎯 [BattlefieldService] Successfully placed ${card.name} for ${player} at slot ${slot}`)
+    console.log(`🎯 [BattlefieldService] New battlefield state:`, {
+      playerUnits: newBattlefield.playerUnits.filter(u => u !== null).map(u => u?.name),
+      enemyUnits: newBattlefield.enemyUnits.filter(u => u !== null).map(u => u?.name)
+    })
 
     return newBattlefield
   }

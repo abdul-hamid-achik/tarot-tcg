@@ -33,6 +33,13 @@ export default function Tutorial() {
   useEffect(() => {
     initializeCards()
     const initialState = createInitialGameState()
+
+    // Boost starting mana for tutorial/sandbox experience
+    initialState.player1.mana = 3
+    initialState.player1.maxMana = 3
+    initialState.player2.mana = 3
+    initialState.player2.maxMana = 3
+
     setGameState(initialState)
     setMessage('🃏 Tutorial started! Complete your mulligan or click "Keep All" to begin.')
     GameLogger.state('Tutorial initialized')
@@ -53,13 +60,25 @@ export default function Tutorial() {
 
   // Auto-execute AI turn
   useEffect(() => {
-    if (gameState?.activePlayer === 'player2' && gameOutcome === 'ongoing') {
+    console.log('🎮 AI Trigger Check:', {
+      activePlayer: gameState?.activePlayer,
+      phase: gameState?.phase,
+      gameOutcome,
+      aiHandCount: gameState?.player2?.hand?.length || 0,
+      aiMana: gameState?.player2?.mana || 0,
+      shouldTrigger: gameState?.activePlayer === 'player2' && gameState?.phase === 'action' && gameOutcome === 'ongoing',
+      player1MulliganComplete: gameState?.player1?.mulliganComplete,
+      player2MulliganComplete: gameState?.player2?.mulliganComplete
+    })
+
+    if (gameState?.activePlayer === 'player2' && gameState?.phase === 'action' && gameOutcome === 'ongoing') {
+      console.log('🎮 AI turn triggered! Hand:', gameState.player2.hand.map(c => c.name))
       const timer = setTimeout(() => {
         executeAI()
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [gameState?.activePlayer, gameOutcome, executeAI])
+  }, [gameState?.activePlayer, gameState?.phase, gameOutcome, executeAI])
 
   const handleCardPlay = async (card: Card) => {
     if (!gameState) return
@@ -99,7 +118,26 @@ export default function Tutorial() {
       const newState = { ...gameState }
       newState.player1.selectedForMulligan = selectedCards
 
+      // In tutorial, automatically complete AI mulligan BEFORE calling completeMulligan
+      newState.player2.mulliganComplete = true
+      newState.player2.selectedForMulligan = []
+
       const mulliganedState = completeMulligan(newState)
+
+      console.log('Mulligan completed:', {
+        player1Complete: mulliganedState.player1.mulliganComplete,
+        player2Complete: mulliganedState.player2.mulliganComplete,
+        phase: mulliganedState.phase,
+        activePlayer: mulliganedState.activePlayer
+      })
+
+      // Force phase transition in tutorial if needed
+      if (mulliganedState.player1.mulliganComplete && mulliganedState.player2.mulliganComplete && mulliganedState.phase !== 'action') {
+        console.log('Forcing phase transition to action in tutorial')
+        mulliganedState.phase = 'action'
+        mulliganedState.waitingForAction = true
+      }
+
       setGameState(mulliganedState)
 
       if (selectedCards.length === 0) {
@@ -147,17 +185,6 @@ export default function Tutorial() {
         </Button>
       </div>
 
-      {/* Floating End Turn Button */}
-      {gameState?.activePlayer === 'player1' && gameState?.phase === 'action' && (
-        <div className="fixed bottom-4 right-4 z-50">
-          <Button
-            onClick={handleEndTurn}
-            className="bg-black hover:bg-gray-800 text-white px-6 py-3 text-lg font-bold rounded-lg shadow-lg"
-          >
-            End Turn
-          </Button>
-        </div>
-      )}
 
       {/* Game Board - Full Screen */}
       {gameState && (

@@ -9,7 +9,7 @@ export function Battlefield() {
   const isPlayerTurn = gameState.activePlayer === 'player1'
 
   return (
-    <div className="w-full max-w-4xl flex flex-col justify-center items-center gap-3">
+    <div className="w-full max-w-5xl flex flex-col justify-center items-center gap-3">
       {/* Enemy Row - Compact */}
       <div className="w-full">
         <BattlefieldRow

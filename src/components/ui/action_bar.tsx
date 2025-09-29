@@ -26,8 +26,8 @@ export default function ActionBar({
   // Early return if gameState is not available
   if (!gameState) {
     return (
-      <div className={`flex items-center justify-center gap-4 ${className}`}>
-        <Badge className="bg-gray-200 px-4 py-2 text-black font-semibold text-sm border-gray-300 dark:border-gray-600">
+      <div className={`flex items-center justify-center gap-3 ${className}`}>
+        <Badge className="bg-gray-200 px-6 py-3 text-black font-semibold text-sm border border-gray-300 dark:border-gray-600 min-h-[44px] flex items-center justify-center">
           Loading...
         </Badge>
       </div>
@@ -111,52 +111,9 @@ export default function ActionBar({
   const defendState = getDefendButtonState()
 
   return (
-    <div className={`flex flex-col gap-4 ${className}`}>
+    <div className={`flex flex-col gap-3 ${className}`}>
       {/* Action Buttons Container */}
       <div className="flex flex-col gap-3">
-        {/* Phase-based Action Button - Only ONE button per phase like LoR */}
-        {isPlayerTurn && gameState?.phase === 'action' && (
-          <>
-            {gameState?.player1?.hasAttackToken ? (
-              <Button
-                onClick={isInAttackMode ? onAttack : onPass}
-                disabled={!attackState.enabled}
-                className={`
-                  w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                  ${attackState.enabled
-                    ? isInAttackMode
-                      ? 'bg-gradient-to-r from-orange-600 to-orange-700 hover:from-orange-700 hover:to-orange-800 text-white shadow-xl border-2 border-orange-400 hover:shadow-2xl'
-                      : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
-                  }
-                `}
-                title={attackState.tooltip}
-              >
-                {isInAttackMode ? 'ATTACK' : 'PASS PRIORITY'}
-                {isInAttackMode && (
-                  <span className="ml-2 bg-orange-800 px-3 py-1 rounded-full text-sm font-bold">
-                    ⚔️
-                  </span>
-                )}
-              </Button>
-            ) : (
-              <Button
-                onClick={onPass}
-                disabled={!canPass}
-                className={`
-                  w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                  ${canPass
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
-                  }
-                `}
-                title={canPass ? 'End your turn' : 'Cannot end turn yet'}
-              >
-                END TURN
-              </Button>
-            )}
-          </>
-        )}
 
         {/* Defend Button - During Defender Declaration Phase */}
         {isPlayerTurn && isDefendPhase && (
@@ -164,17 +121,17 @@ export default function ActionBar({
             onClick={onDefend}
             disabled={!defendState.enabled}
             className={`
-                w-full justify-center text-lg px-6 py-4 min-h-[50px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-200
+                w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
                 ${defendState.enabled
-                ? 'bg-green-600 hover:bg-green-700 active:bg-green-800 text-white shadow-lg border-2 border-green-400'
-                : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border-2 border-gray-300'
+                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg border border-green-400'
+                : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border border-gray-300'
               }
               `}
             title={defendState.tooltip}
           >
             {'NO DEFENSE NEEDED'}
             {false && (
-              <span className="ml-2 bg-green-800 px-2 py-1 rounded-full text-sm">
+              <span className="ml-2 bg-green-800 px-2 py-1 rounded-full text-xs">
                 🛡️
               </span>
             )}
@@ -185,7 +142,7 @@ export default function ActionBar({
         {isInCombat && (
           <Button
             disabled
-            className="w-full justify-center text-lg px-6 py-4 min-h-[50px] font-bold uppercase tracking-wider bg-red-700 text-white border-2 border-red-500 opacity-90"
+            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide bg-red-700 text-white border border-red-500 opacity-90"
           >
             RESOLVING...
           </Button>
@@ -195,7 +152,7 @@ export default function ActionBar({
         {!isPlayerTurn && gameState?.phase === 'action' && (
           <Button
             disabled
-            className="w-full justify-center text-lg px-6 py-4 min-h-[50px] font-bold uppercase tracking-wider bg-gray-600 text-white border-2 border-gray-400 opacity-75"
+            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide bg-gray-600 text-white border border-gray-400 opacity-75"
           >
             OPPONENT TURN
           </Button>
@@ -205,7 +162,7 @@ export default function ActionBar({
         {gameState?.phase === 'end_round' && isPlayerTurn && (
           <Button
             onClick={onEndTurn}
-            className="w-full justify-center text-lg px-6 py-4 min-h-[50px] font-bold uppercase tracking-wider bg-purple-600 hover:bg-purple-700 active:bg-purple-800 text-white shadow-lg border-2 border-purple-400"
+            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide bg-purple-600 hover:bg-purple-700 text-white shadow-lg border border-purple-400"
           >
             CONTINUE
           </Button>
@@ -215,17 +172,17 @@ export default function ActionBar({
         {!['action', 'defense_declaration', 'combat_resolution', 'end_round', 'mulligan'].includes(
           gameState?.phase || '',
         ) && (
-            <div className="flex items-center gap-2 text-gray-600 text-sm px-4 py-2 bg-gray-100/80 rounded border border-gray-300">
+            <div className="flex items-center justify-center gap-2 text-gray-600 text-sm px-6 py-3 bg-gray-100/80 rounded border border-gray-300 min-h-[44px]">
               <Clock className="w-4 h-4 animate-pulse" />
               <span>Waiting...</span>
             </div>
           )}
 
-        {/* Always show End Turn button when it's player's turn and not in mulligan */}
-        {isPlayerTurn && gameState?.phase !== 'mulligan' && !canPass && (
+        {/* Show End Turn button when it's player's turn in action phase - Always visible in tutorial/sandbox */}
+        {isPlayerTurn && gameState?.phase === 'action' && (
           <Button
             onClick={onPass}
-            className="w-full justify-center text-lg px-8 py-4 min-h-[56px] font-bold uppercase tracking-wider touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white shadow-xl border-2 border-blue-400 hover:shadow-2xl"
+            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95 bg-black hover:bg-gray-800 text-white shadow-lg border border-gray-600 hover:shadow-xl"
             title="End your turn"
           >
             END TURN

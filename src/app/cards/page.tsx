@@ -64,7 +64,7 @@ function CardDisplay({ card }: { card: GameCard }) {
       <Card className="p-4 space-y-3 hover:shadow-lg transition-shadow cursor-pointer border-2 hover:border-blue-300">
         <div className="flex justify-between items-start">
           <h3 className="font-bold text-lg">{card.name}</h3>
-          <Badge className={getRarityColor(card.rarity)}>{card.rarity}</Badge>
+          <div className={`w-4 h-4 rounded-full ${getRarityColor(card.rarity)}`} />
         </div>
 
         <div className="flex items-center gap-2">
@@ -243,15 +243,14 @@ export default function CardsPage() {
                         <h2 className="text-2xl font-bold capitalize">{sign.name}</h2>
                         <span className="text-3xl">{sign.symbol}</span>
                         <Badge
-                          className={`${
-                            sign.element === 'fire'
+                          className={`${sign.element === 'fire'
                               ? 'bg-red-100 text-red-800'
                               : sign.element === 'water'
                                 ? 'bg-blue-100 text-blue-800'
                                 : sign.element === 'air'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-green-100 text-green-800'
-                          }`}
+                            }`}
                         >
                           {sign.element}
                         </Badge>
