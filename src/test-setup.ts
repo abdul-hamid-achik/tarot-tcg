@@ -2,8 +2,8 @@ import '@testing-library/jest-dom'
 import { vi } from 'vitest'
 
 // Mock the card loader to provide consistent test cards
-vi.mock('@/lib/card_loader', () => ({
-  getAllCards: () => [
+vi.mock('@/lib/card_loader', () => {
+  const testCards = [
     {
       id: 'test-unit-1',
       name: 'Test Unit 1',
@@ -41,46 +41,70 @@ vi.mock('@/lib/card_loader', () => ({
       description: 'A test spell card',
       spellType: 'instant',
     },
-  ],
-  createRandomDeck: (size: number) => {
-    const baseCard = {
-      id: 'random-card',
-      name: 'Random Card',
-      cost: 1,
-      attack: 1,
-      health: 1,
-      type: 'unit' as const,
-      zodiacClass: 'aries' as const,
-      element: 'fire' as const,
-      rarity: 'common' as const,
-      description: 'A random card for testing',
-    }
-    return Array.from({ length: size }, (_, i) => ({
-      ...baseCard,
-      id: `random-card-${i}`,
-      name: `Random Card ${i}`,
-    }))
-  },
-  createZodiacDeck: (zodiacClass: string, size: number) => {
-    const baseCard = {
-      id: `${zodiacClass}-card`,
-      name: `${zodiacClass} Card`,
-      cost: 1,
-      attack: 1,
-      health: 1,
-      type: 'unit' as const,
-      zodiacClass: zodiacClass as any,
-      element: 'fire' as const,
-      rarity: 'common' as const,
-      description: `A ${zodiacClass} card for testing`,
-    }
-    return Array.from({ length: size }, (_, i) => ({
-      ...baseCard,
-      id: `${zodiacClass}-card-${i}`,
-      name: `${zodiacClass} Card ${i}`,
-    }))
-  },
-}))
+  ]
+
+  return {
+    getAllCards: () => testCards,
+    getCardById: (id: string) => testCards.find(c => c.id === id),
+    getCardsByZodiacClass: (zodiacClass: string) => testCards.filter(c => c.zodiacClass === zodiacClass),
+    getFilteredCards: () => testCards,
+    createRandomDeck: (size: number) => {
+      const baseCard = {
+        id: 'random-card',
+        name: 'Random Card',
+        cost: 1,
+        attack: 1,
+        health: 1,
+        type: 'unit' as const,
+        zodiacClass: 'aries' as const,
+        element: 'fire' as const,
+        rarity: 'common' as const,
+        description: 'A random card for testing',
+      }
+      return Array.from({ length: Math.min(size, 40) }, (_, i) => ({
+        ...baseCard,
+        id: `random-card-${i}`,
+        name: `Random Card ${i}`,
+      }))
+    },
+    createZodiacDeck: (zodiacClass: string, size: number) => {
+      const baseCard = {
+        id: `${zodiacClass}-card`,
+        name: `${zodiacClass} Card`,
+        cost: 1,
+        attack: 1,
+        health: 1,
+        type: 'unit' as const,
+        zodiacClass: zodiacClass as any,
+        element: 'fire' as const,
+        rarity: 'common' as const,
+        description: `A ${zodiacClass} card for testing`,
+      }
+      return Array.from({ length: Math.min(size, 40) }, (_, i) => ({
+        ...baseCard,
+        id: `${zodiacClass}-card-${i}`,
+        name: `${zodiacClass} Card ${i}`,
+      }))
+    },
+    isValidDeck: (deck: any[]) => {
+      const errors: string[] = []
+      if (deck.length > 40) {
+        errors.push(`Deck has ${deck.length} cards, maximum is 40`)
+      }
+      const cardCounts = new Map<string, number>()
+      deck.forEach(card => {
+        const count = cardCounts.get(card.id) || 0
+        cardCounts.set(card.id, count + 1)
+      })
+      cardCounts.forEach((count, cardId) => {
+        if (count > 3) {
+          errors.push(`Too many copies of "${cardId}": ${count}/3`)
+        }
+      })
+      return { valid: errors.length === 0, errors }
+    },
+  }
+})
 
 // Mock game logger to prevent console spam during tests
 vi.mock('@/lib/game_logger', () => {
@@ -149,7 +173,7 @@ vi.mock('@/services/win_condition_service', () => {
       playerProgress: new Map(),
       conditionHistory: new Map(),
     },
-    
+
     setGameMode: vi.fn((modeId) => {
       if (modeId === 'arcana_master') {
         mockService.state.gameMode = {
@@ -173,14 +197,14 @@ vi.mock('@/services/win_condition_service', () => {
         ]
       }
     }),
-    
+
     resetState: vi.fn(() => {
       mockService.state.eventCounters.clear()
       mockService.state.playerProgress.clear()
     }),
-    
+
     getActiveConditions: vi.fn(() => mockService.state.activeConditions),
-    
+
     checkWinConditions: vi.fn((gameState) => {
       // Check for health depletion
       if (gameState.player1.health <= 0) {
@@ -189,7 +213,7 @@ vi.mock('@/services/win_condition_service', () => {
       if (gameState.player2.health <= 0) {
         return { achieved: true, winner: 'player1', message: 'player1 wins by reducing opponent\'s health to 0!' }
       }
-      
+
       // Check for deck depletion
       if (gameState.player1.deck.length === 0) {
         return { achieved: true, winner: 'player2', message: 'player2 wins by depleting opponent\'s deck!' }
@@ -197,7 +221,7 @@ vi.mock('@/services/win_condition_service', () => {
       if (gameState.player2.deck.length === 0) {
         return { achieved: true, winner: 'player1', message: 'player1 wins by depleting opponent\'s deck!' }
       }
-      
+
       // Check for board domination (battlefield system)
       const player1Units = gameState.battlefield.playerUnits.filter((unit: any) => unit !== null).length
       const player2Units = gameState.battlefield.enemyUnits.filter((unit: any) => unit !== null).length
@@ -208,7 +232,7 @@ vi.mock('@/services/win_condition_service', () => {
       if (player2Units >= 6) {
         return { achieved: false, winner: null, message: 'Player 2 dominates the board' }
       }
-      
+
       // Check for elemental alignment (battlefield system)
       const elements = new Set()
       gameState.battlefield.playerUnits.forEach((unit: any) => {
@@ -225,15 +249,15 @@ vi.mock('@/services/win_condition_service', () => {
       if (elements.size === 4) {
         return { achieved: true, winner: 'player1', message: 'Player 1 wins by aligning all four elements' }
       }
-      
+
       // Check for turn survival
       if (gameState.round >= 15 && gameState.player1.health > 0) {
         return { achieved: true, winner: 'player1', message: 'Player 1 wins by surviving to turn 15' }
       }
-      
+
       return { achieved: false, winner: null, message: '' }
     }),
-    
+
     getCurrentGameMode: vi.fn(() => mockService.state.gameMode),
     getPlayerProgress: vi.fn((playerId) => mockService.state.playerProgress.get(playerId) || new Map()),
     registerWinCondition: vi.fn((condition) => {
@@ -246,7 +270,7 @@ vi.mock('@/services/win_condition_service', () => {
       }
     }),
   }
-  
+
   return { winConditionService: mockService }
 })
 
@@ -277,4 +301,4 @@ if (typeof window !== 'undefined') {
   window.__TEST_MODE__ = true
 }
 
-export {}
+export { }

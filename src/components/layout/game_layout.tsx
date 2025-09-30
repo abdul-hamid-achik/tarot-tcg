@@ -10,7 +10,7 @@ interface GameLayoutProps {
 export default function GameLayout({ children, className = '' }: GameLayoutProps) {
   return (
     <div
-      className={`h-screen w-screen bg-white overflow-auto relative ${className}`}
+      className={`h-screen w-screen bg-background text-foreground overflow-auto relative transition-colors ${className}`}
     >
       {children}
     </div>

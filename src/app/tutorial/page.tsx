@@ -173,12 +173,12 @@ export default function Tutorial() {
   }
 
   return (
-    <div className="h-screen w-screen bg-white overflow-hidden relative">
+    <div className="h-screen w-screen bg-background text-foreground overflow-hidden relative transition-colors">
       {/* Floating Settings Cog */}
       <div className="fixed top-4 right-4 z-50">
         <Button
           onClick={resetGame}
-          className="bg-black hover:bg-gray-800 text-white rounded-full w-12 h-12 p-0 shadow-lg"
+          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full w-12 h-12 p-0 shadow-lg"
           title="Game Settings & Reset"
         >
           ⚙️
@@ -198,13 +198,13 @@ export default function Tutorial() {
 
       {/* Game Outcome */}
       {gameOutcome !== 'ongoing' && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-gray-900 border border-purple-600 rounded-xl p-8 text-center">
-            <h2 className="text-2xl font-bold text-purple-400 mb-4">
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-card border border-border rounded-xl p-8 text-center shadow-lg">
+            <h2 className="text-2xl font-bold text-foreground mb-4">
               {gameOutcome === 'player1_wins' ? '🎉 You Win!' : '💀 AI Wins!'}
             </h2>
             <div className="flex gap-4">
-              <Button onClick={resetGame} className="bg-purple-600 hover:bg-purple-700">
+              <Button onClick={resetGame} className="bg-primary text-primary-foreground hover:bg-primary/90">
                 🔄 Play Again
               </Button>
               <Button onClick={() => window.location.href = '/'} variant="outline">
