@@ -647,12 +647,16 @@ Empty test directories:
 - [ ] Async event handling
 - **Risk**: Triggered abilities might not fire
 
-**7. Card Effect System** (`card_effect_system.ts`)
-- [ ] `executeEffect()` - Effect execution
-- [ ] `registerCardAbilities()` - Ability registration
-- [ ] `updatePersistentEffects()` - Effect persistence
-- [ ] Triggered abilities
-- [ ] Effect validation
+**7. Card Effect System** (`card_effect_system.ts`) ✅ **COMPLETED (Oct 2, 2025)**
+- [x] `executeEffect()` - Effect execution (tested)
+- [x] `registerCardAbilities()` - Ability registration (tested)
+- [x] `updatePersistentEffects()` - Effect persistence (tested)
+- [x] Triggered abilities (comprehensive tests)
+- [x] Effect validation (edge cases covered)
+- [x] **30 tests, all passing** 🎉
+- [x] Effect queue management
+- [x] Effect helpers (createEffect)
+- [x] Event integration
 - **Risk**: Card abilities break
 
 **8. Phase Manager Service** (`phase_manager_service.ts`)
@@ -1098,9 +1102,9 @@ Use GitHub Issues/Projects to track:
 - [x] Remove LoR references from action_bar.tsx
 - [x] Update game description to Hearthstone-style combat
 
-**Test Status**: ✅ **354/354 tests passing (100%!)** 🎉🎉🎉  
+**Test Status**: ✅ **384/384 tests passing (100%!)** 🎉🎉🎉  
 **Coverage Progress**:
-- Overall: **~54%** (up from 51%) 📈
+- Overall: **~55%** (up from 54%) 📈
 - game_logic.ts: **31.29%** (up from 22.14%)
 - combat_service.ts: **63.35%** (24 tests)
 - **win_condition_service.ts**: **~50%** (47/47 passing, 100%!) ✅
@@ -1109,15 +1113,17 @@ Use GitHub Issues/Projects to track:
 - **event_manager.ts**: **~65%** (39 tests, all passing) 🚀
 - **game_store.ts**: **~70%** (37 tests, all passing) 🎯
 - **phase_manager_service.ts**: **~75%** (46 tests, all passing) 🔥
+- **card_effect_system.ts**: **~70%** (30 tests, all passing) 💪 **NEW!**
 - Hooks: **29.18%** (up from 1.33%)
 - Lib layer: **~25%** (up from 21.65%)
 
-**Total Tests**: 354 (354 passing, **100% pass rate!**) ✅
+**Total Tests**: 384 (384 passing, **100% pass rate!**) ✅
 
-**Recent Test Additions** (Sept 29, 2025):
-- +46 tests for phase_manager_service.ts (all passing) ✨ **SESSION 7** 🔥
-- +37 tests for game_store.ts (all passing) ✨ **SESSION 6** 🎯
-- +39 tests for event_manager.ts (all passing) ✨ **SESSION 5** 🚀
+**Recent Test Additions**:
+- +30 tests for card_effect_system.ts (all passing) ✨ **SESSION 8** 💪 **Oct 2, 2025**
+- +46 tests for phase_manager_service.ts (all passing) ✨ **SESSION 7** 🔥 **Sept 29**
+- +37 tests for game_store.ts (all passing) ✨ **SESSION 6** 🎯 **Sept 29**
+- +39 tests for event_manager.ts (all passing) ✨ **SESSION 5** 🚀 **Sept 29**
 - +19 tests for ai_controller_service.ts (all passing) ✨ **SESSION 4**
 - +9 tests for card_loader.ts (all passing) ✨ **SESSION 4**
 - +47 tests for win_condition_service.ts (32 passing, 68%) **SESSION 3**
@@ -1149,6 +1155,16 @@ Use GitHub Issues/Projects to track:
   - 39 files updated across services, lib, hooks, components, APIs
   - Enhanced with 4 new log levels (warn, info, debug, system)
   - Color-coded, filterable logging for better debugging
+- ✅ card_effect_system.ts Tests (HIGH PRIORITY! 🎯)
+  - 30 comprehensive tests, all passing 💪
+  - Ability registration/unregistration
+  - Effect execution & queueing
+  - Triggered abilities
+  - Persistent effects
+  - Effect helpers (createEffect)
+  - Event integration
+  - Edge cases handled
+  - 0% → ~70% coverage (489-line service)
 
 **Linting**: ✅ No errors  
 **TypeScript**: ✅ No errors
@@ -1253,8 +1269,8 @@ Comprehensive coverage of combat system:
 🔴 Zero coverage (HIGH PRIORITY):
 - ✅ ~~`event_manager.ts`~~ - **DONE! ~65% (39 tests)** 🎉
 - ✅ ~~`phase_manager_service.ts`~~ - **DONE! ~75% (46 tests)** 🔥
-- `card_effect_system.ts` (489 lines) - Effect execution - **NEXT**
-- `astrology_service.ts` (318 lines) - Zodiac buffs
+- ✅ ~~`card_effect_system.ts`~~ - **DONE! ~70% (30 tests)** 💪
+- `astrology_service.ts` (318 lines) - Zodiac buffs - **NEXT**
 
 🟡 Partial coverage:
 - `battlefield_service.ts` - 13.49%
@@ -1563,7 +1579,7 @@ vi.unmock('@/services/win_condition_service')
 | **P0** 🔴 | `event_manager.ts` | 397 | 0% | ~20 | 4-5h | +5% |
 | **P1** 🔴 | `game_store.ts` | 323 | 0% | ~25 | 5-6h | +6% |
 | **P1** 🟠 | `phase_manager_service.ts` | 265 | 0% | ~15 | 3-4h | +3% |
-| **P2** 🟡 | `card_effect_system.ts` | 489 | 0% | ~15 | 4-5h | +4% |
+| ~~**P2** 🟡~~ | ~~`card_effect_system.ts`~~ | ~~489~~ | ~~0%~~ **70%** ✅ | ~~15~~ **30** | ~~4-5h~~ **DONE** | +4% ✅ |
 | **P2** 🟡 | `astrology_service.ts` | 318 | 0% | ~12 | 3h | +2% |
 | **P2** 🟡 | `effect_stack_service.ts` | 696 | 14.57% | ~10 | 3-4h | +3% |
 | **P2** 🟡 | `battlefield_service.ts` | - | 13.49% | ~20 | 3-4h | +2% |
@@ -1643,8 +1659,9 @@ Priorities:
 **Estimated**: 25 tests, 5-6 hours  
 **Coverage Gain**: +4%
 
-1. `card_effect_system.ts` - Effect execution (15 tests)
-2. `effect_stack_service.ts` - Complete coverage (10 tests)
+1. ~~`card_effect_system.ts` - Effect execution (15 tests)~~ ✅ **DONE! 30 tests (Oct 2)**
+2. `astrology_service.ts` - Zodiac buffs & seasonal effects (12 tests) - **NEXT**
+3. `effect_stack_service.ts` - Complete coverage (10 tests)
 
 ### Lower Priority (Week 4+)
 
