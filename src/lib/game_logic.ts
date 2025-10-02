@@ -245,9 +245,28 @@ export async function playCard(
 ): Promise<GameState> {
   const player = state[state.activePlayer]
 
-  // Validation
+  // Comprehensive validation
+  // 1. Check if card is in player's hand (ownership validation)
+  const cardInHand = player.hand.find(c => c.id === card.id)
+  if (!cardInHand) {
+    throw new Error(`Card ${card.name} is not in your hand`)
+  }
+
+  // 2. Check if it's the action phase
+  if (state.phase !== 'action') {
+    throw new Error(`Cannot play cards during ${state.phase} phase. Wait for action phase.`)
+  }
+
+  // 3. Check mana and battlefield space
   if (!canPlayCard(state, card)) {
-    throw new Error('Cannot play card')
+    throw new Error('Cannot play card - insufficient resources or battlefield full')
+  }
+
+  // 4. Validate slot bounds for units
+  if (card.type === 'unit' && targetSlot !== undefined) {
+    if (targetSlot < 0 || targetSlot >= 7) {
+      throw new Error(`Invalid slot number: ${targetSlot}. Must be between 0 and 6.`)
+    }
   }
 
   const newState = { ...state }

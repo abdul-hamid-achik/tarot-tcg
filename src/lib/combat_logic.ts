@@ -50,6 +50,13 @@ export async function declareAttack(
     attack: DirectAttack
 ): Promise<GameState> {
     const newState = { ...state }
+    const attackingPlayer = state.activePlayer
+    const player = state[attackingPlayer]
+
+    // Validate attack token (Hearthstone-style combat)
+    if (!player.hasAttackToken) {
+        throw new Error('You do not have the attack token this round')
+    }
 
     // Find attacker on battlefield
     const attackerPos = findUnitPosition(state.battlefield, attack.attackerId)
@@ -57,6 +64,11 @@ export async function declareAttack(
 
     const attacker = getUnitAt(state.battlefield, attackerPos.slot, attackerPos.player)
     if (!attacker) throw new Error('Invalid attacker')
+
+    // Validate ownership - attacker must belong to active player
+    if (attacker.owner !== attackingPlayer) {
+        throw new Error(`Cannot attack with opponent's unit`)
+    }
 
     // Validate can attack
     if (attacker.hasSummoningSickness) {

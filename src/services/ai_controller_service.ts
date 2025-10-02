@@ -2,7 +2,6 @@ import type { Card, GameState } from '@/schemas/schema'
 import { type AILevel, type AIPersonality, aiService } from './ai_service'
 import { combatService } from './combat_service'
 import { eventManager } from './event_manager'
-import { stateManager } from './state_manager'
 import { battlefieldService } from './battlefield_service'
 import { endTurn } from '@/lib/game_logic'
 // Simple battlefield helper inlined

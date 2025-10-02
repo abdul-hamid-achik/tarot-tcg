@@ -1,0 +1,65 @@
+{
+    "$schema": "https://raw.githubusercontent.com/getcursor/environment-schema/main/schema.json",
+    "name": "tarot-tcg",
+    "version": "1.0.0",
+    "setup": {
+        "install": {
+            "command": "npm install",
+            "description": "Install project dependencies"
+        }
+    },
+    "tasks": {
+        "test": {
+            "command": "npm run test",
+            "description": "Run all tests with Vitest"
+        },
+        "test:watch": {
+            "command": "npm run test:watch",
+            "description": "Run tests in watch mode"
+        },
+        "test:coverage": {
+            "command": "npm run test:coverage",
+            "description": "Run tests with coverage report"
+        },
+        "test:ui": {
+            "command": "npm run test:ui",
+            "description": "Run tests with UI interface"
+        },
+        "lint": {
+            "command": "npm run lint",
+            "description": "Check code quality with Biome"
+        },
+        "lint:fix": {
+            "command": "npm run lint:fix",
+            "description": "Fix linting issues automatically"
+        },
+        "format": {
+            "command": "npm run format",
+            "description": "Format code with Biome"
+        },
+        "build": {
+            "command": "npm run build",
+            "description": "Build the Next.js application for production"
+        },
+        "dev": {
+            "command": "npm run dev",
+            "description": "Start the development server (typically already running)"
+        }
+    },
+    "context": {
+        "framework": "Next.js 15",
+        "language": "TypeScript",
+        "testing": "Vitest with Testing Library",
+        "styling": "Tailwind CSS",
+        "linter": "Biome",
+        "contentManagement": "Contentlayer",
+        "stateManagement": "Zustand"
+    },
+    "notes": [
+        "This is a Tarot TCG (Trading Card Game) built with Next.js",
+        "Tests are located in __tests__ directories throughout the codebase",
+        "Content (cards, classes) are stored as MDX files in the content/ directory",
+        "The dev server typically runs on http://localhost:3000",
+        "Use 'npm run test' to run the full test suite before committing changes"
+    ]
+}

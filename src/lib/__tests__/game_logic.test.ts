@@ -638,18 +638,23 @@ describe('Game Logic - aiTurn()', () => {
     })
 
     it('should attack with units when has attack token', async () => {
-        // Place some units on battlefield
+        // Switch to AI's turn
+        gameState.activePlayer = 'player2'
+        
+        // Place AI units on battlefield (from player2's perspective, these are playerUnits)
         gameState.battlefield.enemyUnits[0] = createTestCard({
             id: 'ai-unit1',
             attack: 3,
             hasAttackedThisTurn: false,
-            hasSummoningSickness: false
+            hasSummoningSickness: false,
+            owner: 'player2' // Ownership validation
         })
         gameState.battlefield.enemyUnits[1] = createTestCard({
             id: 'ai-unit2',
             attack: 2,
             hasAttackedThisTurn: false,
-            hasSummoningSickness: false
+            hasSummoningSickness: false,
+            owner: 'player2' // Ownership validation
         })
         gameState.player2.hasAttackToken = true
 

@@ -244,8 +244,16 @@ describe('Performance Benchmarks', () => {
         const { declareAttack } = await import('@/lib/combat_logic')
         const combatState = createTestGameState()
         // Set up units for combat
-        combatState.battlefield.playerUnits[0] = createTestCard({ id: 'attacker', hasSummoningSickness: false })
-        combatState.battlefield.enemyUnits[0] = createTestCard({ id: 'defender' })
+        combatState.battlefield.playerUnits[0] = createTestCard({ 
+            id: 'attacker', 
+            hasSummoningSickness: false,
+            owner: 'player1' // Ownership validation
+        })
+        combatState.battlefield.enemyUnits[0] = createTestCard({ 
+            id: 'defender',
+            owner: 'player2' 
+        })
+        combatState.player1.hasAttackToken = true // Attack token validation
 
         await declareAttack(combatState, {
             attackerId: 'attacker',

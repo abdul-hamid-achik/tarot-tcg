@@ -26,17 +26,18 @@ npm run test:watch        # Runs tests in watch mode
 
 ## Architecture Overview
 
-This is a **Tarot Trading Card Game** built with Next.js 15 (App Router), React 19, and TypeScript. The game implements a turn-based card battler inspired by games like Legends of Runeterra, featuring unique tarot card mechanics.
+This is a **Tarot Trading Card Game** built with Next.js 15 (App Router), React 19, and TypeScript. The game implements a turn-based card battler with Hearthstone-style direct attack combat, featuring unique tarot card mechanics.
 
 ### Core Game Mechanics
-- **Grid-based battlefield**: 4x6 grid (4 rows, 6 columns) with dedicated bench and attack rows for each player
-- **Turn-based combat** with alternating attack tokens between players
+- **Hearthstone-style battlefield**: 7 slots per player for direct unit placement
+- **Direct attack combat**: Units can attack enemy units or the player's nexus directly
+- **Attack token system**: Players alternate having the attack token each round
 - **Mana system** with spell mana banking (unused mana converts to spell mana, max 3)
 - **Card types**: Units (with attack/health) and Spells (instant, ritual, enchantment)
 - **Tarot mechanics**: Cards can be played reversed for different effects
 - **Zodiac system**: 12 zodiac classes with elemental affinities (fire, earth, air, water)
-- **Combat phases**: Mulligan → Action → Declare Attackers → Declare Defenders → Combat → End Round
-- **Win conditions**: Reduce opponent's nexus health to 0 or deck-out
+- **Game phases**: Mulligan → Round Start → Action → Combat Resolution → End Round
+- **Win conditions**: Reduce opponent's nexus health to 0, deck-out, or alternative win conditions (zodiac, arcana, etc.)
 
 ### Key Architecture Components
 
