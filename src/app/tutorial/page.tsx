@@ -5,6 +5,7 @@ import TarotGameBoard from '@/components/game_board'
 import { Button } from '@/components/ui/button'
 import { useAIController } from '@/hooks/use_ai_controller'
 import { GameLogger } from '@/lib/game_logger'
+import { GameBoardErrorBoundary } from '@/components/error_boundary'
 import {
   aiMulligan,
   checkGameOutcome,
@@ -188,12 +189,14 @@ export default function Tutorial() {
 
       {/* Game Board - Full Screen */}
       {gameState && (
-        <TarotGameBoard
-          gameState={gameState}
-          onCardPlay={handleCardPlay}
-          onEndTurn={handleEndTurn}
-          onMulligan={handleMulligan}
-        />
+        <GameBoardErrorBoundary onReset={resetGame}>
+          <TarotGameBoard
+            gameState={gameState}
+            onCardPlay={handleCardPlay}
+            onEndTurn={handleEndTurn}
+            onMulligan={handleMulligan}
+          />
+        </GameBoardErrorBoundary>
       )}
 
       {/* Game Outcome */}

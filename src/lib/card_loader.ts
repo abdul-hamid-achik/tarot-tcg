@@ -146,6 +146,23 @@ export function isValidDeck(deck: Card[]): { valid: boolean; errors: string[] } 
  */
 export function createRandomDeck(size: number = 30): Card[] {
   const allGameCards = getAllCards()
+  
+  // Validate card pool
+  if (allGameCards.length === 0) {
+    throw new Error('No cards available in card pool. Check that content/cards/ has valid MDX files.')
+  }
+  
+  // Cap deck size at maximum
+  const targetSize = Math.min(size, 40)
+  
+  // Warn if card pool is too small
+  if (allGameCards.length < targetSize) {
+    console.warn(
+      `[Deck Builder] Card pool has only ${allGameCards.length} unique cards but deck needs ${targetSize}. ` +
+      `Deck will contain duplicates to reach target size.`
+    )
+  }
+  
   const deck: Card[] = []
   const cardCounts = new Map<string, number>()
 
@@ -153,12 +170,22 @@ export function createRandomDeck(size: number = 30): Card[] {
   const shuffled = [...allGameCards].sort(() => Math.random() - 0.5)
 
   for (const card of shuffled) {
-    if (deck.length >= Math.min(size, 40)) break
+    if (deck.length >= targetSize) break
 
     const currentCount = cardCounts.get(card.id) || 0
     if (currentCount < 3) {
       deck.push(card)
       cardCounts.set(card.id, currentCount + 1)
+    }
+  }
+  
+  // If we don't have enough unique cards, fill with duplicates
+  while (deck.length < targetSize && allGameCards.length > 0) {
+    const randomCard = shuffled[Math.floor(Math.random() * shuffled.length)]
+    const currentCount = cardCounts.get(randomCard.id) || 0
+    if (currentCount < 3) {
+      deck.push(randomCard)
+      cardCounts.set(randomCard.id, currentCount + 1)
     }
   }
 
@@ -170,6 +197,15 @@ export function createRandomDeck(size: number = 30): Card[] {
  */
 export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[] {
   const zodiacCards = getCardsByZodiacClass(zodiacClass)
+  
+  // Validate zodiac class exists
+  if (zodiacCards.length === 0) {
+    throw new Error(
+      `No cards found for zodiac class "${zodiacClass}". ` +
+      `Check that cards with this zodiacClass exist in content/cards/`
+    )
+  }
+  
   const allOtherCards = allCards
     .filter(card => card.zodiacClass !== zodiacClass)
     .map(contentlayerCardToGameCard)
@@ -177,6 +213,15 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
   const deck: Card[] = []
   const cardCounts = new Map<string, number>()
   const maxSize = Math.min(size, 40)
+
+  // Warn if insufficient cards for deck size
+  const totalAvailableCards = zodiacCards.length + allOtherCards.length
+  if (totalAvailableCards < maxSize) {
+    console.warn(
+      `[Deck Builder] Only ${totalAvailableCards} unique cards available for zodiac "${zodiacClass}" deck ` +
+      `(needs ${maxSize}). Deck will contain duplicates.`
+    )
+  }
 
   // Shuffle both pools
   const shuffledZodiac = [...zodiacCards].sort(() => Math.random() - 0.5)
@@ -197,6 +242,16 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
     if (currentCount < 3) {
       deck.push(card)
       cardCounts.set(card.id, currentCount + 1)
+    }
+  }
+  
+  // Fill remaining slots with duplicates if needed
+  while (deck.length < maxSize && combinedPool.length > 0) {
+    const randomCard = combinedPool[Math.floor(Math.random() * combinedPool.length)]
+    const currentCount = cardCounts.get(randomCard.id) || 0
+    if (currentCount < 3) {
+      deck.push(randomCard)
+      cardCounts.set(randomCard.id, currentCount + 1)
     }
   }
 

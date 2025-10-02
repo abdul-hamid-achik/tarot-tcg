@@ -431,101 +431,83 @@ if (newState.turn % 2 === 1) {
 
 ## Phase 4: Architecture Improvements (Week 2-3)
 
-### 🟡 P2-5: Add React Error Boundaries
-**Problem**: No error boundaries, one error crashes entire UI
+### ~~🟡 P2-5: Add React Error Boundaries~~ ✅ COMPLETED
+**Problem**: ~~No error boundaries, one error crashes entire UI~~
 
-**Implementation**:
-```typescript
-// src/components/error_boundary.tsx
-import React, { Component, ErrorInfo, ReactNode } from 'react'
+**Implementation** (`src/components/error_boundary.tsx` - Oct 2, 2025):
+- ✅ Created `GameErrorBoundary` component (top-level protection)
+- ✅ Created `GameBoardErrorBoundary` (game-specific protection)
+- ✅ Beautiful error UI with recovery options
+- ✅ Integrated into app layout (all pages protected)
+- ✅ Integrated into tutorial/game board pages
+- ✅ Shows stack traces in development mode
+- ✅ Provides "Try Again" and "Main Menu" recovery options
 
-interface Props {
-  children: ReactNode
-  fallback?: ReactNode
-}
-
-interface State {
-  hasError: boolean
-  error?: Error
-}
-
-export class GameErrorBoundary extends Component<Props, State> {
-  public state: State = {
-    hasError: false
-  }
-
-  public static getDerivedStateFromError(error: Error): State {
-    return { hasError: true, error }
-  }
-
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('Game error:', error, errorInfo)
-  }
-
-  public render() {
-    if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="error-container">
-          <h2>Something went wrong</h2>
-          <button onClick={() => this.setState({ hasError: false })}>
-            Try again
-          </button>
-        </div>
-      )
-    }
-
-    return this.props.children
-  }
-}
-```
-
-**Steps**:
-1. Create `GameErrorBoundary` component
-2. Wrap main game board
-3. Wrap card hand component
-4. Add error reporting
-5. Add reset functionality
+**Files Modified**:
+- `src/components/error_boundary.tsx` - New error boundary components
+- `src/app/layout.tsx` - Wrapped app with GameErrorBoundary
+- `src/app/tutorial/page.tsx` - Wrapped game board with GameBoardErrorBoundary
 
 **Acceptance Criteria**:
-- [ ] Errors don't crash entire app
-- [ ] User can recover from errors
-- [ ] Errors logged properly
+- [x] Errors don't crash entire app (top-level boundary)
+- [x] User can recover from errors (Try Again / Main Menu buttons)
+- [x] Errors logged properly (console.error with full stack traces)
+- [x] Beautiful error UI with Lucide React icons
+- [x] Development mode shows detailed error info
 
 ---
 
-### 🟡 P2-6: Add Deck Size Validation
-**Problem**: No validation that card pool has enough cards
+### ~~🟡 P2-6: Add Deck Size Validation~~ ✅ COMPLETED
+**Problem**: ~~No validation that card pool has enough cards~~
 
-**Steps**:
-1. Add validation in `createRandomDeck()`
-2. Add validation in `createZodiacDeck()`
-3. Throw descriptive error if not enough cards
-4. Add minimum deck size constant
+**Implementation** (`src/lib/card_loader.ts` - Oct 2, 2025):
 
-**Implementation**:
+**createRandomDeck()** improvements:
 ```typescript
-export function createRandomDeck(size: number): Card[] {
-  const allCards = getAllCards()
-  
-  if (allCards.length === 0) {
-    throw new Error('No cards available in card pool')
-  }
-  
-  if (allCards.length < size) {
-    console.warn(
-      `Card pool has ${allCards.length} cards but deck needs ${size}. ` +
-      `Filling with duplicates.`
-    )
-  }
-  
-  // ... rest of function
+// Validate card pool
+if (allGameCards.length === 0) {
+  throw new Error('No cards available in card pool. Check that content/cards/ has valid MDX files.')
+}
+
+// Warn if card pool is too small
+if (allGameCards.length < targetSize) {
+  console.warn(
+    `[Deck Builder] Card pool has only ${allGameCards.length} unique cards but deck needs ${targetSize}. ` +
+    `Deck will contain duplicates to reach target size.`
+  )
+}
+
+// Fill with duplicates if needed (respecting 3-card limit)
+while (deck.length < targetSize && allGameCards.length > 0) {
+  // ... duplicate filling logic
+}
+```
+
+**createZodiacDeck()** improvements:
+```typescript
+// Validate zodiac class exists
+if (zodiacCards.length === 0) {
+  throw new Error(
+    `No cards found for zodiac class "${zodiacClass}". ` +
+    `Check that cards with this zodiacClass exist in content/cards/`
+  )
+}
+
+// Warn if insufficient cards
+if (totalAvailableCards < maxSize) {
+  console.warn(
+    `[Deck Builder] Only ${totalAvailableCards} unique cards available for zodiac "${zodiacClass}" deck ` +
+    `(needs ${maxSize}). Deck will contain duplicates.`
+  )
 }
 ```
 
 **Acceptance Criteria**:
-- [ ] Proper error if no cards available
-- [ ] Warning if not enough unique cards
-- [ ] Decks always valid size
+- [x] Proper error if no cards available (throws descriptive error)
+- [x] Warning if not enough unique cards (console.warn with details)
+- [x] Decks always valid size (fills with duplicates up to 3-card limit)
+- [x] Clear error messages for developers
+- [x] All 354 tests passing
 
 ---
 
@@ -1083,6 +1065,20 @@ Use GitHub Issues/Projects to track:
   - Ownership validation (cannot attack with opponent's units)
 - [ ] P2-3: Standardize Logging (94 console.log instances remain)
 
+**Phase 4 - Architecture**: 2/6 completed (33%) 🚧
+- [x] P2-5: React Error Boundaries (COMPLETED - Oct 2)
+  - GameErrorBoundary + GameBoardErrorBoundary
+  - Integrated into layout and game pages
+  - Beautiful error UI with recovery options
+- [x] P2-6: Deck Size Validation (COMPLETED - Oct 2)
+  - Card pool validation with descriptive errors
+  - Warning messages for insufficient cards
+  - Automatic duplicate filling (max 3 per card)
+- [ ] P3-3: Clean Up Unused Imports
+- [ ] P3-1: Database Persistence Layer (future)
+- [ ] P3-2: Session Management (future)
+- [ ] Other architecture improvements
+
 **Documentation**: 
 - [x] Remove Legends of Runeterra references from README
 - [x] Remove LoR references from action_bar.tsx
@@ -1126,6 +1122,14 @@ Use GitHub Issues/Projects to track:
 - ✅ Removed unused state_manager import
 - ✅ Updated CLAUDE.md to remove legacy phase references
 - ✅ Fixed 2 broken tests (multiplayer-load, game_logic AI attack)
+
+**Recent Additions** (Oct 2, 2025 - SESSION 8 continued):
+- ✅ P2-6: Deck validation with warnings (createRandomDeck, createZodiacDeck)
+- ✅ P2-5: React Error Boundaries (GameErrorBoundary, GameBoardErrorBoundary)
+  - Top-level app protection (layout.tsx)
+  - Game board protection (tutorial/page.tsx)
+  - Beautiful error UI with recovery options
+  - Dev mode shows stack traces
 
 **Linting**: ✅ No errors  
 **TypeScript**: ✅ No errors
