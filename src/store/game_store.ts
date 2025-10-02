@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
 import { type Card as GameCard, type GameState, GameStateSchema } from '@/schemas/schema'
@@ -179,16 +180,16 @@ export const useGameStore = create<GameStore>()(
 
       // Actions
       setGameState: gameState => {
-        console.log(`🏪 [GameStore] setGameState called`)
-        console.log(`🏪 [GameStore] Player units:`, gameState.battlefield.playerUnits.filter(u => u !== null).map(u => u?.name))
-        console.log(`🏪 [GameStore] Enemy units:`, gameState.battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name))
+        GameLogger.debug(`🏪 [GameStore] setGameState called`)
+        GameLogger.debug(`🏪 [GameStore] Player units:`, gameState.battlefield.playerUnits.filter(u => u !== null).map(u => u?.name))
+        GameLogger.debug(`🏪 [GameStore] Enemy units:`, gameState.battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name))
         set({ gameState })
       },
 
       updateBattlefield: battlefield => {
-        console.log(`🏪 [GameStore] updateBattlefield called`)
-        console.log(`🏪 [GameStore] Player units:`, battlefield.playerUnits.filter(u => u !== null).map(u => u?.name))
-        console.log(`🏪 [GameStore] Enemy units:`, battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name))
+        GameLogger.debug(`🏪 [GameStore] updateBattlefield called`)
+        GameLogger.debug(`🏪 [GameStore] Player units:`, battlefield.playerUnits.filter(u => u !== null).map(u => u?.name))
+        GameLogger.debug(`🏪 [GameStore] Enemy units:`, battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name))
         set(state => ({
           gameState: { ...state.gameState, battlefield }
         }))

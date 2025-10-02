@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 // WebSocket configuration for Tarot TCG multiplayer
 export const WEBSOCKET_CONFIG = {
     // Connection URLs
@@ -43,15 +44,15 @@ export function buildWebSocketUrl(gameId: string, playerId: string, token: strin
 // Validate WebSocket configuration
 export function validateWebSocketConfig(): void {
     if (WEBSOCKET_CONFIG.HEARTBEAT_INTERVAL < 1000) {
-        console.warn('WebSocket heartbeat interval is very short, may cause performance issues')
+        GameLogger.warn('WebSocket heartbeat interval is very short, may cause performance issues')
     }
 
     if (WEBSOCKET_CONFIG.MAX_RECONNECT_ATTEMPTS > 10) {
-        console.warn('WebSocket max reconnect attempts is very high')
+        GameLogger.warn('WebSocket max reconnect attempts is very high')
     }
 
     if (process.env.NODE_ENV === 'production' && WEBSOCKET_CONFIG.WS_URL.includes('localhost')) {
-        console.error('Production build is using localhost WebSocket URL')
+        GameLogger.error('Production build is using localhost WebSocket URL')
     }
 }
 

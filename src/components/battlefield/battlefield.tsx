@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import { useGameStore } from '@/store/game_store'

@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useGameStore } from '@/store/game_store'
 
@@ -67,7 +68,7 @@ export const useGameClock = (config: Partial<GameClockConfig> = {}) => {
 
         // Auto-end turn if timer expires
         if (remaining === 0 && mergedConfig.autoEndTurn) {
-          console.log('Turn timer expired, auto-ending turn')
+          GameLogger.debug('Turn timer expired, auto-ending turn')
           // This should trigger the endTurn action
           // We'll connect this in the GameBoard component
         }

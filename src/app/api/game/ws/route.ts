@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 export const runtime = 'edge' // Enable Vercel Edge Runtime for WebSockets
 
 import { NextRequest } from 'next/server'
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
             const message = JSON.parse(event.data)
             await handlePlayerAction(gameId, playerId, message, socket)
         } catch (error) {
-            console.error(`WebSocket message error for ${playerId}:`, error)
+            GameLogger.error(`WebSocket message error for ${playerId}:`, error)
             socket.send(JSON.stringify({
                 type: 'error',
                 message: 'Invalid message format'
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     socket.onerror = (error) => {
-        console.error(`WebSocket error for ${playerId}:`, error)
+        GameLogger.error(`WebSocket error for ${playerId}:`, error)
     }
 
     // Send initial state
@@ -73,7 +74,7 @@ export async function GET(request: NextRequest) {
         timestamp: Date.now()
     }))
 
-    console.log(`🔌 Player ${playerId} connected to game ${gameId}`)
+    GameLogger.system(`🔌 Player ${playerId} connected to game ${gameId}`)
 
     return response
 }
@@ -106,13 +107,13 @@ function upgradeWebSocket(request: NextRequest): {
     // Return a mock socket that will cause immediate failure
     const socket = {
         send: (data: string) => {
-            console.error('WebSocket not implemented - attempted to send:', data)
+            GameLogger.error('WebSocket not implemented - attempted to send:', data)
         },
         onmessage: null as ((event: { data: string }) => void) | null,
         onclose: null as (() => void) | null,
         onerror: null as ((error: any) => void) | null,
         close: () => {
-            console.log('Mock WebSocket closed')
+            GameLogger.system('Mock WebSocket closed')
         }
     } as any
 
@@ -148,7 +149,7 @@ async function registerConnection(gameId: string, playerId: PlayerId, socket: We
         token: 'session-token' // Would generate proper token
     })
 
-    console.log(`✅ Registered ${playerId} for game ${gameId}`)
+    GameLogger.system(`✅ Registered ${playerId} for game ${gameId}`)
 }
 
 async function handlePlayerAction(
@@ -205,10 +206,10 @@ async function handlePlayerAction(
         // Broadcast to all players
         await broadcastGameState(gameId, newGameState)
 
-        console.log(`🎮 Action processed: ${message.type} by ${playerId}`)
+        GameLogger.system(`🎮 Action processed: ${message.type} by ${playerId}`)
 
     } catch (error) {
-        console.error(`Action failed for ${playerId}:`, error)
+        GameLogger.error(`Action failed for ${playerId}:`, error)
         socket.send(JSON.stringify({
             type: 'action_failed',
             error: error instanceof Error ? error.message : 'Unknown error'
@@ -223,7 +224,7 @@ function handleDisconnection(gameId: string, playerId: PlayerId): void {
     const playerConnection = session.players.get(playerId)
     if (playerConnection) {
         playerConnection.isConnected = false
-        console.log(`🔌 Player ${playerId} disconnected from game ${gameId}`)
+        GameLogger.system(`🔌 Player ${playerId} disconnected from game ${gameId}`)
 
         // Notify other players
         broadcastToOthers(gameId, playerId, {
@@ -239,7 +240,7 @@ function handleDisconnection(gameId: string, playerId: PlayerId): void {
         if (currentSession &&
             Array.from(currentSession.players.values()).every(p => !p.isConnected)) {
             gameSessions.delete(gameId)
-            console.log(`🧹 Cleaned up empty game ${gameId}`)
+            GameLogger.system(`🧹 Cleaned up empty game ${gameId}`)
         }
     }, 30000) // 30 second cleanup delay
 }
@@ -262,7 +263,7 @@ async function createNewGame(gameId: string, firstPlayerId: PlayerId): Promise<G
     const gameState = createInitialGameState()
     gameState.activePlayer = 'player1' // First player always starts
 
-    console.log(`🆕 Created new game ${gameId} with player ${firstPlayerId}`)
+    GameLogger.system(`🆕 Created new game ${gameId} with player ${firstPlayerId}`)
 
     return gameState
 }
@@ -316,7 +317,7 @@ async function broadcastGameState(gameId: string, gameState: GameState): Promise
             try {
                 connection.socket.send(message)
             } catch (error) {
-                console.error(`Failed to send to ${playerId}:`, error)
+                GameLogger.error(`Failed to send to ${playerId}:`, error)
                 connection.isConnected = false
             }
         }
@@ -327,7 +328,7 @@ async function broadcastGameState(gameId: string, gameState: GameState): Promise
         try {
             spectatorSocket.send(message)
         } catch (error) {
-            console.error('Failed to send to spectator:', error)
+            GameLogger.error('Failed to send to spectator:', error)
             session.spectators.delete(spectatorSocket)
         }
     }
@@ -344,7 +345,7 @@ async function broadcastToOthers(gameId: string, excludePlayerId: PlayerId, mess
             try {
                 connection.socket.send(messageString)
             } catch (error) {
-                console.error(`Failed to send to ${playerId}:`, error)
+                GameLogger.error(`Failed to send to ${playerId}:`, error)
                 connection.isConnected = false
             }
         }

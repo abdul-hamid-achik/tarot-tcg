@@ -1,5 +1,5 @@
 // Game Logger Utility for debugging matches
-type LogLevel = 'action' | 'combat' | 'ai' | 'state' | 'error'
+type LogLevel = 'action' | 'combat' | 'ai' | 'state' | 'error' | 'warn' | 'info' | 'debug' | 'system'
 
 const LOG_COLORS = {
   action: '#4ade80', // green
@@ -7,6 +7,10 @@ const LOG_COLORS = {
   ai: '#60a5fa', // blue
   state: '#fbbf24', // yellow
   error: '#ef4444', // dark red
+  warn: '#fb923c', // orange
+  info: '#38bdf8', // sky blue
+  debug: '#a78bfa', // purple
+  system: '#94a3b8', // slate
 }
 
 const LOG_ICONS = {
@@ -15,6 +19,10 @@ const LOG_ICONS = {
   ai: '🤖',
   state: '📊',
   error: '❌',
+  warn: '⚠️',
+  info: 'ℹ️',
+  debug: '🔍',
+  system: '⚙️',
 }
 
 export class GameLogger {
@@ -54,6 +62,22 @@ export class GameLogger {
 
   static error(message: string, data?: unknown) {
     GameLogger.log('error', message, data)
+  }
+
+  static warn(message: string, data?: unknown) {
+    GameLogger.log('warn', message, data)
+  }
+
+  static info(message: string, data?: unknown) {
+    GameLogger.log('info', message, data)
+  }
+
+  static debug(message: string, data?: unknown) {
+    GameLogger.log('debug', message, data)
+  }
+
+  static system(message: string, data?: unknown) {
+    GameLogger.log('system', message, data)
   }
 
   static gameStart(player1Name: string, player2Name: string) {

@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import React, { useState, useEffect } from 'react'
@@ -64,7 +65,7 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                     })
                 }
             } catch (error) {
-                console.error('Matchmaking poll error:', error)
+                GameLogger.error('Matchmaking poll error:', error)
             }
         }, 2000) // Poll every 2 seconds
 
@@ -108,7 +109,7 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                 })
             }
         } catch (error) {
-            console.error('Matchmaking error:', error)
+            GameLogger.error('Matchmaking error:', error)
             setMatchStatus({ status: 'idle' })
         }
     }
@@ -119,7 +120,7 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                 method: 'DELETE'
             })
         } catch (error) {
-            console.error('Cancel matchmaking error:', error)
+            GameLogger.error('Cancel matchmaking error:', error)
         }
 
         setMatchStatus({ status: 'idle' })

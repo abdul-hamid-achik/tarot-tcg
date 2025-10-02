@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import React from 'react'
@@ -161,7 +162,7 @@ export default function GameBoard({
   const handleAttack = async () => {
     // In direct attack system, attacks are initiated by clicking units
     // This method kept for compatibility but simplified
-    console.log('Attack mode - click units to attack')
+    GameLogger.debug('Attack mode - click units to attack')
     onAttack?.([])
   }
 
@@ -177,7 +178,7 @@ export default function GameBoard({
       setGameState(newState)
       onEndTurn?.()
     } catch (error) {
-      console.error('Error ending turn:', error)
+      GameLogger.error('Error ending turn:', error)
     }
   }
 
@@ -194,10 +195,10 @@ export default function GameBoard({
         const firstEmptySlot = playerUnits.findIndex(unit => unit === null)
 
         if (firstEmptySlot !== -1) {
-          console.log(`Playing card to slot: {player: "player1", slot: ${firstEmptySlot}}`)
+          GameLogger.debug(`Playing card to slot: {player: "player1", slot: ${firstEmptySlot}}`)
           await playCard(card, { player: 'player1', slot: firstEmptySlot })
         } else {
-          console.warn('No empty slots available on battlefield')
+          GameLogger.warn('No empty slots available on battlefield')
           return
         }
       }

@@ -1,3 +1,4 @@
+import { GameLogger } from "./game_logger"
 import type { Card } from '@/schemas/schema'
 
 /**
@@ -226,7 +227,7 @@ export function getCardImagePath(card: Card): string {
     return `/default/cards/${imagePath}/2x.png`
   }
 
-  console.warn(`Could not find image for card "${card.name}" (ID: ${card.id}). Using fallback.`)
+  GameLogger.warn(`Could not find image for card "${card.name}" (ID: ${card.id}). Using fallback.`)
   return getCardBackImagePath()
 }
 

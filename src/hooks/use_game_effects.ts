@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import { useEffect } from 'react'
 import { useGameActions } from '@/hooks/use_game_actions'
 import { battlefieldService } from '@/services/battlefield_service'
@@ -38,7 +39,7 @@ export const useGameEffects = () => {
     if (gameState.activePlayer === 'player2' && gameState.phase === 'action') {
       // Simple AI - just pass after 1 second
       setTimeout(() => {
-        console.log('AI passes turn')
+        GameLogger.debug('AI passes turn')
         // TODO: Implement AI actions
       }, 1000)
     }

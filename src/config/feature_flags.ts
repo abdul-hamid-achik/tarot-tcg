@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 // Feature flags for safe incremental refactoring
 // These flags allow us to gradually transition from dual-state to single-state architecture
 
@@ -34,7 +35,7 @@ export function isFeatureEnabled(flag: FeatureFlag): boolean {
 // Helper to warn about deprecated features
 export function warnDeprecated(featureName: string, replacement?: string): void {
     if (FEATURE_FLAGS.LOG_COMPATIBILITY_WARNINGS) {
-        console.warn(
+        GameLogger.warn(
             `[DEPRECATED] ${featureName} is deprecated.${replacement ? ` Use ${replacement} instead.` : ''}`
         )
     }
@@ -49,7 +50,7 @@ export function validateFeatureFlags(): void {
 
     // Ensure battlefield-only mode is compatible with other settings
     if (FEATURE_FLAGS.USE_BATTLEFIELD_ONLY && FEATURE_FLAGS.ENABLE_DEFENSE_PHASE) {
-        console.warn('[WARNING] Battlefield-only mode with defense phase may cause conflicts')
+        GameLogger.warn('[WARNING] Battlefield-only mode with defense phase may cause conflicts')
     }
 }
 

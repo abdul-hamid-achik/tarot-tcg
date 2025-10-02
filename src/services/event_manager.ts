@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import type {
   EventData,
   EventFilter,
@@ -106,7 +107,7 @@ export class EventManager {
             this.subscriptions.delete(subscription.id)
           }
         } catch (error) {
-          console.error(`Error in event listener ${subscription.id}:`, error)
+          GameLogger.error(`Error in event listener ${subscription.id}:`, error)
         }
       }
     } finally {
@@ -348,7 +349,7 @@ export class EventManager {
    * Emit an AI action event
    */
   emitAIAction(action: string, data: Record<string, any> = {}): void {
-    console.log(`🤖 AI Action: ${action}`, data)
+    GameLogger.system(`🤖 AI Action: ${action}`, data)
     // This is just for logging AI actions - no actual event emission needed for now
   }
 }

@@ -2,6 +2,7 @@ import type { Card as ContentlayerCard } from 'contentlayer/generated'
 import { allCards } from 'contentlayer/generated'
 import type { Card } from '@/schemas/schema'
 import { CardSchema } from '@/schemas/schema'
+import { GameLogger } from './game_logger'
 
 /**
  * Convert a Contentlayer card to a game Card
@@ -28,8 +29,8 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
     // Spell-specific properties - only set if valid
     spellType:
       contentCard.cardType === 'spell' &&
-      contentCard.spellType &&
-      ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType)
+        contentCard.spellType &&
+        ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType)
         ? contentCard.spellType
         : undefined,
     effects: Array.isArray(contentCard.effects) ? contentCard.effects : [],
@@ -44,7 +45,7 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
   if (result.success) {
     return result.data
   } else {
-    console.warn(`Card validation failed for ${contentCard.id}:`, result.error.issues)
+    GameLogger.warn(`Card validation failed for ${contentCard.id}:`, result.error.issues)
     // Return a fallback valid card
     return CardSchema.parse({
       ...rawCard,
@@ -146,23 +147,23 @@ export function isValidDeck(deck: Card[]): { valid: boolean; errors: string[] } 
  */
 export function createRandomDeck(size: number = 30): Card[] {
   const allGameCards = getAllCards()
-  
+
   // Validate card pool
   if (allGameCards.length === 0) {
     throw new Error('No cards available in card pool. Check that content/cards/ has valid MDX files.')
   }
-  
+
   // Cap deck size at maximum
   const targetSize = Math.min(size, 40)
-  
+
   // Warn if card pool is too small
   if (allGameCards.length < targetSize) {
-    console.warn(
+    GameLogger.warn(
       `[Deck Builder] Card pool has only ${allGameCards.length} unique cards but deck needs ${targetSize}. ` +
       `Deck will contain duplicates to reach target size.`
     )
   }
-  
+
   const deck: Card[] = []
   const cardCounts = new Map<string, number>()
 
@@ -178,7 +179,7 @@ export function createRandomDeck(size: number = 30): Card[] {
       cardCounts.set(card.id, currentCount + 1)
     }
   }
-  
+
   // If we don't have enough unique cards, fill with duplicates
   while (deck.length < targetSize && allGameCards.length > 0) {
     const randomCard = shuffled[Math.floor(Math.random() * shuffled.length)]
@@ -197,7 +198,7 @@ export function createRandomDeck(size: number = 30): Card[] {
  */
 export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[] {
   const zodiacCards = getCardsByZodiacClass(zodiacClass)
-  
+
   // Validate zodiac class exists
   if (zodiacCards.length === 0) {
     throw new Error(
@@ -205,7 +206,7 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
       `Check that cards with this zodiacClass exist in content/cards/`
     )
   }
-  
+
   const allOtherCards = allCards
     .filter(card => card.zodiacClass !== zodiacClass)
     .map(contentlayerCardToGameCard)
@@ -217,7 +218,7 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
   // Warn if insufficient cards for deck size
   const totalAvailableCards = zodiacCards.length + allOtherCards.length
   if (totalAvailableCards < maxSize) {
-    console.warn(
+    GameLogger.warn(
       `[Deck Builder] Only ${totalAvailableCards} unique cards available for zodiac "${zodiacClass}" deck ` +
       `(needs ${maxSize}). Deck will contain duplicates.`
     )
@@ -244,7 +245,7 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
       cardCounts.set(card.id, currentCount + 1)
     }
   }
-  
+
   // Fill remaining slots with duplicates if needed
   while (deck.length < maxSize && combinedPool.length > 0) {
     const randomCard = combinedPool[Math.floor(Math.random() * combinedPool.length)]

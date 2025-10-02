@@ -49,7 +49,7 @@ export const useGameActions = () => {
 
         GameLogger.action(`Played ${card.name}`)
       } catch (error) {
-        console.error('Error playing card:', error)
+        GameLogger.error('Error playing card:', error)
         GameLogger.action(`Failed to play ${card.name}: ${error}`)
       } finally {
         setAnimationState(false)
@@ -87,7 +87,7 @@ export const useGameActions = () => {
 
         GameLogger.combat(`Attack executed: ${attackerId} -> ${targetType}`)
       } catch (error) {
-        console.error('Error declaring attack:', error)
+        GameLogger.error('Error declaring attack:', error)
         GameLogger.combat(`Attack failed: ${error}`)
       } finally {
         setAnimationState(false)
@@ -141,7 +141,7 @@ export const useGameActions = () => {
 
         GameLogger.action(`Mulligan completed: ${selectedCardIds.length} cards replaced`)
       } catch (error) {
-        console.error('Error completing mulligan:', error)
+        GameLogger.error('Error completing mulligan:', error)
       } finally {
         setAnimationState(false)
       }
@@ -169,7 +169,7 @@ export const useGameActions = () => {
 
       GameLogger.action('Turn ended')
     } catch (error) {
-      console.error('Error ending turn:', error)
+      GameLogger.error('Error ending turn:', error)
     }
   }, [gameState, setGameState, multiplayer])
 
@@ -219,7 +219,7 @@ export const useGameActions = () => {
       }
 
       if (!found) {
-        console.warn('Card not found on battlefield for reversal')
+        GameLogger.warn('Card not found on battlefield for reversal')
         return
       }
 
@@ -234,7 +234,7 @@ export const useGameActions = () => {
   const passPriority = useCallback(() => {
     if (!gameState) return
 
-    console.log('Pass priority')
+    GameLogger.debug('Pass priority')
     // In direct attack system, this usually means end turn
     endTurn()
   }, [gameState, endTurn])

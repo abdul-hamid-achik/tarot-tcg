@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import { GameLogger } from '@/lib/game_logger'
 import type { CardEffect, EffectContext, GameEvent, GameState } from '@/schemas/schema'
 import { cardEffectSystem } from '@/services/card_effect_system'
@@ -147,7 +148,7 @@ export class EffectStackService {
     if (stackItem.resolveImmediately) {
       // Fire and forget async resolution
       this.resolveImmediately(stackItem).catch(error => {
-        console.error('Immediate resolution failed:', error)
+        GameLogger.error('Immediate resolution failed:', error)
       })
       return stackItem.id
     }

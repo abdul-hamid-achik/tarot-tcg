@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import { GameState, PlayerId, Card } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
 import { GameLogger } from '@/lib/game_logger'
@@ -46,7 +47,7 @@ export class WebSocketService {
             this.ws = new WebSocket(wsUrl)
 
             this.ws.onopen = () => {
-                console.log('🔌 WebSocket connected')
+                GameLogger.system('🔌 WebSocket connected')
                 this.reconnectAttempts = 0
                 this.flushQueue()
                 this.startHeartbeat()
@@ -58,12 +59,12 @@ export class WebSocketService {
                     const message: ServerMessage = JSON.parse(event.data)
                     this.handleServerMessage(message)
                 } catch (error) {
-                    console.error('Failed to parse WebSocket message:', error)
+                    GameLogger.error('Failed to parse WebSocket message:', error)
                 }
             }
 
             this.ws.onclose = (event) => {
-                console.log('🔌 WebSocket closed:', event.reason)
+                GameLogger.system('🔌 WebSocket closed:', event.reason)
                 this.stopHeartbeat()
                 this.updateConnectionStatus('disconnected')
 
@@ -73,13 +74,13 @@ export class WebSocketService {
             }
 
             this.ws.onerror = (error) => {
-                console.error('🔌 WebSocket error:', error)
+                GameLogger.error('🔌 WebSocket error:', error)
                 this.updateConnectionStatus('disconnected')
             }
 
             return true
         } catch (error) {
-            console.error('Failed to connect WebSocket:', error)
+            GameLogger.error('Failed to connect WebSocket:', error)
             this.updateConnectionStatus('disconnected')
             return false
         }
@@ -110,11 +111,11 @@ export class WebSocketService {
                 this.ws.send(JSON.stringify(messageWithTimestamp))
                 GameLogger.action(`Sent WebSocket message: ${message.type}`)
             } catch (error) {
-                console.error('Failed to send WebSocket message:', error)
+                GameLogger.error('Failed to send WebSocket message:', error)
                 this.messageQueue.push(messageWithTimestamp)
             }
         } else {
-            console.log('WebSocket not ready, queueing message:', message.type)
+            GameLogger.system('WebSocket not ready, queueing message:', message.type)
             this.messageQueue.push(messageWithTimestamp)
 
             if (this.ws?.readyState === WebSocket.CLOSED) {
@@ -167,7 +168,7 @@ export class WebSocketService {
 
     private flushQueue(): void {
         if (this.ws?.readyState === WebSocket.OPEN && this.messageQueue.length > 0) {
-            console.log(`Flushing ${this.messageQueue.length} queued messages`)
+            GameLogger.system(`Flushing ${this.messageQueue.length} queued messages`)
 
             while (this.messageQueue.length > 0) {
                 const message = this.messageQueue.shift()
@@ -175,7 +176,7 @@ export class WebSocketService {
                     try {
                         this.ws.send(JSON.stringify(message))
                     } catch (error) {
-                        console.error('Failed to flush queued message:', error)
+                        GameLogger.error('Failed to flush queued message:', error)
                         break
                     }
                 }
@@ -184,7 +185,7 @@ export class WebSocketService {
     }
 
     private handleServerMessage(message: ServerMessage): void {
-        console.log('📨 Received server message:', message.type)
+        GameLogger.system('📨 Received server message:', message.type)
 
         switch (message.type) {
             case 'game_state':
@@ -208,7 +209,7 @@ export class WebSocketService {
                 break
 
             default:
-                console.warn('Unknown server message type:', message.type)
+                GameLogger.warn('Unknown server message type:', message.type)
         }
     }
 
@@ -244,7 +245,7 @@ export class WebSocketService {
     }
 
     private handleError(message: ServerMessage): void {
-        console.error('Server error:', message.error || message.message)
+        GameLogger.error('Server error:', message.error || message.message)
 
         // Show error to user (could integrate with toast system)
         // toast.error(message.error || 'Game action failed')
@@ -254,7 +255,7 @@ export class WebSocketService {
     }
 
     private handlePlayerDisconnected(message: ServerMessage): void {
-        console.log(`Player ${message.playerId} disconnected`)
+        GameLogger.system(`Player ${message.playerId} disconnected`)
 
         // Show reconnection UI or pause game
         // Could implement reconnection grace period
@@ -278,7 +279,7 @@ export class WebSocketService {
 
     private scheduleReconnect(): void {
         if (this.reconnectAttempts >= this.maxReconnectAttempts) {
-            console.error('Max reconnection attempts reached')
+            GameLogger.error('Max reconnection attempts reached')
             this.updateConnectionStatus('disconnected')
             return
         }
@@ -286,7 +287,7 @@ export class WebSocketService {
         this.reconnectAttempts++
         const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1) // Exponential backoff
 
-        console.log(`Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`)
+        GameLogger.system(`Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`)
         this.updateConnectionStatus('connecting')
 
         setTimeout(() => {

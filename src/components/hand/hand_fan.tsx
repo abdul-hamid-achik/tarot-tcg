@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import Image from 'next/image'
@@ -101,7 +102,7 @@ export default function HandFan({
     if (isOurTurn && isAction && canAfford) {
       // Select the card for click-to-place (works for all card types)
       selectCard(card)
-      console.log(`Selected ${card.name} for placement`)
+      GameLogger.debug(`Selected ${card.name} for placement`)
       return
     }
 

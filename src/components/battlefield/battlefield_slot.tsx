@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import type React from 'react'
@@ -57,12 +58,12 @@ export function BattlefieldSlot({
   const handleDrop = useCallback(async (e: React.DragEvent) => {
     e.preventDefault()
     if (isValidDropZone && interaction.draggedCard && isEmpty) {
-      console.log('🎮 [Drag&Drop] Dropping card at slot:', position)
+      GameLogger.debug('🎮 [Drag&Drop] Dropping card at slot:', position)
       try {
         await playCard(interaction.draggedCard, position)
-        console.log('🎮 [Drag&Drop] Successfully played card via drag&drop')
+        GameLogger.debug('🎮 [Drag&Drop] Successfully played card via drag&drop')
       } catch (error) {
-        console.error('🎮 [Drag&Drop] Failed to play card:', error)
+        GameLogger.error('🎮 [Drag&Drop] Failed to play card:', error)
       }
     }
     setHoveredSlot(null)
@@ -72,12 +73,12 @@ export function BattlefieldSlot({
   const handleSlotClick = useCallback(async () => {
     if (isEmpty && interaction.selectedCard) {
       // Playing a card from hand via click-then-click
-      console.log('🎮 [Click-to-Play] Playing card to slot:', position)
+      GameLogger.debug('🎮 [Click-to-Play] Playing card to slot:', position)
       try {
         await playCard(interaction.selectedCard, position)
-        console.log('🎮 [Click-to-Play] Successfully played card')
+        GameLogger.debug('🎮 [Click-to-Play] Successfully played card')
       } catch (error) {
-        console.error('🎮 [Click-to-Play] Failed to play card:', error)
+        GameLogger.error('🎮 [Click-to-Play] Failed to play card:', error)
       }
     } else if (card && canInteract) {
       if (isInTargetingMode() && isValidTarget(card.id)) {

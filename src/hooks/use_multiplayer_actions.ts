@@ -50,7 +50,7 @@ export function useMultiplayerActions() {
             }
             return connected
         } catch (error) {
-            console.error('Failed to connect to multiplayer game:', error)
+            GameLogger.error('Failed to connect to multiplayer game:', error)
             return false
         }
     }, [])

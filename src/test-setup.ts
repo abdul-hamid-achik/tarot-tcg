@@ -109,6 +109,7 @@ vi.mock('@/lib/card_loader', () => {
 // Mock game logger to prevent console spam during tests
 vi.mock('@/lib/game_logger', () => {
   const mockMethods = {
+    log: vi.fn(),
     action: vi.fn(),
     event: vi.fn(),
     warning: vi.fn(),
@@ -117,7 +118,14 @@ vi.mock('@/lib/game_logger', () => {
     turn: vi.fn(),
     phase: vi.fn(),
     state: vi.fn(),
+    ai: vi.fn(),
+    warn: vi.fn(),
+    info: vi.fn(),
+    debug: vi.fn(),
+    system: vi.fn(),
+    gameStart: vi.fn(),
     turnStart: vi.fn(),
+    combatSummary: vi.fn(),
   }
 
   // Constructor that returns instance methods

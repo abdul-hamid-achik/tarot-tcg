@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import { useCallback } from 'react'
@@ -49,11 +50,11 @@ export function BattlefieldRow({
             player,
             slot: emptySlotIndex,
           }
-          console.log('Auto-placing card in slot:', position)
+          GameLogger.debug('Auto-placing card in slot:', position)
           try {
             await playCard(interaction.draggedCard, position)
           } catch (error) {
-            console.error('Auto-place failed:', error)
+            GameLogger.error('Auto-place failed:', error)
           }
         }
       }

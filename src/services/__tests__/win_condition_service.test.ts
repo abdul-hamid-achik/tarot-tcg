@@ -1,3 +1,4 @@
+vi.unmock("@/lib/game_logger")
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createTestGameState, createTestCard } from '../../test_utils'
 import type { GameState } from '../../schemas/schema'

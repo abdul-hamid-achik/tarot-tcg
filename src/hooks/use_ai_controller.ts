@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import { useCallback, useEffect, useRef } from 'react'
 import { useGameActions } from '@/hooks/use_game_actions'
 import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
@@ -21,7 +22,7 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
   // AI difficulty configuration (simplified for now)
   useEffect(() => {
     if (difficulty) {
-      console.log(`Setting AI difficulty to: ${difficulty}`)
+      GameLogger.debug(`Setting AI difficulty to: ${difficulty}`)
       // TODO: Integrate with AI service when class structure is fixed
     }
   }, [difficulty])
@@ -41,7 +42,7 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
       // Update game state once with the final result
       setGameState(newState)
     } catch (error) {
-      console.error('AI execution error:', error)
+      GameLogger.error('AI execution error:', error)
     } finally {
       isExecutingRef.current = false
     }
@@ -81,7 +82,7 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
 
   // Reset AI (simplified for now)
   const resetAI = useCallback(() => {
-    console.log('AI reset requested')
+    GameLogger.debug('AI reset requested')
     // TODO: Integrate with AI service when class structure is fixed
   }, [])
 

@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 export const runtime = 'edge' // Vercel Edge Runtime for low latency
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -46,7 +47,7 @@ export async function POST(request: NextRequest) {
                 const placedUnit = findLastPlacedUnit(newState, playerId)
                 if (placedUnit) {
                     placedUnit.isReversed = Math.random() < 0.5 // 50% chance
-                    console.log(`Server determined ${placedUnit.name} orientation: ${placedUnit.isReversed ? 'Reversed' : 'Upright'}`)
+                    GameLogger.system(`Server determined ${placedUnit.name} orientation: ${placedUnit.isReversed ? 'Reversed' : 'Upright'}`)
                 }
             }
 
@@ -77,7 +78,7 @@ export async function POST(request: NextRequest) {
         }
 
     } catch (error) {
-        console.error('Action processing error:', error)
+        GameLogger.error('Action processing error:', error)
         return NextResponse.json({
             error: 'Internal server error'
         }, { status: 500 })
@@ -276,6 +277,6 @@ function findLastPlacedUnit(gameState: GameState, playerId: PlayerId): Card | nu
 
 function broadcastToGame(gameId: string, message: any, excludePlayerId: PlayerId): void {
     // Simplified broadcast (would use WebSocket connections in full implementation)
-    console.log(`Broadcasting to game ${gameId}:`, message.type)
+    GameLogger.system(`Broadcasting to game ${gameId}:`, message.type)
     // TODO: Integrate with WebSocket service when available
 }

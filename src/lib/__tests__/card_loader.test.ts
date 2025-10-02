@@ -1,3 +1,4 @@
+vi.unmock("@/lib/game_logger")
 import { describe, it, expect } from 'vitest'
 import { getAllCards, getCardById, createRandomDeck, isValidDeck } from '../card_loader'
 

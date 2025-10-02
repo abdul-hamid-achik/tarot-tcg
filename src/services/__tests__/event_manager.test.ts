@@ -1,3 +1,4 @@
+vi.unmock("@/lib/game_logger")
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Unmock event_manager for this test file - we need to test the real implementation

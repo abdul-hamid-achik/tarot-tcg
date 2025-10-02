@@ -1,3 +1,4 @@
+vi.unmock("@/lib/game_logger")
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 // Unmock phase_manager_service for this test file

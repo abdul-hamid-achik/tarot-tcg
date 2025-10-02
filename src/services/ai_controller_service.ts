@@ -4,6 +4,7 @@ import { combatService } from './combat_service'
 import { eventManager } from './event_manager'
 import { battlefieldService } from './battlefield_service'
 import { endTurn } from '@/lib/game_logic'
+import { GameLogger } from '@/lib/game_logger'
 // Simple battlefield helper inlined
 function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): Card[] {
   const units = playerId === 'player1'
@@ -52,7 +53,7 @@ export class AIControllerService {
 
   // Main entry point for AI turn execution
   async executeAITurn(gameState: GameState): Promise<GameState> {
-    console.log('🤖 AI executeAITurn called with:', {
+    GameLogger.ai('🤖 AI executeAITurn called with:', {
       activePlayer: gameState.activePlayer,
       phase: gameState.phase,
       aiHand: gameState.player2.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })),
@@ -64,7 +65,7 @@ export class AIControllerService {
     })
 
     if (gameState.activePlayer !== 'player2') {
-      console.warn('executeAITurn called when not AI turn')
+      GameLogger.warn('executeAITurn called when not AI turn')
       return gameState
     }
 
@@ -73,7 +74,7 @@ export class AIControllerService {
     let currentState = { ...gameState }
 
     // Log AI thinking
-    console.log(
+    GameLogger.ai(
       `🤖 ${this.currentPersonality.icon} ${this.currentPersonality.name} is analyzing...`,
     )
 
@@ -85,14 +86,14 @@ export class AIControllerService {
 
     // Phase 2: Action phase
     if (currentState.phase === 'action') {
-      console.log('🤖 AI in action phase, executing turn...')
+      GameLogger.ai('🤖 AI in action phase, executing turn...')
 
       // Simulate thinking time
       await this.simulateThinking()
 
       // Make card play decisions
       currentState = await this.executeCardPlays(currentState)
-      console.log('🤖 AI card plays completed')
+      GameLogger.ai('🤖 AI card plays completed')
 
       // Small delay between actions for visual clarity
       await new Promise(resolve => setTimeout(resolve, 300))
@@ -104,7 +105,7 @@ export class AIControllerService {
       // The AI will attack via direct unit interactions in future implementation
 
       // End turn if nothing else to do
-      console.log(`🤖 ${this.currentPersonality.name} ends turn`)
+      GameLogger.ai(`🤖 ${this.currentPersonality.name} ends turn`)
       eventManager.emitAIAction('ai_end_turn', {
         playerId: 'player2',
         reason: 'No more actions available',
@@ -112,7 +113,7 @@ export class AIControllerService {
 
       // Actually end the turn using game logic
       currentState = await endTurn(currentState)
-      console.log('🤖 AI turn ended')
+      GameLogger.ai('🤖 AI turn ended')
       return currentState
     }
 
@@ -123,11 +124,11 @@ export class AIControllerService {
 
   // Card play logic with strategic evaluation
   private async executeCardPlays(gameState: GameState): Promise<GameState> {
-    console.log('🤖 AI executeCardPlays starting...')
+    GameLogger.ai('🤖 AI executeCardPlays starting...')
     let currentState = { ...gameState }
     const decisions = this.evaluateCardPlays(currentState)
 
-    console.log(`🤖 AI found ${decisions.length} potential card plays`)
+    GameLogger.ai(`🤖 AI found ${decisions.length} potential card plays`)
 
     // Sort by priority and play cards based on personality
     const sortedDecisions = decisions.sort((a, b) => b.priority - a.priority)
@@ -135,32 +136,32 @@ export class AIControllerService {
     let playsThisTurn = 0
 
     for (const decision of sortedDecisions) {
-      console.log(`🤖 AI considering ${decision.card.name} with priority ${decision.priority}`)
+      GameLogger.ai(`🤖 AI considering ${decision.card.name} with priority ${decision.priority}`)
 
       if (playsThisTurn >= maxPlays) {
-        console.log(`🤖 AI reached max plays (${maxPlays})`)
+        GameLogger.ai(`🤖 AI reached max plays (${maxPlays})`)
         break
       }
 
       // Check if we should play this card based on priority threshold
       if (!this.shouldPlayCard(decision, currentState)) {
-        console.log(`🤖 AI skipping ${decision.card.name} - priority too low`)
+        GameLogger.ai(`🤖 AI skipping ${decision.card.name} - priority too low`)
         continue
       }
 
       // Check mana availability
       const totalMana = currentState.player2.mana + currentState.player2.spellMana
       if (decision.card.cost > totalMana) {
-        console.log(`🤖 AI skipping ${decision.card.name} - insufficient mana (${decision.card.cost} > ${totalMana})`)
+        GameLogger.ai(`🤖 AI skipping ${decision.card.name} - insufficient mana (${decision.card.cost} > ${totalMana})`)
         continue
       }
 
       // Play the card
-      console.log(`🤖 AI playing ${decision.card.name}`)
+      GameLogger.ai(`🤖 AI playing ${decision.card.name}`)
       currentState = this.playCard(currentState, decision)
       playsThisTurn++
 
-      console.log(`🎴 AI plays ${decision.card.name} - ${decision.reasoning}`)
+      GameLogger.ai(`🎴 AI plays ${decision.card.name} - ${decision.reasoning}`)
 
       // Small delay between card plays
       await new Promise(resolve => setTimeout(resolve, 200))
@@ -172,7 +173,7 @@ export class AIControllerService {
         cardsPlayed: playsThisTurn,
       })
     } else {
-      console.log('🤖 AI played no cards this turn')
+      GameLogger.ai('🤖 AI played no cards this turn')
     }
 
     return currentState
@@ -183,12 +184,12 @@ export class AIControllerService {
     const player = gameState.player2
     const decisions: CardPlayDecision[] = []
 
-    console.log('🤖 AI evaluating cards:', player.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })))
-    console.log('🤖 AI mana:', player.mana, 'spell mana:', player.spellMana)
-    console.log('🤖 AI battlefield slots available:', gameState.battlefield.enemyUnits.filter(u => u === null).length)
+    GameLogger.ai('🤖 AI evaluating cards:', player.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })))
+    GameLogger.ai('🤖 AI mana:', player.mana, 'spell mana:', player.spellMana)
+    GameLogger.ai('🤖 AI battlefield slots available:', gameState.battlefield.enemyUnits.filter(u => u === null).length)
 
     for (const card of player.hand) {
-      console.log(`🤖 AI card properties:`, {
+      GameLogger.ai(`🤖 AI card properties:`, {
         name: card.name,
         cost: card.cost,
         type: card.type,
@@ -197,19 +198,19 @@ export class AIControllerService {
       })
 
       const totalMana = player.mana + player.spellMana
-      console.log(`🤖 AI checking ${card.name}: cost ${card.cost}, available mana ${totalMana}`)
+      GameLogger.ai(`🤖 AI checking ${card.name}: cost ${card.cost}, available mana ${totalMana}`)
 
       if (card.cost > totalMana) {
-        console.log(`🤖 AI skipping ${card.name} - insufficient mana`)
+        GameLogger.ai(`🤖 AI skipping ${card.name} - insufficient mana`)
         continue
       }
 
       // Check if unit cards can be placed (battlefield not full)
       if (card.type === 'unit') {
         const availableSlots = gameState.battlefield.enemyUnits.filter(u => u === null).length
-        console.log(`🤖 AI checking unit placement for ${card.name}, available slots: ${availableSlots}`)
+        GameLogger.ai(`🤖 AI checking unit placement for ${card.name}, available slots: ${availableSlots}`)
         if (availableSlots === 0) {
-          console.log(`🤖 AI skipping ${card.name} - no empty battlefield slots`)
+          GameLogger.ai(`🤖 AI skipping ${card.name} - no empty battlefield slots`)
           continue
         }
       }
@@ -217,7 +218,7 @@ export class AIControllerService {
       const priority = this.calculateCardPriority(card, gameState)
       const reasoning = this.getCardPlayReasoning(card, gameState)
 
-      console.log(`🤖 AI card ${card.name} priority: ${priority}`)
+      GameLogger.ai(`🤖 AI card ${card.name} priority: ${priority}`)
 
       decisions.push({
         card,
@@ -226,7 +227,7 @@ export class AIControllerService {
       })
     }
 
-    console.log(`🤖 AI found ${decisions.length} playable cards`)
+    GameLogger.ai(`🤖 AI found ${decisions.length} playable cards`)
     return decisions
   }
 
@@ -427,7 +428,7 @@ export class AIControllerService {
 
   // Execute card play and update game state
   private playCard(gameState: GameState, decision: CardPlayDecision): GameState {
-    console.log(`🤖 AI playCard: attempting to play ${decision.card.name}`)
+    GameLogger.ai(`🤖 AI playCard: attempting to play ${decision.card.name}`)
     const newState = { ...gameState }
     const player = { ...newState.player2 }
     const card = decision.card
@@ -435,18 +436,18 @@ export class AIControllerService {
     // Find first empty slot on the battlefield for AI (player2 uses enemyUnits)
     let targetSlot = -1
     if (card.type === 'unit') {
-      console.log(`🤖 AI looking for empty slot for unit ${card.name}`)
+      GameLogger.ai(`🤖 AI looking for empty slot for unit ${card.name}`)
       for (let i = 0; i < newState.battlefield.enemyUnits.length; i++) {
         if (newState.battlefield.enemyUnits[i] === null) {
           targetSlot = i
-          console.log(`🤖 AI found empty slot at index ${i}`)
+          GameLogger.ai(`🤖 AI found empty slot at index ${i}`)
           break
         }
       }
 
       if (targetSlot === -1) {
-        console.warn(`AI cannot play ${card.name} - battlefield is full`)
-        console.log('🤖 AI battlefield state:', newState.battlefield.enemyUnits)
+        GameLogger.warn(`AI cannot play ${card.name} - battlefield is full`)
+        GameLogger.ai('🤖 AI battlefield state:', newState.battlefield.enemyUnits)
         return newState // Return unchanged state
       }
     }
@@ -458,7 +459,7 @@ export class AIControllerService {
     // Validate mana availability
     const totalMana = player.mana + player.spellMana
     if (card.cost > totalMana) {
-      console.warn(`AI cannot play ${card.name} - insufficient mana`)
+      GameLogger.warn(`AI cannot play ${card.name} - insufficient mana`)
       return newState // Return unchanged state
     }
 
@@ -506,9 +507,9 @@ export class AIControllerService {
           targetId: attack.targetId
         })
 
-        console.log(`AI executes attack: ${attack.reasoning} (value: ${attack.value})`)
+        GameLogger.ai(`AI executes attack: ${attack.reasoning} (value: ${attack.value})`)
       } catch (error) {
-        console.log(`AI attack failed: ${error}`)
+        GameLogger.ai(`AI attack failed: ${error}`)
       }
     }
 
@@ -779,7 +780,7 @@ export class AIControllerService {
   setDifficulty(level: AILevel): void {
     aiService.setPersonality(level)
     this.currentPersonality = aiService.getCurrentPersonality()
-    console.log(`🎮 AI difficulty set to: ${level} - ${this.currentPersonality.name}`)
+    GameLogger.ai(`🎮 AI difficulty set to: ${level} - ${this.currentPersonality.name}`)
   }
 
   // Get current AI info
@@ -791,7 +792,7 @@ export class AIControllerService {
   reset(): void {
     this.decisionHistory = []
     this.turnStartTime = 0
-    console.log('🔄 AI controller reset')
+    GameLogger.ai('🔄 AI controller reset')
   }
 }
 

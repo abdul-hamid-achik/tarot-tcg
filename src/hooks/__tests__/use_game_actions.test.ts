@@ -1,3 +1,4 @@
+vi.unmock("@/lib/game_logger")
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useGameActions } from '../use_game_actions'
@@ -378,7 +379,8 @@ describe('useGameActions Hook', () => {
         })
 
         it('should warn if card not found', async () => {
-            const consoleSpy = vi.spyOn(console, 'warn').mockImplementation(() => { })
+            const GameLogger = await import('@/lib/game_logger').then(m => m.GameLogger)
+            const loggerSpy = vi.spyOn(GameLogger, 'warn').mockImplementation(() => { })
 
             const { result } = renderHook(() => useGameActions())
 
@@ -386,10 +388,10 @@ describe('useGameActions Hook', () => {
                 await result.current.reverseCard('non-existent-card')
             })
 
-            expect(consoleSpy).toHaveBeenCalledWith('Card not found on battlefield for reversal')
+            expect(loggerSpy).toHaveBeenCalledWith('Card not found on battlefield for reversal')
             expect(mockSetGameState).not.toHaveBeenCalled()
 
-            consoleSpy.mockRestore()
+            loggerSpy.mockRestore()
         })
     })
 

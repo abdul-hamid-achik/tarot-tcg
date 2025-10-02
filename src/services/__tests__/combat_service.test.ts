@@ -1,3 +1,4 @@
+vi.unmock("@/lib/game_logger")
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { combatService } from '../combat_service'
 import { battlefieldService } from '../battlefield_service'

@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 import type {
   Card,
   CardEffect,
@@ -68,7 +69,7 @@ export class CardEffectSystem {
     triggeringEvent?: GameEvent,
   ): Promise<EffectResult> {
     // TODO: Complete effect system integration for battlefield system
-    console.warn('Card effect system temporarily disabled during battlefield conversion')
+    GameLogger.warn('Card effect system temporarily disabled during battlefield conversion')
     return {
       success: true,
       newGameState: context.gameState,
@@ -199,7 +200,7 @@ export class CardEffectSystem {
    */
   updatePersistentEffects(gameState: GameState): GameState {
     // TODO: Complete persistent effects integration for battlefield system
-    console.warn('Persistent effects temporarily disabled during battlefield conversion')
+    GameLogger.warn('Persistent effects temporarily disabled during battlefield conversion')
     return gameState
   }
 
@@ -378,7 +379,7 @@ export class CardEffectSystem {
 
     // Final fallback: create a minimal game state for processing
     // This should rarely be needed now
-    console.warn('getGameStateFromEvent: No game state available, using minimal fallback')
+    GameLogger.warn('getGameStateFromEvent: No game state available, using minimal fallback')
     return {
       round: 1,
       turn: 1,

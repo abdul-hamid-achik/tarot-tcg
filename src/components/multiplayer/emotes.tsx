@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import React, { useState } from 'react'
@@ -335,7 +336,7 @@ export function useEmotes() {
 
     const sendEmote = (emote: TarotEmote) => {
         // Send to server/other players
-        console.log('Sending emote:', emote)
+        GameLogger.debug('Sending emote:', emote)
 
         // Show locally
         setCurrentEmote({

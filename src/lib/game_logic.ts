@@ -102,7 +102,7 @@ export function initializeCards() {
   try {
     TAROT_CARDS = getAllCards()
   } catch {
-    console.warn('Contentlayer not ready, using default cards')
+    GameLogger.warn('Contentlayer not ready, using default cards')
     // Fallback cards if contentlayer isn't ready
     TAROT_CARDS = [
       {
@@ -587,7 +587,7 @@ function executeAbilities(
     if (description.includes('cost') && description.includes('less')) {
       // This would need more complex implementation for ongoing effects
       // For now, just acknowledge the ability exists
-      console.log(`${ability.name || 'Unknown ability'} activated`)
+      GameLogger.debug(`${ability.name || 'Unknown ability'} activated`)
     }
   })
 }
@@ -650,7 +650,7 @@ async function resolveEffectStack(gameState: GameState): Promise<GameState> {
     // Return the updated game state from the resolution
     return results.newGameState || gameState
   } catch (error) {
-    console.error('Error resolving effect stack:', error)
+    GameLogger.error('Error resolving effect stack:', error)
     // Fallback: clear the stack to prevent infinite loops
     effectStackService.clearStack()
     return gameState
@@ -708,7 +708,7 @@ export async function respondToStackEffect(
 
     return gameState
   } catch (error) {
-    console.error('Error responding to stack effect:', error)
+    GameLogger.error('Error responding to stack effect:', error)
     return gameState
   }
 }
@@ -720,7 +720,7 @@ export function passStackPriority(gameState: GameState): GameState {
     GameLogger.action(`${gameState.activePlayer} passes priority`)
     return gameState
   } catch (error) {
-    console.error('Error passing priority:', error)
+    GameLogger.error('Error passing priority:', error)
     return gameState
   }
 }
@@ -870,7 +870,7 @@ export async function aiTurn(state: GameState): Promise<GameState> {
           GameLogger.ai(`AI attacks player with ${unit.name}`)
         } catch (error) {
           // Attack failed (e.g., taunt units present), skip
-          console.log(`AI attack failed: ${error}`)
+          GameLogger.debug(`AI attack failed: ${error}`)
         }
       }
     }

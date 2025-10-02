@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 export const runtime = 'edge' // Vercel Edge Runtime
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
             pool.delete(playerId)
             pool.delete(suitableOpponent.id)
 
-            console.log(`🎮 Match created: ${playerProfile.name} vs ${suitableOpponent.name}`)
+            GameLogger.system(`🎮 Match created: ${playerProfile.name} vs ${suitableOpponent.name}`)
 
             return NextResponse.json({
                 status: 'matched',
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
             // Clean up old entries
             cleanupMatchmakingPool(pool)
 
-            console.log(`🎲 ${playerProfile.name} added to ${gameMode} matchmaking pool`)
+            GameLogger.system(`🎲 ${playerProfile.name} added to ${gameMode} matchmaking pool`)
 
             return NextResponse.json({
                 status: 'searching',
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
         }
 
     } catch (error) {
-        console.error('Matchmaking error:', error)
+        GameLogger.error('Matchmaking error:', error)
         return NextResponse.json({ error: 'Matchmaking failed' }, { status: 500 })
     }
 }
@@ -129,12 +130,12 @@ export async function DELETE(request: NextRequest) {
             pool.delete(playerId)
         }
 
-        console.log(`🚫 ${playerId} cancelled matchmaking`)
+        GameLogger.system(`🚫 ${playerId} cancelled matchmaking`)
 
         return NextResponse.json({ status: 'cancelled' })
 
     } catch (error) {
-        console.error('Matchmaking cancellation error:', error)
+        GameLogger.error('Matchmaking cancellation error:', error)
         return NextResponse.json({ error: 'Cancellation failed' }, { status: 500 })
     }
 }
@@ -308,7 +309,7 @@ function cleanupMatchmakingPool(pool: Set<string>): void {
         const profile = playerProfiles.get(playerId)
         if (!profile || profile.lastActive < cutoffTime) {
             pool.delete(playerId)
-            console.log(`🧹 Removed inactive player ${playerId} from pool`)
+            GameLogger.system(`🧹 Removed inactive player ${playerId} from pool`)
         }
     }
 }
@@ -328,7 +329,7 @@ export async function GET(request: NextRequest) {
 
         return NextResponse.json(stats)
     } catch (error) {
-        console.error('Error getting matchmaking stats:', error)
+        GameLogger.error('Error getting matchmaking stats:', error)
         return NextResponse.json({ error: 'Failed to get stats' }, { status: 500 })
     }
 }

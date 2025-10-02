@@ -1,3 +1,4 @@
+import { GameLogger } from "@/lib/game_logger"
 'use client'
 
 import React from 'react'
@@ -102,10 +103,10 @@ export function GameJoinInterface({ onJoin, onCreateGame, className }: GameJoinP
             if (connected) {
                 onJoin(gameId)
             } else {
-                console.error('Failed to connect to game')
+                GameLogger.error('Failed to connect to game')
             }
         } catch (error) {
-            console.error('Error joining game:', error)
+            GameLogger.error('Error joining game:', error)
         } finally {
             setIsJoining(false)
         }
