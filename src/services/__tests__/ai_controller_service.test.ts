@@ -1,4 +1,3 @@
-vi.unmock("@/lib/game_logger")
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AIControllerService } from '../ai_controller_service'
 import { createTestGameState, createTestCard } from '../../test_utils'
@@ -24,6 +23,9 @@ vi.mock('@/lib/game_logger', () => ({
         ai: vi.fn(),
         action: vi.fn(),
         combat: vi.fn(),
+        warn: vi.fn(),
+        error: vi.fn(),
+        debug: vi.fn(),
     },
 }))
 

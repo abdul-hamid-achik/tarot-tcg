@@ -595,7 +595,9 @@ describe('EventManager', () => {
         })
 
         it('should log errors from listeners', async () => {
-            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => { })
+            const { GameLogger } = await import('@/lib/game_logger')
+            const loggerErrorSpy = vi.spyOn(GameLogger, 'error').mockImplementation(() => { })
+            
             const listener = vi.fn(() => {
                 throw new Error('Test error')
             })
@@ -604,8 +606,8 @@ describe('EventManager', () => {
 
             await eventManager.emit('test', gameState, {})
 
-            expect(consoleErrorSpy).toHaveBeenCalled()
-            consoleErrorSpy.mockRestore()
+            expect(loggerErrorSpy).toHaveBeenCalled()
+            loggerErrorSpy.mockRestore()
         })
     })
 
