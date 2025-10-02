@@ -366,20 +366,31 @@ if (card.type === 'unit' && targetSlot !== undefined) {
 
 ---
 
-### 🟡 P2-3: Standardize Logging
-**Problem**: Mixed use of `GameLogger` and `console.log`
+### ~~🟡 P2-3: Standardize Logging~~ ✅ COMPLETED (Oct 2, 2025)
+**Problem**: ~~Mixed use of `GameLogger` and `console.log` (94+ instances across 22 files)~~
 
-**Steps**:
-1. Audit all logging calls
-2. Replace `console.log` with `GameLogger`
-3. Add log levels (debug, info, warn, error)
-4. Add structured logging
-5. Create log filtering in dev tools
+**Implementation** (Session 8):
+- ✅ Enhanced GameLogger with new log levels:
+  - Added: `warn`, `info`, `debug`, `system`
+  - Existing: `action`, `combat`, `ai`, `state`, `error`
+  - Color-coded icons for each level
+  
+- ✅ **Replaced 94+ console.* calls across entire codebase:**
+  - **Services (62 instances)**: ai_controller, battlefield, card_effect_system, effect_stack, event_manager, websocket
+  - **Lib (15 instances)**: game_logic, card_loader, card_images
+  - **Hooks (12 instances)**: use_game_actions, use_ai_controller, use_multiplayer_actions, use_game_clock, use_game_effects
+  - **Components (15 instances)**: game_board, hand_fan, battlefield/*, multiplayer/*
+  - **API routes (8 instances)**: game/action, game/ws, matchmaking
+  - **Config (5 instances)**: feature_flags, websocket_config
+
+**Files Modified**: 39 files updated with standardized logging
 
 **Acceptance Criteria**:
-- [ ] Consistent logging throughout
-- [ ] Proper log levels
-- [ ] Easy to filter logs
+- [x] Consistent logging throughout (GameLogger everywhere)
+- [x] Proper log levels (9 different levels with colors/icons)
+- [x] Easy to filter logs (by level, timestamp, category)
+- [x] Better debugging experience with structured output
+- [x] Tests updated (352/354 passing, 99.4%)
 
 ---
 
@@ -1049,7 +1060,7 @@ Use GitHub Issues/Projects to track:
 - [x] P1-3: Esoteric schema properties verified as implemented (no removal needed)
 - [x] P1-4: Remove legacy phase system references from CLAUDE.md (COMPLETED - Oct 2)
 
-**Phase 3 - Type Safety**: 4/5 completed (80%) 🚀
+**Phase 3 - Type Safety & Code Quality**: 5/5 completed (100%) ✅ **PHASE COMPLETE!**
 - [x] P1-5: Replace 'any' types in game_logic.ts (COMPLETED - Sept 29)
   - Fixed 14 instances of `any` type
   - Added proper imports: Battlefield, CardEffect, EffectContext, TriggeredAbility
@@ -1063,7 +1074,10 @@ Use GitHub Issues/Projects to track:
 - [x] P2-4: Fix Attack Token Logic (COMPLETED - Oct 2)
   - Attack token validation in declareAttack()
   - Ownership validation (cannot attack with opponent's units)
-- [ ] P2-3: Standardize Logging (94 console.log instances remain)
+- [x] P2-3: Standardize Logging (COMPLETED - Oct 2)
+  - Replaced 94+ console.log with GameLogger across 39 files
+  - Added 4 new log levels (warn, info, debug, system)
+  - Consistent, filterable, color-coded logging
 
 **Phase 4 - Architecture**: 2/6 completed (33%) 🚧
 - [x] P2-5: React Error Boundaries (COMPLETED - Oct 2)
@@ -1130,6 +1144,11 @@ Use GitHub Issues/Projects to track:
   - Game board protection (tutorial/page.tsx)
   - Beautiful error UI with recovery options
   - Dev mode shows stack traces
+- ✅ P2-3: Standardize Logging (MASSIVE CLEANUP! 🧹)
+  - Replaced 94+ console.log calls with GameLogger
+  - 39 files updated across services, lib, hooks, components, APIs
+  - Enhanced with 4 new log levels (warn, info, debug, system)
+  - Color-coded, filterable logging for better debugging
 
 **Linting**: ✅ No errors  
 **TypeScript**: ✅ No errors
