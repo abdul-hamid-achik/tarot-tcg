@@ -1102,9 +1102,9 @@ Use GitHub Issues/Projects to track:
 - [x] Remove LoR references from action_bar.tsx
 - [x] Update game description to Hearthstone-style combat
 
-**Test Status**: ✅ **508/508 tests passing (100%!)** 🎉🎉🎉  
+**Test Status**: ✅ **531/531 tests passing (100%!)** 🎉🎉🎉  
 **Coverage Progress**:
-- Overall: **~60%** (up from 58%) 📈📈📈
+- Overall: **~62%** (up from 60%) 📈📈📈
 - game_logic.ts: **31.29%** (up from 22.14%)
 - combat_service.ts: **63.35%** (24 tests)
 - **win_condition_service.ts**: **~50%** (47/47 passing, 100%!) ✅
@@ -1120,9 +1120,10 @@ Use GitHub Issues/Projects to track:
 - Hooks: **29.18%** (up from 1.33%)
 - Lib layer: **~25%** (up from 21.65%)
 
-**Total Tests**: 508 (508 passing, **100% pass rate!**) ✅
+**Total Tests**: 531 (531 passing, **100% pass rate!**) ✅
 
 **Recent Test Additions**:
+- +23 tests for use_combat_actions hook (all passing) ✨ **SESSION 8** ⚔️ **Oct 2, 2025**
 - +41 tests for battlefield_service.ts (all passing) ✨ **SESSION 8** 🎯 **Oct 2, 2025**
 - +37 tests for effect_stack_service.ts (all passing) ✨ **SESSION 8** 🃏 **Oct 2, 2025**
 - +46 tests for astrology_service.ts (all passing) ✨ **SESSION 8** 🔮 **Oct 2, 2025**
@@ -1203,6 +1204,14 @@ Use GitHub Issues/Projects to track:
   - Unit management (compact, summoning sickness, end of turn)
   - Edge cases (both players, sequences, immutability)
   - 13.49% → ~60% coverage (268-line service)
+- ✅ use_combat_actions Hook Tests (HIGH PRIORITY! ⚔️)
+  - 23 comprehensive tests, all passing 💪
+  - Combat UI interactions (handleUnitClick, handleTargetClick, handleCancelAttack)
+  - State queries (isValidTarget, isAttacking, isInTargetingMode)
+  - Attack source and targeting mode management
+  - Error handling and attack cancellation
+  - Edge cases (no owner, empty targets, health variants)
+  - 0% → ~90% coverage (109-line hook)
 
 **Linting**: ✅ No errors  
 **TypeScript**: ✅ No errors
