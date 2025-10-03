@@ -1,6 +1,6 @@
 'use client'
 
-import { RotateCcw, Settings, HelpCircle } from 'lucide-react'
+import { HelpCircle, RotateCcw, Settings } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 interface GameHeaderProps {
@@ -20,7 +20,7 @@ export default function GameHeader({
   showEndTurnButton = false,
   onEndTurn,
   currentPlayer,
-  gamePhase
+  gamePhase,
 }: GameHeaderProps) {
   return (
     <div className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-300 px-4 py-2">
@@ -36,13 +36,13 @@ export default function GameHeader({
               <p className="text-xs text-gray-600">Strategic Card Game</p>
             </div>
           </div>
-          
+
           {/* Game State Info */}
           {currentPlayer && gamePhase && (
             <div className="hidden sm:flex items-center gap-2 text-sm text-gray-700">
               <span className="capitalize">{gamePhase} Phase</span>
               <span>•</span>
-              <span>{currentPlayer === 'player1' ? 'Your Turn' : 'Opponent\'s Turn'}</span>
+              <span>{currentPlayer === 'player1' ? 'Your Turn' : "Opponent's Turn"}</span>
             </div>
           )}
         </div>
@@ -70,7 +70,7 @@ export default function GameHeader({
           >
             <HelpCircle className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -80,7 +80,7 @@ export default function GameHeader({
           >
             <Settings className="w-4 h-4" />
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"

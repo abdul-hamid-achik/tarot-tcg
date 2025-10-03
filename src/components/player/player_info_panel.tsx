@@ -2,7 +2,6 @@
 
 import { Heart, Moon, Sun, Sword, Zap } from 'lucide-react'
 import type { Player } from '@/schemas/schema'
-import { isActionPhase, isCombatPhase } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
 
 interface PlayerInfoPanelProps {
@@ -28,7 +27,7 @@ export default function PlayerInfoPanel({
 
   const isActive = gameState?.activePlayer === player?.id
   const isInAttackMode = interaction.targetingMode === 'attack'
-  const hasValidTargets = interaction.validAttackTargets.size > 0
+  const _hasValidTargets = interaction.validAttackTargets.size > 0
 
   // Position-specific styles - Hearthstone-style compact with proper visibility
   const positionStyles = {
@@ -55,21 +54,18 @@ export default function PlayerInfoPanel({
     }
   }
 
-  const playerStyles = getPlayerStyles()
+  const _playerStyles = getPlayerStyles()
 
   // Check if can attack
   const _canAttack =
-    isCurrentPlayer &&
-    player?.hasAttackToken &&
-    gameState?.phase === 'action' &&
-    isInAttackMode
+    isCurrentPlayer && player?.hasAttackToken && gameState?.phase === 'action' && isInAttackMode
 
   // Check if must defend (simplified - combat phase)
   // Note: In Hearthstone-style, there's no separate combat phase
   const _mustDefend = false
 
   // Render mana crystals for current player
-  const renderManaDisplay = () => {
+  const _renderManaDisplay = () => {
     if (!isCurrentPlayer) {
       return (
         <div className="flex items-center gap-1">
@@ -100,24 +96,27 @@ export default function PlayerInfoPanel({
 
   return (
     <div className={`${positionStyles[position]} z-[60] w-36 ${className}`}>
-      <div className={`
+      <div
+        className={`
         relative p-2 rounded-lg shadow-md backdrop-blur-sm transition-all duration-300
-        ${isCurrentPlayer
-          ? 'bg-gray-800 border border-gray-600'
-          : 'bg-gray-700 border border-gray-500'
+        ${
+          isCurrentPlayer
+            ? 'bg-gray-800 border border-gray-600'
+            : 'bg-gray-700 border border-gray-500'
         }
         ${isActive ? 'ring-1 ring-black' : ''}
-      `}>
-
+      `}
+      >
         {/* Active Turn Glow Effect */}
-        {isActive && (
-          <div className="absolute inset-0 rounded-lg bg-gray-300/20 animate-pulse" />
-        )}
+        {isActive && <div className="absolute inset-0 rounded-lg bg-gray-300/20 animate-pulse" />}
 
         {/* Compact Player Header */}
         <div className="flex items-center gap-1 mb-2 relative z-10">
-          <div className={`relative w-6 h-6 rounded-full ${isCurrentPlayer ? 'bg-black' : 'bg-gray-600'
-            } flex items-center justify-center`}>
+          <div
+            className={`relative w-6 h-6 rounded-full ${
+              isCurrentPlayer ? 'bg-black' : 'bg-gray-600'
+            } flex items-center justify-center`}
+          >
             {isCurrentPlayer ? (
               <Sun className="w-3 h-3 text-white" />
             ) : (
@@ -133,13 +132,10 @@ export default function PlayerInfoPanel({
           </div>
 
           <div className="flex-1">
-            <h3 className={`font-bold text-xs ${isCurrentPlayer ? 'text-white' : 'text-white'
-              }`}>
+            <h3 className={`font-bold text-xs ${isCurrentPlayer ? 'text-white' : 'text-white'}`}>
               {player.name}
             </h3>
-            {isActive && (
-              <div className="text-xs text-gray-300 font-medium">Active</div>
-            )}
+            {isActive && <div className="text-xs text-gray-300 font-medium">Active</div>}
           </div>
         </div>
 
@@ -153,10 +149,10 @@ export default function PlayerInfoPanel({
             </div>
             <div className="flex items-center gap-1">
               <Zap className="w-3 h-3 text-gray-600" />
-              <span className="font-bold text-white">{player.mana}/{player.maxMana}</span>
-              {player.spellMana > 0 && (
-                <span className="text-gray-300">+{player.spellMana}</span>
-              )}
+              <span className="font-bold text-white">
+                {player.mana}/{player.maxMana}
+              </span>
+              {player.spellMana > 0 && <span className="text-gray-300">+{player.spellMana}</span>}
             </div>
           </div>
 
@@ -171,17 +167,17 @@ export default function PlayerInfoPanel({
             <div className="flex items-center gap-1">
               <div className="w-3 h-3 rounded bg-black flex items-center justify-center">
                 <span className="text-white text-xs font-bold">
-                  {gameState ? (player.id === 'player1'
-                    ? gameState.battlefield.playerUnits.filter(u => u !== null).length
-                    : gameState.battlefield.enemyUnits.filter(u => u !== null).length
-                  ) : 0}
+                  {gameState
+                    ? player.id === 'player1'
+                      ? gameState.battlefield.playerUnits.filter(u => u !== null).length
+                      : gameState.battlefield.enemyUnits.filter(u => u !== null).length
+                    : 0}
                 </span>
               </div>
               <span className="text-gray-300">Units</span>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   )

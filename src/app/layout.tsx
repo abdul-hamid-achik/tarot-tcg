@@ -2,8 +2,8 @@ import type { Metadata } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import '../styles/drag-drop.css'
-import { ThemeProvider } from '@/contexts/theme_context'
 import { GameErrorBoundary } from '@/components/error_boundary'
+import { ThemeProvider } from '@/contexts/theme_context'
 
 const geistSans = Geist({
   variable: '--font-geist-sans',
@@ -29,9 +29,7 @@ export default function RootLayout({
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <GameErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
-          <ThemeProvider>
-            {children}
-          </ThemeProvider>
+          <ThemeProvider>{children}</ThemeProvider>
         </GameErrorBoundary>
       </body>
     </html>

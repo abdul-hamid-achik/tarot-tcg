@@ -45,9 +45,8 @@ export class WinConditionService {
       priority: 100,
       toggleable: false,
       checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
-        const opponentHealth = playerId === 'player1'
-          ? gameState.player2.health
-          : gameState.player1.health
+        const opponentHealth =
+          playerId === 'player1' ? gameState.player2.health : gameState.player1.health
 
         return {
           achieved: opponentHealth <= 0,
@@ -71,9 +70,8 @@ export class WinConditionService {
       priority: 95,
       toggleable: true,
       checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
-        const opponentDeck = playerId === 'player1'
-          ? gameState.player2.deck
-          : gameState.player1.deck
+        const opponentDeck =
+          playerId === 'player1' ? gameState.player2.deck : gameState.player1.deck
 
         return {
           achieved: opponentDeck.length === 0,
@@ -97,10 +95,11 @@ export class WinConditionService {
       priority: 80,
       toggleable: true,
       checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
-        const player = gameState[playerId]
-        const playerUnits = playerId === 'player1'
-          ? gameState.battlefield.playerUnits
-          : gameState.battlefield.enemyUnits
+        const _player = gameState[playerId]
+        const playerUnits =
+          playerId === 'player1'
+            ? gameState.battlefield.playerUnits
+            : gameState.battlefield.enemyUnits
         const unitsControlled = playerUnits.filter(u => u !== null).length
         const turnsRequired = 3
 
@@ -170,9 +169,10 @@ export class WinConditionService {
         const playedMajorArcana = new Set<string>()
 
         // Check all zones for Major Arcana cards
-        const battlefieldCards = playerId === 'player1'
-          ? gameState.battlefield.playerUnits.filter(u => u !== null)
-          : gameState.battlefield.enemyUnits.filter(u => u !== null)
+        const battlefieldCards =
+          playerId === 'player1'
+            ? gameState.battlefield.playerUnits.filter(u => u !== null)
+            : gameState.battlefield.enemyUnits.filter(u => u !== null)
         const allPlayerCards = [...player.hand, ...battlefieldCards, ...player.deck]
 
         for (const card of allPlayerCards) {
@@ -208,13 +208,14 @@ export class WinConditionService {
       priority: 85,
       toggleable: true,
       checkCondition: (gameState: GameState, playerId: 'player1' | 'player2') => {
-        const player = gameState[playerId]
+        const _player = gameState[playerId]
         const elementsOnField = new Set<string>()
 
         // Check battlefield for different elements
-        const playerBattlefieldCards = playerId === 'player1'
-          ? gameState.battlefield.playerUnits.filter(u => u !== null)
-          : gameState.battlefield.enemyUnits.filter(u => u !== null)
+        const playerBattlefieldCards =
+          playerId === 'player1'
+            ? gameState.battlefield.playerUnits.filter(u => u !== null)
+            : gameState.battlefield.enemyUnits.filter(u => u !== null)
         for (const card of playerBattlefieldCards) {
           if (card.element) {
             elementsOnField.add(card.element)
@@ -316,7 +317,7 @@ export class WinConditionService {
           async (event: GameEvent) => {
             const playerId = this.extractPlayerIdFromEvent(event)
             if (playerId) {
-              (handler as any)(event, playerId)
+              ;(handler as any)(event, playerId)
             }
           },
           { priority: 50 },

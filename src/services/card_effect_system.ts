@@ -1,4 +1,4 @@
-import { GameLogger } from "@/lib/game_logger"
+import { GameLogger } from '@/lib/game_logger'
 import type {
   Card,
   CardEffect,
@@ -64,9 +64,9 @@ export class CardEffectSystem {
    * Execute a card effect immediately
    */
   async executeEffect(
-    effect: CardEffect,
+    _effect: CardEffect,
     context: EffectContext,
-    triggeringEvent?: GameEvent,
+    _triggeringEvent?: GameEvent,
   ): Promise<EffectResult> {
     // TODO: Complete effect system integration for battlefield system
     GameLogger.warn('Card effect system temporarily disabled during battlefield conversion')
@@ -297,48 +297,6 @@ export class CardEffectSystem {
     return true
   }
 
-  private addPersistentEffect(effect: CardEffect, context: EffectContext): void {
-    const activeEffect: ActiveEffect = {
-      id: `persistent_${this.nextEffectId++}`,
-      sourceCardId: context.source.id,
-      effect,
-      context,
-      remainingDuration: typeof effect.duration === 'number' ? effect.duration : undefined,
-      endCondition: this.createEndCondition(effect.duration),
-    }
-
-    this.activeEffects.set(activeEffect.id, activeEffect)
-  }
-
-  private createEndCondition(
-    duration?: CardEffect['duration'],
-  ): ((gameState: GameState) => boolean) | undefined {
-    switch (duration) {
-      case 'end_of_turn': {
-        const currentTurn = this.getCurrentTurn()
-        return gameState => gameState.turn > currentTurn
-      }
-
-      case 'until_leaves_battlefield':
-        return _gameState => {
-          // This would check if the source card is still on battlefield
-          // Implementation depends on game state structure
-          return false // Placeholder
-        }
-
-      default:
-        return undefined
-    }
-  }
-
-  private shouldExpireEffect(activeEffect: ActiveEffect, gameState: GameState): boolean {
-    if (activeEffect.endCondition) {
-      return activeEffect.endCondition(gameState)
-    }
-
-    return false
-  }
-
   private sortEffectQueue(): void {
     this.effectQueue.sort((a, b) => b.priority - a.priority)
   }
@@ -426,12 +384,6 @@ export class CardEffectSystem {
         maxSlots: 7,
       },
     }
-  }
-
-  private getCurrentTurn(): number {
-    // Get current turn from game state
-    // Placeholder implementation
-    return 1
   }
 }
 

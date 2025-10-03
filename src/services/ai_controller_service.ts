@@ -1,17 +1,17 @@
+import { GameLogger } from '@/lib/game_logger'
+import { endTurn } from '@/lib/game_logic'
 import type { Card, GameState } from '@/schemas/schema'
 import { type AILevel, type AIPersonality, aiService } from './ai_service'
-import { combatService } from './combat_service'
-import { eventManager } from './event_manager'
 import { battlefieldService } from './battlefield_service'
-import { endTurn } from '@/lib/game_logic'
-import { GameLogger } from '@/lib/game_logger'
+import { eventManager } from './event_manager'
+
 // Simple battlefield helper inlined
 function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): Card[] {
-  const units = playerId === 'player1'
-    ? gameState.battlefield.playerUnits
-    : gameState.battlefield.enemyUnits
+  const units =
+    playerId === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
   return units.filter(u => u !== null) as Card[]
 }
+
 import { declareAttack } from '@/lib/combat_logic'
 
 // AI Decision weights for different strategies
@@ -48,8 +48,6 @@ interface AttackEvaluation {
 
 export class AIControllerService {
   private currentPersonality: AIPersonality = aiService.getCurrentPersonality()
-  private decisionHistory: string[] = []
-  private turnStartTime: number = 0
 
   // Main entry point for AI turn execution
   async executeAITurn(gameState: GameState): Promise<GameState> {
@@ -60,8 +58,8 @@ export class AIControllerService {
       aiMana: gameState.player2.mana,
       battlefield: {
         playerUnits: gameState.battlefield.playerUnits.filter(u => u !== null).length,
-        enemyUnits: gameState.battlefield.enemyUnits.filter(u => u !== null).length
-      }
+        enemyUnits: gameState.battlefield.enemyUnits.filter(u => u !== null).length,
+      },
     })
 
     if (gameState.activePlayer !== 'player2') {
@@ -152,7 +150,9 @@ export class AIControllerService {
       // Check mana availability
       const totalMana = currentState.player2.mana + currentState.player2.spellMana
       if (decision.card.cost > totalMana) {
-        GameLogger.ai(`🤖 AI skipping ${decision.card.name} - insufficient mana (${decision.card.cost} > ${totalMana})`)
+        GameLogger.ai(
+          `🤖 AI skipping ${decision.card.name} - insufficient mana (${decision.card.cost} > ${totalMana})`,
+        )
         continue
       }
 
@@ -184,9 +184,15 @@ export class AIControllerService {
     const player = gameState.player2
     const decisions: CardPlayDecision[] = []
 
-    GameLogger.ai('🤖 AI evaluating cards:', player.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })))
+    GameLogger.ai(
+      '🤖 AI evaluating cards:',
+      player.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })),
+    )
     GameLogger.ai('🤖 AI mana:', player.mana, 'spell mana:', player.spellMana)
-    GameLogger.ai('🤖 AI battlefield slots available:', gameState.battlefield.enemyUnits.filter(u => u === null).length)
+    GameLogger.ai(
+      '🤖 AI battlefield slots available:',
+      gameState.battlefield.enemyUnits.filter(u => u === null).length,
+    )
 
     for (const card of player.hand) {
       GameLogger.ai(`🤖 AI card properties:`, {
@@ -194,7 +200,7 @@ export class AIControllerService {
         cost: card.cost,
         type: card.type,
         hasType: !!card.type,
-        allProps: Object.keys(card)
+        allProps: Object.keys(card),
       })
 
       const totalMana = player.mana + player.spellMana
@@ -208,7 +214,9 @@ export class AIControllerService {
       // Check if unit cards can be placed (battlefield not full)
       if (card.type === 'unit') {
         const availableSlots = gameState.battlefield.enemyUnits.filter(u => u === null).length
-        GameLogger.ai(`🤖 AI checking unit placement for ${card.name}, available slots: ${availableSlots}`)
+        GameLogger.ai(
+          `🤖 AI checking unit placement for ${card.name}, available slots: ${availableSlots}`,
+        )
         if (availableSlots === 0) {
           GameLogger.ai(`🤖 AI skipping ${card.name} - no empty battlefield slots`)
           continue
@@ -235,8 +243,8 @@ export class AIControllerService {
   private calculateCardPriority(card: Card, gameState: GameState): number {
     let priority = 50 // Base priority
 
-    const player = gameState.player2
-    const opponent = gameState.player1
+    const _player = gameState.player2
+    const _opponent = gameState.player1
     const round = gameState.round
 
     // Card type considerations
@@ -279,7 +287,7 @@ export class AIControllerService {
     const efficiency = stats / Math.max(1, card.cost)
 
     // Check for favorable trades
-    const opponent = gameState.player1
+    const _opponent = gameState.player1
     let tradeValue = 0
 
     for (const enemyUnit of getPlayerUnits(gameState, 'player1')) {
@@ -477,7 +485,7 @@ export class AIControllerService {
         newState.battlefield,
         card,
         'player2',
-        targetSlot
+        targetSlot,
       )
       newState.battlefield = newBattlefield
 
@@ -504,7 +512,7 @@ export class AIControllerService {
         currentState = await declareAttack(currentState, {
           attackerId: attack.attackerId,
           targetType: attack.targetType,
-          targetId: attack.targetId
+          targetId: attack.targetId,
         })
 
         GameLogger.ai(`AI executes attack: ${attack.reasoning} (value: ${attack.value})`)
@@ -514,144 +522,6 @@ export class AIControllerService {
     }
 
     return currentState
-  }
-
-  // Legacy attack decision completely removed
-
-  // Select which units should attack
-  private selectAttackers(availableAttackers: Card[], gameState: GameState): string[] {
-    switch (this.currentPersonality.attackStrategy) {
-      case 'aggressive':
-        // Attack with everything
-        return availableAttackers.map(u => u.id)
-
-      case 'cautious':
-        // Only attack with safe units
-        return availableAttackers
-          .filter(attacker => this.isAttackSafe(attacker, gameState))
-          .map(u => u.id)
-
-      case 'optimal':
-        // Calculate best combination
-        return this.calculateOptimalAttackers(availableAttackers, gameState)
-
-      case 'random':
-        // Random selection
-        return availableAttackers.filter(() => Math.random() < 0.6).map(u => u.id)
-
-      default:
-        return availableAttackers.slice(0, 3).map(u => u.id)
-    }
-  }
-
-  // Check if attacking with a unit is safe
-  private isAttackSafe(attacker: Card, gameState: GameState): boolean {
-    const opponentUnits = getPlayerUnits(gameState, 'player1')
-
-    // Safe if no defenders
-    if (opponentUnits.length === 0) return true
-
-    // Check if we can survive counter-attacks
-    const wouldSurvive = opponentUnits.every(
-      defender => (defender.attack || 0) < (attacker.currentHealth || attacker.health || 0),
-    )
-
-    return wouldSurvive
-  }
-
-  // Calculate optimal attacker combination
-  private calculateOptimalAttackers(
-    availableAttackers: Card[],
-    gameState: GameState,
-  ): string[] {
-    const opponentUnits = getPlayerUnits(gameState, 'player1')
-
-    if (opponentUnits.length === 0) {
-      // Go face with strongest attackers
-      return availableAttackers
-        .sort((a, b) => (b.attack || 0) - (a.attack || 0))
-        .slice(0, 4)
-        .map(u => u.id)
-    }
-
-    // Prioritize favorable trades
-    const goodAttackers = availableAttackers.filter(attacker => {
-      const canTradeFavorably = opponentUnits.some(defender => {
-        const kills = (attacker.attack || 0) >= (defender.currentHealth || defender.health || 0)
-        const survives = (defender.attack || 0) < (attacker.currentHealth || attacker.health || 0)
-        return kills && survives
-      })
-      return canTradeFavorably
-    })
-
-    return goodAttackers.length > 0
-      ? goodAttackers.map(u => u.id)
-      : availableAttackers.slice(0, 2).map(u => u.id) // Attack with some units anyway
-  }
-
-  // Determine attack target priority
-  private determineTargetPriority(gameState: GameState): 'nexus' | 'units' | 'mixed' {
-    const opponentUnits = getPlayerUnits(gameState, 'player1')
-    const opponentHealth = gameState.player1.health
-
-    // Go for lethal if possible
-    const totalDamage = getPlayerUnits(gameState, 'player2').reduce((sum, unit) => sum + (unit.attack || 0), 0)
-    if (totalDamage >= opponentHealth && opponentUnits.length === 0) {
-      return 'nexus'
-    }
-
-    // Clear threats first
-    if (opponentUnits.some(u => (u.attack || 0) >= 5)) {
-      return 'units'
-    }
-
-    return 'mixed'
-  }
-
-  // Calculate confidence in attack decision (0-1)
-  private calculateAttackConfidence(attackerIds: string[], gameState: GameState): number {
-    if (attackerIds.length === 0) return 0
-
-    const attackers = getPlayerUnits(gameState, 'player2').filter(u => attackerIds.includes(u.id))
-    const defenders = getPlayerUnits(gameState, 'player1')
-
-    // High confidence if no defenders
-    if (defenders.length === 0) return 0.9
-
-    // Calculate expected outcome
-    let favorableTrades = 0
-    let unfavorableTrades = 0
-
-    for (const attacker of attackers) {
-      const bestDefender = defenders.reduce(
-        (best, curr) => {
-          const currValue = (curr.attack || 0) - (attacker.currentHealth || attacker.health || 0)
-          const bestValue = best
-            ? (best.attack || 0) - (attacker.currentHealth || attacker.health || 0)
-            : Infinity
-          return currValue < bestValue ? curr : best
-        },
-        null as Card | null,
-      )
-
-      if (bestDefender) {
-        if ((attacker.attack || 0) >= (bestDefender.currentHealth || bestDefender.health || 0)) {
-          favorableTrades++
-        } else {
-          unfavorableTrades++
-        }
-      }
-    }
-
-    return favorableTrades / (favorableTrades + unfavorableTrades + 1)
-  }
-
-  // Execute attack with selected units (deprecated - Hearthstone-style uses direct attacks)
-  private executeAttack(gameState: GameState, decision: AttackDecision): GameState {
-    // In Hearthstone-style system, attacks are executed directly via battlefieldService
-    // This method is deprecated but kept for compatibility
-    // Legacy executeAttack method removed
-    return gameState
   }
 
   // NEW: Direct Attack Evaluation System
@@ -671,7 +541,7 @@ export class AIControllerService {
           targetType: 'unit',
           targetId: target.id,
           value,
-          reasoning: `Trade ${attacker.name} into ${target.name}`
+          reasoning: `Trade ${attacker.name} into ${target.name}`,
         })
       }
 
@@ -681,7 +551,7 @@ export class AIControllerService {
         attackerId: attacker.id,
         targetType: 'player',
         value: faceValue,
-        reasoning: `Deal ${attacker.attack} to face`
+        reasoning: `Deal ${attacker.attack} to face`,
       })
     }
 

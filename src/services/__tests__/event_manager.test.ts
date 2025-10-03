@@ -597,7 +597,7 @@ describe('EventManager', () => {
         it('should log errors from listeners', async () => {
             const { GameLogger } = await import('@/lib/game_logger')
             const loggerErrorSpy = vi.spyOn(GameLogger, 'error').mockImplementation(() => { })
-            
+
             const listener = vi.fn(() => {
                 throw new Error('Test error')
             })

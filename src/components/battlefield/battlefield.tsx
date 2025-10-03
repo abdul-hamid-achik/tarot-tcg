@@ -1,5 +1,4 @@
-import { GameLogger } from "@/lib/game_logger"
-'use client'
+;('use client')
 
 import { useGameStore } from '@/store/game_store'
 import { BattlefieldRow } from './battlefield_row'

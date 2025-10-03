@@ -1,20 +1,18 @@
-import { GameLogger } from "@/lib/game_logger"
-'use client'
+import { GameLogger } from '@/lib/game_logger'
+
+;('use client')
 
 import React from 'react'
 // Game Components
 import { Battlefield } from '@/components/battlefield/battlefield'
 // Overlays
 import CardDetailOverlay from '@/components/card_detail_overlay'
-import BackgroundEffects from '@/components/effects/background_effects'
-import HandFan from '@/components/hand/hand_fan'
 import { AttackArrow } from '@/components/combat/attack_arrow'
-import { EmoteWheel, EmoteDisplay, useEmotes } from '@/components/multiplayer/emotes'
-import { ConnectionStatus } from '@/components/multiplayer/connection_status'
-
+import HandFan from '@/components/hand/hand_fan'
 // Layout Components
 import GameLayout from '@/components/layout/game_layout'
 import MulliganOverlay from '@/components/mulligan_overlay'
+import { useEmotes } from '@/components/multiplayer/emotes'
 import PlayerInfoPanel from '@/components/player/player_info_panel'
 // UI Components
 import ActionBar from '@/components/ui/action_bar'
@@ -22,18 +20,12 @@ import { useGameActions } from '@/hooks/use_game_actions'
 import { useGameClock } from '@/hooks/use_game_clock'
 import { useGameEffects } from '@/hooks/use_game_effects'
 import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
-import type { BattlefieldPosition } from '@/services/battlefield_service'
 // Types
 import type { Card as GameCard, GameState } from '@/schemas/schema'
-import {
-  getPlayer,
-  getPlayerHand,
-  isDefendersPhase,
-  isMulliganComplete,
-  isMulliganPhase,
-} from '@/schemas/schema'
-import { useGameStore } from '@/store/game_store'
+import { getPlayer, getPlayerHand, isMulliganComplete, isMulliganPhase } from '@/schemas/schema'
+import type { BattlefieldPosition } from '@/services/battlefield_service'
 import { interactionService } from '@/services/interaction_service'
+import { useGameStore } from '@/store/game_store'
 
 interface GameBoardProps {
   gameState: GameState
@@ -59,11 +51,10 @@ export default function GameBoard({
     highlightSlots,
     clearHighlights,
     setValidDropZones,
-    clearValidDropZones
+    clearValidDropZones,
   } = useGameStore()
 
-  const { playCard, declareAttack, attackTarget, completeMulligan, reverseCard } =
-    useGameActions()
+  const { playCard, declareAttack, attackTarget, completeMulligan, reverseCard } = useGameActions()
 
   // Use centralized game effects
   const { gameState } = useGameEffects()
@@ -88,7 +79,10 @@ export default function GameBoard({
   // Set up interaction service callbacks
   React.useEffect(() => {
     const callbacks = {
-      getValidDropZones: (card: GameCard, from: BattlefieldPosition | 'hand'): BattlefieldPosition[] => {
+      getValidDropZones: (
+        card: GameCard,
+        from: BattlefieldPosition | 'hand',
+      ): BattlefieldPosition[] => {
         if (from === 'hand' && card.type === 'unit') {
           // Find all empty slots on player's battlefield
           const validSlots: BattlefieldPosition[] = []
@@ -104,7 +98,11 @@ export default function GameBoard({
         }
         return []
       },
-      canDropOn: (position: BattlefieldPosition, card: GameCard, from: BattlefieldPosition | 'hand'): boolean => {
+      canDropOn: (
+        position: BattlefieldPosition,
+        _card: GameCard,
+        from: BattlefieldPosition | 'hand',
+      ): boolean => {
         if (from === 'hand' && position.player === 'player1') {
           const battlefield = gameState?.battlefield
           if (battlefield) {
@@ -113,7 +111,11 @@ export default function GameBoard({
         }
         return false
       },
-      onCardMove: async (card: GameCard, from: BattlefieldPosition | 'hand', to: BattlefieldPosition) => {
+      onCardMove: async (
+        card: GameCard,
+        from: BattlefieldPosition | 'hand',
+        to: BattlefieldPosition,
+      ) => {
         if (from === 'hand') {
           await playCard(card, to)
         }
@@ -128,7 +130,7 @@ export default function GameBoard({
       onClearHighlights: () => {
         clearHighlights()
         clearValidDropZones()
-      }
+      },
     }
 
     interactionService.setCallbacks(callbacks)
@@ -149,14 +151,14 @@ export default function GameBoard({
       document.removeEventListener('pointermove', handlePointerMove)
       document.removeEventListener('pointerup', handlePointerUp)
     }
-  }, [gameState, playCard])
+  }, [gameState, playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones])
 
   // Auto-end turn when timer expires
   React.useEffect(() => {
     if (isTimerExpired && gameState?.activePlayer === 'player1') {
       handleEndTurn()
     }
-  }, [isTimerExpired, gameState?.activePlayer])
+  }, [isTimerExpired, gameState?.activePlayer, handleEndTurn])
 
   // Handle action bar events (simplified for direct attack system)
   const handleAttack = async () => {
@@ -166,7 +168,7 @@ export default function GameBoard({
     onAttack?.([])
   }
 
-  const handleDirectAttack = async (attackerId: string, target: 'nexus') => {
+  const _handleDirectAttack = async (attackerId: string, target: 'nexus') => {
     await attackTarget(attackerId, target)
   }
 
@@ -192,7 +194,7 @@ export default function GameBoard({
       const battlefield = gameState?.battlefield
       if (battlefield) {
         const playerUnits = battlefield.playerUnits
-        const firstEmptySlot = playerUnits.findIndex(unit => unit === null)
+        const firstEmptySlot = playerUnits.indexOf(null)
 
         if (firstEmptySlot !== -1) {
           GameLogger.debug(`Playing card to slot: {player: "player1", slot: ${firstEmptySlot}}`)
@@ -223,7 +225,6 @@ export default function GameBoard({
     <GameLayout>
       {/* Attack Arrow for Direct Combat */}
       <AttackArrow />
-
 
       {/* Player Info Panels */}
       {(() => {
@@ -260,7 +261,6 @@ export default function GameBoard({
           <Battlefield />
         </div>
       </div>
-
 
       {/* Hand Components */}
       <HandFan

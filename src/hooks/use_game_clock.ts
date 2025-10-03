@@ -1,5 +1,5 @@
-import { GameLogger } from "@/lib/game_logger"
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { GameLogger } from '@/lib/game_logger'
 import { useGameStore } from '@/store/game_store'
 
 interface GameClockConfig {

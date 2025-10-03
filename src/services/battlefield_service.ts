@@ -1,5 +1,5 @@
-import { GameLogger } from "@/lib/game_logger"
-import type { Card, GameState, PlayerId } from '@/schemas/schema'
+import { GameLogger } from '@/lib/game_logger'
+import type { Card, PlayerId } from '@/schemas/schema'
 
 export interface BattlefieldPosition {
   player: PlayerId
@@ -40,10 +40,12 @@ export class BattlefieldService {
    * Place a unit on the battlefield
    */
   placeUnit(battlefield: Battlefield, card: Card, player: PlayerId, slot: number): Battlefield {
-    GameLogger.system(`🎯 [BattlefieldService] Attempting to place ${card.name} for ${player} at slot ${slot}`)
+    GameLogger.system(
+      `🎯 [BattlefieldService] Attempting to place ${card.name} for ${player} at slot ${slot}`,
+    )
     GameLogger.system(`🎯 [BattlefieldService] Current battlefield state:`, {
       playerUnits: battlefield.playerUnits.filter(u => u !== null).map(u => u?.name),
-      enemyUnits: battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name)
+      enemyUnits: battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name),
     })
 
     if (!this.isSlotEmpty(battlefield, player, slot)) {
@@ -60,10 +62,12 @@ export class BattlefieldService {
     const units = player === 'player1' ? newBattlefield.playerUnits : newBattlefield.enemyUnits
     units[slot] = card
 
-    GameLogger.system(`🎯 [BattlefieldService] Successfully placed ${card.name} for ${player} at slot ${slot}`)
+    GameLogger.system(
+      `🎯 [BattlefieldService] Successfully placed ${card.name} for ${player} at slot ${slot}`,
+    )
     GameLogger.system(`🎯 [BattlefieldService] New battlefield state:`, {
       playerUnits: newBattlefield.playerUnits.filter(u => u !== null).map(u => u?.name),
-      enemyUnits: newBattlefield.enemyUnits.filter(u => u !== null).map(u => u?.name)
+      enemyUnits: newBattlefield.enemyUnits.filter(u => u !== null).map(u => u?.name),
     })
 
     return newBattlefield
@@ -153,24 +157,26 @@ export class BattlefieldService {
    * Get units that can attack (like Hearthstone - summoning sickness, etc.)
    */
   getAttackableUnits(battlefield: Battlefield, player: PlayerId): Card[] {
-    return this.getPlayerUnits(battlefield, player).filter(unit =>
-      unit.attack > 0 &&
-      !unit.hasAttackedThisTurn &&
-      !unit.hasSummoningSickness // Units can't attack the turn they're played
+    return this.getPlayerUnits(battlefield, player).filter(
+      unit => unit.attack > 0 && !unit.hasAttackedThisTurn && !unit.hasSummoningSickness, // Units can't attack the turn they're played
     )
   }
 
   /**
    * Get valid targets for an attack (opponent units + nexus)
    */
-  getValidTargets(battlefield: Battlefield, attackingPlayer: PlayerId): {
-    units: { card: Card, slot: number }[],
+  getValidTargets(
+    battlefield: Battlefield,
+    attackingPlayer: PlayerId,
+  ): {
+    units: { card: Card; slot: number }[]
     canAttackNexus: boolean
   } {
-    const opponentPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1'
-    const opponentUnits = attackingPlayer === 'player1' ? battlefield.enemyUnits : battlefield.playerUnits
+    const _opponentPlayer = attackingPlayer === 'player1' ? 'player2' : 'player1'
+    const opponentUnits =
+      attackingPlayer === 'player1' ? battlefield.enemyUnits : battlefield.playerUnits
 
-    const validUnits: { card: Card, slot: number }[] = []
+    const validUnits: { card: Card; slot: number }[] = []
     for (let i = 0; i < opponentUnits.length; i++) {
       const unit = opponentUnits[i]
       if (unit) {
@@ -183,7 +189,7 @@ export class BattlefieldService {
 
     return {
       units: validUnits,
-      canAttackNexus: !hasTaunt || validUnits.length === 0
+      canAttackNexus: !hasTaunt || validUnits.length === 0,
     }
   }
 
@@ -231,7 +237,7 @@ export class BattlefieldService {
         units[i] = {
           ...units[i]!,
           hasSummoningSickness: false,
-          hasAttackedThisTurn: false
+          hasAttackedThisTurn: false,
         }
       }
     }
@@ -256,7 +262,7 @@ export class BattlefieldService {
       if (units[i]) {
         units[i] = {
           ...units[i]!,
-          hasAttackedThisTurn: false
+          hasAttackedThisTurn: false,
         }
       }
     }

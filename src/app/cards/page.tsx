@@ -161,9 +161,13 @@ export default function CardsPage() {
     if (filters.rarity) {
       cards = cards.filter(card => card.rarity === filters.rarity)
     }
-    if (filters.costRange && filters.costRange.min !== undefined && filters.costRange.max !== undefined) {
+    if (
+      filters.costRange &&
+      filters.costRange.min !== undefined &&
+      filters.costRange.max !== undefined
+    ) {
       cards = cards.filter(
-        card => card.cost >= filters.costRange!.min && card.cost <= filters.costRange!.max,
+        card => card.cost >= filters.costRange?.min && card.cost <= filters.costRange?.max,
       )
     }
 
@@ -243,14 +247,15 @@ export default function CardsPage() {
                         <h2 className="text-2xl font-bold capitalize">{sign.name}</h2>
                         <span className="text-3xl">{sign.symbol}</span>
                         <Badge
-                          className={`${sign.element === 'fire'
+                          className={`${
+                            sign.element === 'fire'
                               ? 'bg-red-100 text-red-800'
                               : sign.element === 'water'
                                 ? 'bg-blue-100 text-blue-800'
                                 : sign.element === 'air'
                                   ? 'bg-yellow-100 text-yellow-800'
                                   : 'bg-green-100 text-green-800'
-                            }`}
+                          }`}
                         >
                           {sign.element}
                         </Badge>

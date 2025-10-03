@@ -29,8 +29,8 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
     // Spell-specific properties - only set if valid
     spellType:
       contentCard.cardType === 'spell' &&
-        contentCard.spellType &&
-        ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType)
+      contentCard.spellType &&
+      ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType)
         ? contentCard.spellType
         : undefined,
     effects: Array.isArray(contentCard.effects) ? contentCard.effects : [],
@@ -150,7 +150,9 @@ export function createRandomDeck(size: number = 30): Card[] {
 
   // Validate card pool
   if (allGameCards.length === 0) {
-    throw new Error('No cards available in card pool. Check that content/cards/ has valid MDX files.')
+    throw new Error(
+      'No cards available in card pool. Check that content/cards/ has valid MDX files.',
+    )
   }
 
   // Cap deck size at maximum
@@ -160,7 +162,7 @@ export function createRandomDeck(size: number = 30): Card[] {
   if (allGameCards.length < targetSize) {
     GameLogger.warn(
       `[Deck Builder] Card pool has only ${allGameCards.length} unique cards but deck needs ${targetSize}. ` +
-      `Deck will contain duplicates to reach target size.`
+        `Deck will contain duplicates to reach target size.`,
     )
   }
 
@@ -203,7 +205,7 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
   if (zodiacCards.length === 0) {
     throw new Error(
       `No cards found for zodiac class "${zodiacClass}". ` +
-      `Check that cards with this zodiacClass exist in content/cards/`
+        `Check that cards with this zodiacClass exist in content/cards/`,
     )
   }
 
@@ -220,7 +222,7 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
   if (totalAvailableCards < maxSize) {
     GameLogger.warn(
       `[Deck Builder] Only ${totalAvailableCards} unique cards available for zodiac "${zodiacClass}" deck ` +
-      `(needs ${maxSize}). Deck will contain duplicates.`
+        `(needs ${maxSize}). Deck will contain duplicates.`,
     )
   }
 

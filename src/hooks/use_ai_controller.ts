@@ -1,8 +1,6 @@
-import { GameLogger } from "@/lib/game_logger"
 import { useCallback, useEffect, useRef } from 'react'
 import { useGameActions } from '@/hooks/use_game_actions'
-import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
-import type { GameState } from '@/schemas/schema'
+import { GameLogger } from '@/lib/game_logger'
 import { aiController } from '@/services/ai_controller_service'
 import type { AILevel } from '@/services/ai_service'
 import { useGameStore } from '@/store/game_store'
@@ -61,7 +59,7 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
 
       return () => clearTimeout(timeoutId)
     }
-  }, [enabled, autoPlay, gameState?.activePlayer, gameState?.phase, executeAI])
+  }, [enabled, autoPlay, gameState?.activePlayer, gameState?.phase, executeAI, gameState])
 
   // Manual AI trigger
   const triggerAI = useCallback(() => {
@@ -76,7 +74,7 @@ export const useAIController = (options: UseAIControllerOptions = {}) => {
       name: 'AI Opponent',
       difficulty,
       aggression: 0.5,
-      icon: '🤖' // Add icon for tutorial compatibility
+      icon: '🤖', // Add icon for tutorial compatibility
     }
   }, [difficulty])
 

@@ -1,23 +1,16 @@
 import { useCallback } from 'react'
-import type { Card as GameCard, GameState, PlayerId } from '@/schemas/schema'
-import { useGameStore } from '@/store/game_store'
 import { useMultiplayerActions } from '@/hooks/use_multiplayer_actions'
-import { FEATURE_FLAGS } from '@/config/feature_flags'
 import { GameLogger } from '@/lib/game_logger'
+import type { Card as GameCard } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
+import { useGameStore } from '@/store/game_store'
 
 /**
  * Unified game actions hook for Tarot TCG
  * Supports both local and multiplayer gameplay with direct attack system
  */
 export const useGameActions = () => {
-  const {
-    gameState,
-    setGameState,
-    interaction,
-    clearSelection,
-    setAnimationState,
-  } = useGameStore()
+  const { gameState, setGameState, interaction, clearSelection, setAnimationState } = useGameStore()
 
   // Get multiplayer actions for WebSocket-enabled games
   const multiplayer = useMultiplayerActions()
@@ -55,7 +48,7 @@ export const useGameActions = () => {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, clearSelection, setAnimationState, multiplayer]
+    [gameState, setGameState, clearSelection, setAnimationState, multiplayer],
   )
 
   /**
@@ -79,7 +72,7 @@ export const useGameActions = () => {
         const newGameState = await localDeclareAttack(gameState, {
           attackerId,
           targetType,
-          targetId
+          targetId,
         })
 
         setGameState(newGameState)
@@ -93,7 +86,7 @@ export const useGameActions = () => {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, clearSelection, setAnimationState, multiplayer]
+    [gameState, setGameState, clearSelection, setAnimationState, multiplayer],
   )
 
   // Legacy declareAttack completely removed
@@ -107,9 +100,10 @@ export const useGameActions = () => {
         await declareAttack(attackerId, 'player')
       } else {
         // Find the target unit ID
-        const targetUnits = target.player === 'player1'
-          ? gameState?.battlefield.playerUnits
-          : gameState?.battlefield.enemyUnits
+        const targetUnits =
+          target.player === 'player1'
+            ? gameState?.battlefield.playerUnits
+            : gameState?.battlefield.enemyUnits
 
         const targetUnit = targetUnits?.[target.slot]
         if (targetUnit) {
@@ -117,7 +111,7 @@ export const useGameActions = () => {
         }
       }
     },
-    [gameState, declareAttack]
+    [gameState, declareAttack],
   )
 
   /**
@@ -146,7 +140,7 @@ export const useGameActions = () => {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState]
+    [gameState, setGameState, setAnimationState],
   )
 
   /**
@@ -197,7 +191,9 @@ export const useGameActions = () => {
             isReversed: !card.isReversed,
           }
           found = true
-          GameLogger.action(`${card.name} orientation changed to ${!card.isReversed ? 'reversed' : 'upright'}`)
+          GameLogger.action(
+            `${card.name} orientation changed to ${!card.isReversed ? 'reversed' : 'upright'}`,
+          )
           break
         }
       }
@@ -212,7 +208,9 @@ export const useGameActions = () => {
               isReversed: !card.isReversed,
             }
             found = true
-            GameLogger.action(`${card.name} orientation changed to ${!card.isReversed ? 'reversed' : 'upright'}`)
+            GameLogger.action(
+              `${card.name} orientation changed to ${!card.isReversed ? 'reversed' : 'upright'}`,
+            )
             break
           }
         }
@@ -225,7 +223,7 @@ export const useGameActions = () => {
 
       setGameState(newGameState)
     },
-    [gameState, setGameState]
+    [gameState, setGameState],
   )
 
   /**

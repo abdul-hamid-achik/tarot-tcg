@@ -1,7 +1,6 @@
-import { GameLogger } from "@/lib/game_logger"
-import { GameState, PlayerId, Card } from '@/schemas/schema'
+import { GameLogger, GameLogger } from "@/lib/game_logger"
+import type { Card, GameState, PlayerId } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
-import { GameLogger } from '@/lib/game_logger'
 
 export interface GameMessage {
     type: 'play_card' | 'declare_attack' | 'end_turn' | 'heartbeat'
@@ -285,7 +284,7 @@ export class WebSocketService {
         }
 
         this.reconnectAttempts++
-        const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1) // Exponential backoff
+        const delay = this.reconnectDelay * 2 ** (this.reconnectAttempts - 1) // Exponential backoff
 
         GameLogger.system(`Scheduling reconnection attempt ${this.reconnectAttempts} in ${delay}ms`)
         this.updateConnectionStatus('connecting')

@@ -1,6 +1,6 @@
-import { GameLogger } from "@/lib/game_logger"
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { GameLogger } from '@/lib/game_logger'
 import { type Card as GameCard, type GameState, GameStateSchema } from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 
@@ -78,15 +78,14 @@ export const createSlotKey = (position: BattlefieldPosition): string =>
   `${position.player}-${position.slot}`
 
 // Helper to calculate valid attack targets
-function calculateValidTargets(gameState: GameState, attackerId: string): Set<string> {
+function calculateValidTargets(gameState: GameState, _attackerId: string): Set<string> {
   // Simple implementation - would be expanded for real game logic
   const validTargets = new Set<string>()
 
   // Add enemy units as valid targets
   const opponent = gameState.activePlayer === 'player1' ? 'player2' : 'player1'
-  const enemyUnits = opponent === 'player1'
-    ? gameState.battlefield.playerUnits
-    : gameState.battlefield.enemyUnits
+  const enemyUnits =
+    opponent === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
 
   enemyUnits.forEach(unit => {
     if (unit) {
@@ -181,17 +180,29 @@ export const useGameStore = create<GameStore>()(
       // Actions
       setGameState: gameState => {
         GameLogger.debug(`🏪 [GameStore] setGameState called`)
-        GameLogger.debug(`🏪 [GameStore] Player units:`, gameState.battlefield.playerUnits.filter(u => u !== null).map(u => u?.name))
-        GameLogger.debug(`🏪 [GameStore] Enemy units:`, gameState.battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name))
+        GameLogger.debug(
+          `🏪 [GameStore] Player units:`,
+          gameState.battlefield.playerUnits.filter(u => u !== null).map(u => u?.name),
+        )
+        GameLogger.debug(
+          `🏪 [GameStore] Enemy units:`,
+          gameState.battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name),
+        )
         set({ gameState })
       },
 
       updateBattlefield: battlefield => {
         GameLogger.debug(`🏪 [GameStore] updateBattlefield called`)
-        GameLogger.debug(`🏪 [GameStore] Player units:`, battlefield.playerUnits.filter(u => u !== null).map(u => u?.name))
-        GameLogger.debug(`🏪 [GameStore] Enemy units:`, battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name))
+        GameLogger.debug(
+          `🏪 [GameStore] Player units:`,
+          battlefield.playerUnits.filter(u => u !== null).map(u => u?.name),
+        )
+        GameLogger.debug(
+          `🏪 [GameStore] Enemy units:`,
+          battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name),
+        )
         set(state => ({
-          gameState: { ...state.gameState, battlefield }
+          gameState: { ...state.gameState, battlefield },
         }))
       },
 
@@ -251,7 +262,7 @@ export const useGameStore = create<GameStore>()(
           },
         })),
 
-      executeAttack: async (targetId: string, targetType: 'unit' | 'player') => {
+      executeAttack: async (_targetId: string, _targetType: 'unit' | 'player') => {
         const { gameState, interaction } = get()
         if (!interaction.attackSource) return
 
@@ -319,6 +330,6 @@ export const useGameStore = create<GameStore>()(
     }),
     {
       name: 'tarot-tcg-store',
-    }
-  )
+    },
+  ),
 )

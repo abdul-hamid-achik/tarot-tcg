@@ -1,33 +1,33 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import { GameBoardErrorBoundary } from '@/components/error_boundary'
 import TarotGameBoard from '@/components/game_board'
 import { Button } from '@/components/ui/button'
 import { useAIController } from '@/hooks/use_ai_controller'
 import { GameLogger } from '@/lib/game_logger'
-import { GameBoardErrorBoundary } from '@/components/error_boundary'
 import {
-  aiMulligan,
   checkGameOutcome,
-  createInitialGameState,
   completeMulligan,
+  createInitialGameState,
   endTurn,
   initializeCards,
   playCard,
 } from '@/lib/game_logic'
-import { declareAttack } from '@/lib/combat_logic'
-import type { Card, GameState, ZodiacClass } from '@/schemas/schema'
+import type { Card, GameState } from '@/schemas/schema'
 
 export default function Tutorial() {
   const [gameState, setGameState] = useState<GameState | null>(null)
-  const [message, setMessage] = useState('🎴 Welcome to the Tarot TCG!')
-  const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>('ongoing')
-  const [showTutorialTips, setShowTutorialTips] = useState(false)
+  const [_message, setMessage] = useState('🎴 Welcome to the Tarot TCG!')
+  const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>(
+    'ongoing',
+  )
+  const [_showTutorialTips, _setShowTutorialTips] = useState(false)
 
   const { executeAI } = useAIController({
     enabled: true,
     autoPlay: true,
-    difficulty: 'easy'
+    difficulty: 'easy',
   })
 
   // Initialize tutorial game
@@ -67,19 +67,39 @@ export default function Tutorial() {
       gameOutcome,
       aiHandCount: gameState?.player2?.hand?.length || 0,
       aiMana: gameState?.player2?.mana || 0,
-      shouldTrigger: gameState?.activePlayer === 'player2' && gameState?.phase === 'action' && gameOutcome === 'ongoing',
+      shouldTrigger:
+        gameState?.activePlayer === 'player2' &&
+        gameState?.phase === 'action' &&
+        gameOutcome === 'ongoing',
       player1MulliganComplete: gameState?.player1?.mulliganComplete,
-      player2MulliganComplete: gameState?.player2?.mulliganComplete
+      player2MulliganComplete: gameState?.player2?.mulliganComplete,
     })
 
-    if (gameState?.activePlayer === 'player2' && gameState?.phase === 'action' && gameOutcome === 'ongoing') {
-      console.log('🎮 AI turn triggered! Hand:', gameState.player2.hand.map(c => c.name))
+    if (
+      gameState?.activePlayer === 'player2' &&
+      gameState?.phase === 'action' &&
+      gameOutcome === 'ongoing'
+    ) {
+      console.log(
+        '🎮 AI turn triggered! Hand:',
+        gameState.player2.hand.map(c => c.name),
+      )
       const timer = setTimeout(() => {
         executeAI()
       }, 1000)
       return () => clearTimeout(timer)
     }
-  }, [gameState?.activePlayer, gameState?.phase, gameOutcome, executeAI])
+  }, [
+    gameState?.activePlayer,
+    gameState?.phase,
+    gameOutcome,
+    executeAI,
+    gameState.player2.hand.map,
+    gameState?.player1?.mulliganComplete,
+    gameState?.player2?.hand?.length,
+    gameState?.player2?.mana,
+    gameState?.player2?.mulliganComplete,
+  ])
 
   const handleCardPlay = async (card: Card) => {
     if (!gameState) return
@@ -129,11 +149,15 @@ export default function Tutorial() {
         player1Complete: mulliganedState.player1.mulliganComplete,
         player2Complete: mulliganedState.player2.mulliganComplete,
         phase: mulliganedState.phase,
-        activePlayer: mulliganedState.activePlayer
+        activePlayer: mulliganedState.activePlayer,
       })
 
       // Force phase transition in tutorial if needed
-      if (mulliganedState.player1.mulliganComplete && mulliganedState.player2.mulliganComplete && mulliganedState.phase !== 'action') {
+      if (
+        mulliganedState.player1.mulliganComplete &&
+        mulliganedState.player2.mulliganComplete &&
+        mulliganedState.phase !== 'action'
+      ) {
         console.log('Forcing phase transition to action in tutorial')
         mulliganedState.phase = 'action'
         mulliganedState.waitingForAction = true
@@ -186,7 +210,6 @@ export default function Tutorial() {
         </Button>
       </div>
 
-
       {/* Game Board - Full Screen */}
       {gameState && (
         <GameBoardErrorBoundary onReset={resetGame}>
@@ -207,17 +230,19 @@ export default function Tutorial() {
               {gameOutcome === 'player1_wins' ? '🎉 You Win!' : '💀 AI Wins!'}
             </h2>
             <div className="flex gap-4">
-              <Button onClick={resetGame} className="bg-primary text-primary-foreground hover:bg-primary/90">
+              <Button
+                onClick={resetGame}
+                className="bg-primary text-primary-foreground hover:bg-primary/90"
+              >
                 🔄 Play Again
               </Button>
-              <Button onClick={() => window.location.href = '/'} variant="outline">
+              <Button onClick={() => (window.location.href = '/')} variant="outline">
                 🏠 Main Menu
               </Button>
             </div>
           </div>
         </div>
       )}
-
     </div>
   )
 }

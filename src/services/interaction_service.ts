@@ -31,7 +31,11 @@ export interface InteractionCallbacks {
   onHideTooltip?: () => void
   getValidDropZones?: (card: GameCard, from: BattlefieldPosition | 'hand') => BattlefieldPosition[]
   canDragCard?: (card: GameCard, from: BattlefieldPosition | 'hand') => boolean
-  canDropOn?: (to: BattlefieldPosition, card: GameCard, from: BattlefieldPosition | 'hand') => boolean
+  canDropOn?: (
+    to: BattlefieldPosition,
+    card: GameCard,
+    from: BattlefieldPosition | 'hand',
+  ) => boolean
 }
 
 class InteractionService {
@@ -254,7 +258,8 @@ class InteractionService {
       this.dragState.dragElement.style.zIndex = '9999'
       this.dragState.dragElement.style.pointerEvents = 'none'
       // Store original transform to restore later
-      this.dragState.dragElement.dataset.originalTransform = this.dragState.dragElement.style.transform || ''
+      this.dragState.dragElement.dataset.originalTransform =
+        this.dragState.dragElement.style.transform || ''
     }
   }
 

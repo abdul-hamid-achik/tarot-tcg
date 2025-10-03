@@ -35,14 +35,14 @@ export default async function CardPage({ params }: PageProps) {
     { label: 'Cards', href: '/cards' },
     ...(slugArray.length > 1
       ? [
-        {
-          label: slugArray[0]
-            .split('-')
-            .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' '),
-          href: `/cards#${slugArray[0]}`,
-        },
-      ]
+          {
+            label: slugArray[0]
+              .split('-')
+              .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' '),
+            href: `/cards#${slugArray[0]}`,
+          },
+        ]
       : []),
     { label: card.name, isCurrentPage: true },
   ]
@@ -97,12 +97,19 @@ export default async function CardPage({ params }: PageProps) {
               <div className="mt-4 flex flex-wrap gap-2">
                 <Badge variant="secondary">{card.zodiacClass}</Badge>
                 <Badge variant="outline">{card.element}</Badge>
-                <div className={`w-4 h-4 rounded-full ${card.rarity === 'common' ? 'bg-gray-500' :
-                    card.rarity === 'uncommon' ? 'bg-green-500' :
-                      card.rarity === 'rare' ? 'bg-blue-500' :
-                        card.rarity === 'legendary' ? 'bg-purple-500' :
-                          'bg-gray-500'
-                  }`} />
+                <div
+                  className={`w-4 h-4 rounded-full ${
+                    card.rarity === 'common'
+                      ? 'bg-gray-500'
+                      : card.rarity === 'uncommon'
+                        ? 'bg-green-500'
+                        : card.rarity === 'rare'
+                          ? 'bg-blue-500'
+                          : card.rarity === 'legendary'
+                            ? 'bg-purple-500'
+                            : 'bg-gray-500'
+                  }`}
+                />
               </div>
 
               {card.keywords && card.keywords.length > 0 && (
@@ -185,17 +192,17 @@ export default async function CardPage({ params }: PageProps) {
           previousCard={
             previousCard
               ? {
-                name: previousCard.name,
-                slug: previousCard._raw.flattenedPath.replace('cards/', ''),
-              }
+                  name: previousCard.name,
+                  slug: previousCard._raw.flattenedPath.replace('cards/', ''),
+                }
               : undefined
           }
           nextCard={
             nextCard
               ? {
-                name: nextCard.name,
-                slug: nextCard._raw.flattenedPath.replace('cards/', ''),
-              }
+                  name: nextCard.name,
+                  slug: nextCard._raw.flattenedPath.replace('cards/', ''),
+                }
               : undefined
           }
         />

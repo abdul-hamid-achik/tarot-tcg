@@ -1,17 +1,24 @@
 import { createRandomDeck, createZodiacDeck, getAllCards } from '@/lib/card_loader'
+import { declareAttack } from '@/lib/combat_logic'
 import { GameLogger } from '@/lib/game_logger'
-import type { Card, GameState, Player, DirectAttack, Battlefield, CardEffect, EffectContext, TriggeredAbility } from '@/schemas/schema'
+import type {
+  Battlefield,
+  Card,
+  CardEffect,
+  DirectAttack,
+  EffectContext,
+  GameState,
+  Player,
+  TriggeredAbility,
+} from '@/schemas/schema'
 import { cardEffectSystem } from '@/services/card_effect_system'
 import { effectStackService } from '@/services/effect_stack_service'
 import { createEventHelpers, eventManager } from '@/services/event_manager'
 import { winConditionService } from '@/services/win_condition_service'
-import { declareAttack } from '@/lib/combat_logic'
 
 // Battlefield helper functions
 function findFirstEmptySlot(battlefield: Battlefield, playerId: 'player1' | 'player2'): number {
-  const units = playerId === 'player1'
-    ? battlefield.playerUnits
-    : battlefield.enemyUnits
+  const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
 
   return units.findIndex((u: Card | null) => u === null)
 }
@@ -20,15 +27,13 @@ function placeUnitOnBattlefield(
   gameState: GameState,
   playerId: 'player1' | 'player2',
   unit: Card,
-  targetSlot?: number
+  targetSlot?: number,
 ): { success: boolean; slot: number | null } {
-  const units = playerId === 'player1'
-    ? gameState.battlefield.playerUnits
-    : gameState.battlefield.enemyUnits
+  const units =
+    playerId === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
 
-  const slot = targetSlot !== undefined
-    ? targetSlot
-    : findFirstEmptySlot(gameState.battlefield, playerId)
+  const slot =
+    targetSlot !== undefined ? targetSlot : findFirstEmptySlot(gameState.battlefield, playerId)
 
   if (slot === -1 || slot >= units.length || units[slot] !== null) {
     return { success: false, slot: null }
@@ -48,11 +53,10 @@ function placeUnitOnBattlefield(
 function removeUnitFromBattlefield(
   gameState: GameState,
   playerId: 'player1' | 'player2',
-  unitId: string
+  unitId: string,
 ): boolean {
-  const units = playerId === 'player1'
-    ? gameState.battlefield.playerUnits
-    : gameState.battlefield.enemyUnits
+  const units =
+    playerId === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
 
   for (let i = 0; i < units.length; i++) {
     if (units[i]?.id === unitId) {
@@ -64,16 +68,17 @@ function removeUnitFromBattlefield(
 }
 
 function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): Card[] {
-  const units = playerId === 'player1'
-    ? gameState.battlefield.playerUnits
-    : gameState.battlefield.enemyUnits
+  const units =
+    playerId === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
   return units.filter(u => u !== null) as Card[]
 }
 
-function getUnitAt(battlefield: Battlefield, slot: number, playerId: 'player1' | 'player2'): Card | null {
-  const units = playerId === 'player1'
-    ? battlefield.playerUnits
-    : battlefield.enemyUnits
+function _getUnitAt(
+  battlefield: Battlefield,
+  slot: number,
+  playerId: 'player1' | 'player2',
+): Card | null {
+  const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
   return units[slot] || null
 }
 
@@ -241,7 +246,7 @@ export function canPlayCard(state: GameState, card: Card): boolean {
 export async function playCard(
   state: GameState,
   card: Card,
-  targetSlot?: number
+  targetSlot?: number,
 ): Promise<GameState> {
   const player = state[state.activePlayer]
 
@@ -284,7 +289,9 @@ export async function playCard(
   const manaCost = payManaCost(player, card.cost)
 
   if (!manaCost) {
-    throw new Error(`Not enough mana to play ${card.name}. Required: ${card.cost}, Available: ${player.mana + player.spellMana}`)
+    throw new Error(
+      `Not enough mana to play ${card.name}. Required: ${card.cost}, Available: ${player.mana + player.spellMana}`,
+    )
   }
 
   const { manaUsed, spellManaUsed } = manaCost
@@ -365,7 +372,10 @@ export async function playCard(
 }
 
 // Helper functions for new playCard system
-function payManaCost(player: Player, cost: number): { manaUsed: number; spellManaUsed: number } | null {
+function payManaCost(
+  player: Player,
+  cost: number,
+): { manaUsed: number; spellManaUsed: number } | null {
   const manaToUse = Math.min(player.mana, cost)
   const remainingCost = cost - manaToUse
   const spellManaToUse = Math.min(player.spellMana, remainingCost)
@@ -382,18 +392,18 @@ function payManaCost(player: Player, cost: number): { manaUsed: number; spellMan
 function checkZodiacAlignment(zodiacClass: string, currentMonth: number): boolean {
   // Simplified zodiac alignment check
   const zodiacMonths: Record<string, number[]> = {
-    'aries': [3, 4],
-    'taurus': [4, 5],
-    'gemini': [5, 6],
-    'cancer': [6, 7],
-    'leo': [7, 8],
-    'virgo': [8, 9],
-    'libra': [9, 10],
-    'scorpio': [10, 11],
-    'sagittarius': [11, 12],
-    'capricorn': [12, 1],
-    'aquarius': [1, 2],
-    'pisces': [2, 3],
+    aries: [3, 4],
+    taurus: [4, 5],
+    gemini: [5, 6],
+    cancer: [6, 7],
+    leo: [7, 8],
+    virgo: [8, 9],
+    libra: [9, 10],
+    scorpio: [10, 11],
+    sagittarius: [11, 12],
+    capricorn: [12, 1],
+    aquarius: [1, 2],
+    pisces: [2, 3],
   }
 
   const months = zodiacMonths[zodiacClass]
@@ -643,7 +653,7 @@ async function resolveEffectStack(gameState: GameState): Promise<GameState> {
 
     if (results.failed.length > 0) {
       GameLogger.state(`Failed to resolve ${results.failed.length} effects`, {
-        failed: results.failed.map(f => f.effect.name)
+        failed: results.failed.map(f => f.effect.name),
       })
     }
 
@@ -825,7 +835,7 @@ export async function aiTurn(state: GameState): Promise<GameState> {
   GameLogger.ai('AI turn started')
 
   const ai = newState.player2
-  const opponent = newState.player1
+  const _opponent = newState.player1
 
   // Phase 1: Play cards strategically
   const playableCards = ai.hand
@@ -864,7 +874,7 @@ export async function aiTurn(state: GameState): Promise<GameState> {
           // In a more advanced AI, we could add logic to target enemy units with taunt or make tactical decisions
           const attack: DirectAttack = {
             attackerId: unit.id,
-            targetType: 'player'
+            targetType: 'player',
           }
           newState = await declareAttack(newState, attack)
           GameLogger.ai(`AI attacks player with ${unit.name}`)
@@ -1037,6 +1047,6 @@ export function aiMulligan(
 function shuffleDeck(player: Player): void {
   for (let i = player.deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-      ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+    ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
   }
 }

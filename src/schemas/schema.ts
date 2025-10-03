@@ -58,7 +58,6 @@ export const BattlefieldPositionSchema = z.object({
   slot: BattlefieldSlotSchema,
 })
 
-
 // Object schemas
 export const AbilitySchema = z.object({
   name: z.string(),
@@ -812,7 +811,7 @@ export const isCombatPhase = (gameState: unknown): boolean => {
   return isPhase(gameState, 'combat_resolution')
 }
 
-export const isDefendersPhase = (gameState: unknown): boolean => {
+export const isDefendersPhase = (_gameState: unknown): boolean => {
   return false // No defenders phase in Hearthstone-style system
 }
 

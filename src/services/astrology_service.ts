@@ -1,12 +1,23 @@
 'use client'
 
-import type { Card as GameCard } from '@/schemas/schema'
-import type { BattlefieldPosition, Battlefield } from '@/services/battlefield_service'
 import { GameLogger } from '@/lib/game_logger'
+import type { Card as GameCard } from '@/schemas/schema'
+import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 
 export type ZodiacElement = 'fire' | 'earth' | 'air' | 'water'
-export type ZodiacClass = 'aries' | 'taurus' | 'gemini' | 'cancer' | 'leo' | 'virgo' |
-                         'libra' | 'scorpio' | 'sagittarius' | 'capricorn' | 'aquarius' | 'pisces'
+export type ZodiacClass =
+  | 'aries'
+  | 'taurus'
+  | 'gemini'
+  | 'cancer'
+  | 'leo'
+  | 'virgo'
+  | 'libra'
+  | 'scorpio'
+  | 'sagittarius'
+  | 'capricorn'
+  | 'aquarius'
+  | 'pisces'
 
 export interface CosmicAlignment {
   dominantElement: ZodiacElement
@@ -28,7 +39,7 @@ class AstrologyService {
     dominantElement: 'fire',
     alignedSigns: [],
     resonanceStrength: 0,
-    activePhase: 'new_moon'
+    activePhase: 'new_moon',
   }
 
   // Zodiac sign to element mapping
@@ -44,7 +55,7 @@ class AstrologyService {
     aquarius: 'air',
     cancer: 'water',
     scorpio: 'water',
-    pisces: 'water'
+    pisces: 'water',
   }
 
   // Element oppositions for conflicts
@@ -52,7 +63,7 @@ class AstrologyService {
     fire: 'water',
     water: 'fire',
     earth: 'air',
-    air: 'earth'
+    air: 'earth',
   }
 
   /**
@@ -100,7 +111,7 @@ class AstrologyService {
       dominantElement,
       alignedSigns,
       resonanceStrength,
-      activePhase: this.calculateLunarPhase()
+      activePhase: this.calculateLunarPhase(),
     }
 
     GameLogger.state('Cosmic alignment calculated:', this.currentAlignment)
@@ -120,7 +131,7 @@ class AstrologyService {
         cardId: card.id,
         bonusType: 'attack',
         value: 1,
-        source: 'zodiac_synergy'
+        source: 'zodiac_synergy',
       })
     }
 
@@ -130,7 +141,7 @@ class AstrologyService {
         cardId: card.id,
         bonusType: 'health',
         value: 1,
-        source: 'elemental_dominance'
+        source: 'elemental_dominance',
       })
     }
 
@@ -140,7 +151,7 @@ class AstrologyService {
         cardId: card.id,
         bonusType: 'special_ability',
         value: 1,
-        source: 'cosmic_alignment'
+        source: 'cosmic_alignment',
       })
     }
 
@@ -151,7 +162,7 @@ class AstrologyService {
         cardId: card.id,
         bonusType: 'attack',
         value: 1,
-        source: 'cosmic_alignment'
+        source: 'cosmic_alignment',
       })
     }
 
@@ -163,16 +174,18 @@ class AstrologyService {
    */
   calculateCosmicResonance(card: GameCard, battlefield: Battlefield): number {
     let resonance = 0
-    const allUnits = [...battlefield.playerUnits, ...battlefield.enemyUnits].filter(Boolean) as GameCard[]
+    const allUnits = [...battlefield.playerUnits, ...battlefield.enemyUnits].filter(
+      Boolean,
+    ) as GameCard[]
 
     // Count cards of same zodiac class
-    const sameZodiacCount = allUnits.filter(unit =>
-      unit.id !== card.id && unit.zodiacClass === card.zodiacClass
+    const sameZodiacCount = allUnits.filter(
+      unit => unit.id !== card.id && unit.zodiacClass === card.zodiacClass,
     ).length
 
     // Count cards of same element
-    const sameElementCount = allUnits.filter(unit =>
-      unit.id !== card.id && unit.element === card.element
+    const sameElementCount = allUnits.filter(
+      unit => unit.id !== card.id && unit.element === card.element,
     ).length
 
     // Base resonance from zodiac matches
@@ -187,8 +200,8 @@ class AstrologyService {
     }
 
     // Penalty from opposing elements
-    const opposingElementCount = allUnits.filter(unit =>
-      this.elementOpposites[card.element] === unit.element
+    const opposingElementCount = allUnits.filter(
+      unit => this.elementOpposites[card.element] === unit.element,
     ).length
     resonance -= opposingElementCount
 
@@ -229,7 +242,11 @@ class AstrologyService {
   /**
    * Calculate sacred geometry bonus based on battlefield position
    */
-  calculateSacredGeometry(card: GameCard, position: BattlefieldPosition, battlefield: Battlefield): number {
+  calculateSacredGeometry(
+    card: GameCard,
+    position: BattlefieldPosition,
+    battlefield: Battlefield,
+  ): number {
     let geometryBonus = 1.0
 
     // Golden ratio positioning (slots 2 and 4 are "golden" positions)
@@ -253,10 +270,10 @@ class AstrologyService {
     }
 
     // Fibonacci sequence bonus for adjacent cards
-    const adjacentSlots = [position.slot - 1, position.slot + 1].filter(slot => slot >= 0 && slot < 7)
-    const adjacentCards = adjacentSlots
-      .map(slot => units[slot])
-      .filter(Boolean) as GameCard[]
+    const adjacentSlots = [position.slot - 1, position.slot + 1].filter(
+      slot => slot >= 0 && slot < 7,
+    )
+    const adjacentCards = adjacentSlots.map(slot => units[slot]).filter(Boolean) as GameCard[]
 
     for (const adjacentCard of adjacentCards) {
       if (this.isFibonacciPair(card.cost, adjacentCard.cost)) {
@@ -282,7 +299,12 @@ class AstrologyService {
   private calculateLunarPhase(): 'new_moon' | 'waxing' | 'full_moon' | 'waning' {
     // Simple cycle based on game turn or time
     const cycle = Math.floor(Date.now() / (1000 * 60 * 2)) % 4 // 2-minute cycles
-    const phases: ('new_moon' | 'waxing' | 'full_moon' | 'waning')[] = ['new_moon', 'waxing', 'full_moon', 'waning']
+    const phases: ('new_moon' | 'waxing' | 'full_moon' | 'waning')[] = [
+      'new_moon',
+      'waxing',
+      'full_moon',
+      'waning',
+    ]
     return phases[cycle]
   }
 

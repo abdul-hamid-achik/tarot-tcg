@@ -70,14 +70,17 @@ export default function CardDetailOverlay({
                 )}
 
                 {/* Rarity Badge */}
-                <Badge className={`${card.rarity === 'legendary' || card.rarity === 'mythic'
-                    ? 'bg-purple-500 text-white'
-                    : card.rarity === 'rare'
-                      ? 'bg-blue-500 text-white'
-                      : card.rarity === 'uncommon'
-                        ? 'bg-green-500 text-white'
-                        : 'bg-gray-500 text-white'
-                  }`}>
+                <Badge
+                  className={`${
+                    card.rarity === 'legendary' || card.rarity === 'mythic'
+                      ? 'bg-purple-500 text-white'
+                      : card.rarity === 'rare'
+                        ? 'bg-blue-500 text-white'
+                        : card.rarity === 'uncommon'
+                          ? 'bg-green-500 text-white'
+                          : 'bg-gray-500 text-white'
+                  }`}
+                >
                   {card.rarity.charAt(0).toUpperCase() + card.rarity.slice(1)}
                 </Badge>
               </div>

@@ -1,12 +1,7 @@
 import { GameLogger } from '@/lib/game_logger'
 import type { GameState } from '@/schemas/schema'
 
-export type Phase =
-  | 'mulligan'
-  | 'round_start'
-  | 'action'
-  | 'combat_resolution'
-  | 'end_round'
+export type Phase = 'mulligan' | 'round_start' | 'action' | 'combat_resolution' | 'end_round'
 
 export interface PhaseTransition {
   from: Phase
@@ -174,7 +169,7 @@ export class PhaseManagerService {
   public getValidTransitions(currentPhase: Phase): Phase[] {
     const validTransitions: Phase[] = []
 
-    for (const [key, transition] of this.transitions) {
+    for (const [_key, transition] of this.transitions) {
       if (transition.from === currentPhase) {
         validTransitions.push(transition.to)
       }
@@ -197,7 +192,7 @@ export class PhaseManagerService {
       const key = `${currentState.phase}->${targetPhase}`
       const transition = this.transitions.get(key)
 
-      if (transition && transition.validate(currentState)) {
+      if (transition?.validate(currentState)) {
         currentState = transition.execute(currentState)
         changed = true
         break // Only advance one phase at a time

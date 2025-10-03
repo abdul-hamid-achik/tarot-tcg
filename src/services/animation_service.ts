@@ -97,7 +97,7 @@ class AnimationService {
    */
   animateCardMove(
     card: GameCard,
-    from: BattlefieldPosition | 'hand',
+    _from: BattlefieldPosition | 'hand',
     to: BattlefieldPosition | 'hand' | 'graveyard',
     options: AnimationOptions = {},
   ): Promise<void> {
@@ -122,9 +122,7 @@ class AnimationService {
         const graveyardElement = document.querySelector('[data-graveyard]')
         toRect = graveyardElement?.getBoundingClientRect() || fromRect
       } else {
-        const slotElement = document.querySelector(
-          `[data-slot="${to.player}-${to.slot}"]`,
-        )
+        const slotElement = document.querySelector(`[data-slot="${to.player}-${to.slot}"]`)
         toRect = slotElement?.getBoundingClientRect() || fromRect
       }
 
@@ -155,7 +153,9 @@ class AnimationService {
     // Attack animation - card moves toward opponent's nexus
     attackerElement.style.transition = `transform ${duration}ms ease-out`
     attackerElement.style.transform =
-      attackerPosition.player === 'player1' ? 'translateY(-30px) scale(1.1)' : 'translateY(30px) scale(1.1)'
+      attackerPosition.player === 'player1'
+        ? 'translateY(-30px) scale(1.1)'
+        : 'translateY(30px) scale(1.1)'
 
     await this.wait(duration)
     attackerElement.style.transform = ''
@@ -167,7 +167,7 @@ class AnimationService {
    */
   async animateUnitCombat(
     attackerPosition: BattlefieldPosition,
-    targetPosition: BattlefieldPosition
+    targetPosition: BattlefieldPosition,
   ): Promise<void> {
     const duration = this.getPerformanceDuration(500)
 
@@ -239,10 +239,7 @@ class AnimationService {
   /**
    * Animate unit taking damage
    */
-  async animateUnitDamage(
-    position: BattlefieldPosition,
-    damage: number
-  ): Promise<void> {
+  async animateUnitDamage(position: BattlefieldPosition, damage: number): Promise<void> {
     const targetElement = document.querySelector(
       `[data-slot="${position.player}-${position.slot}"]`,
     ) as HTMLElement
@@ -278,7 +275,10 @@ class AnimationService {
   /**
    * Highlight a battlefield slot
    */
-  highlightSlot(position: BattlefieldPosition, type: 'valid' | 'invalid' | 'hover' = 'valid'): void {
+  highlightSlot(
+    position: BattlefieldPosition,
+    type: 'valid' | 'invalid' | 'hover' = 'valid',
+  ): void {
     const slotElement = document.querySelector(
       `[data-slot="${position.player}-${position.slot}"]`,
     ) as HTMLElement
@@ -312,7 +312,7 @@ class AnimationService {
   /**
    * Animate card draw
    */
-  async animateCardDraw(card: GameCard): Promise<void> {
+  async animateCardDraw(_card: GameCard): Promise<void> {
     const duration = this.getPerformanceDuration(400)
 
     const deckElement = document.querySelector('[data-deck]') as HTMLElement

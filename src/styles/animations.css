@@ -30,7 +30,8 @@
 }
 
 @keyframes cosmic-pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
     filter: drop-shadow(0 0 10px gold) brightness(1);
   }
@@ -41,7 +42,8 @@
 }
 
 @keyframes mystic-shimmer {
-  0%, 100% {
+  0%,
+  100% {
     filter: hue-rotate(0deg) brightness(1);
   }
   25% {
@@ -56,7 +58,8 @@
 }
 
 @keyframes divine-shield {
-  0%, 100% {
+  0%,
+  100% {
     box-shadow: 0 0 15px rgba(255, 215, 0, 0.3);
   }
   50% {
@@ -180,9 +183,23 @@
 }
 
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  10%, 30%, 50%, 70%, 90% { transform: translateX(-3px); }
-  20%, 40%, 60%, 80% { transform: translateX(3px); }
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  10%,
+  30%,
+  50%,
+  70%,
+  90% {
+    transform: translateX(-3px);
+  }
+  20%,
+  40%,
+  60%,
+  80% {
+    transform: translateX(3px);
+  }
 }
 
 /* Tarot card effects */

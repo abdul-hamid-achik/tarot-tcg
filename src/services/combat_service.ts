@@ -124,11 +124,15 @@ class CombatService {
     battlefield: Battlefield,
     attackerPosition: BattlefieldPosition,
     target: BattlefieldPosition | 'nexus',
-    gameState: GameState
+    _gameState: GameState,
   ): Promise<AttackResult> {
     GameLogger.combat(`Processing attack from ${JSON.stringify(attackerPosition)} to ${target}`)
 
-    const attacker = battlefieldService.getUnit(battlefield, attackerPosition.player, attackerPosition.slot)
+    const attacker = battlefieldService.getUnit(
+      battlefield,
+      attackerPosition.player,
+      attackerPosition.slot,
+    )
     if (!attacker) {
       throw new Error('No attacker found at position')
     }
@@ -150,13 +154,12 @@ class CombatService {
         attackerSurvived: true,
         targetSurvived: true,
         nexusDamage: attackPower,
-        triggeredEffects
+        triggeredEffects,
       }
 
       // Animate attack
       await animationService.animateAttackToNexus(attackerPosition)
       await animationService.animateNexusDamage(attackPower)
-
     } else {
       // Unit vs Unit combat
       const targetUnit = battlefieldService.getUnit(battlefield, target.player, target.slot)
@@ -191,7 +194,7 @@ class CombatService {
           fire: 'water',
           water: 'fire',
           earth: 'air',
-          air: 'earth'
+          air: 'earth',
         }
         if (opposingElements[attacker.element] === targetUnit.element) {
           targetDamage *= 2
@@ -223,7 +226,7 @@ class CombatService {
         attackerSurvived: attackerSurvived || false,
         targetSurvived: targetSurvived || false,
         nexusDamage,
-        triggeredEffects
+        triggeredEffects,
       }
 
       // Animate combat
@@ -343,20 +346,25 @@ class CombatService {
    */
   getValidTargets(
     battlefield: Battlefield,
-    attackerPosition: BattlefieldPosition
+    attackerPosition: BattlefieldPosition,
   ): {
     units: BattlefieldPosition[]
     canAttackNexus: boolean
   } {
-    const attacker = battlefieldService.getUnit(battlefield, attackerPosition.player, attackerPosition.slot)
+    const attacker = battlefieldService.getUnit(
+      battlefield,
+      attackerPosition.player,
+      attackerPosition.slot,
+    )
     if (!attacker) return { units: [], canAttackNexus: false }
 
     const opponentPlayer = attackerPosition.player === 'player1' ? 'player2' : 'player1'
-    const opponentUnits = opponentPlayer === 'player2' ? battlefield.enemyUnits : battlefield.playerUnits
+    const opponentUnits =
+      opponentPlayer === 'player2' ? battlefield.enemyUnits : battlefield.playerUnits
 
     const validUnits: BattlefieldPosition[] = []
     let hasTaunt = false
-    let hasVeilOfIllusion = false
+    let _hasVeilOfIllusion = false
 
     // Find all opponent units and check for special targeting rules
     for (let i = 0; i < opponentUnits.length; i++) {
@@ -368,7 +376,7 @@ class CombatService {
         // Veil of Illusion (enhanced stealth) - cannot be targeted until it attacks
         if (this.hasKeyword(unit, 'veil_of_illusion') && !unit.hasAttackedThisTurn) {
           canTarget = false
-          hasVeilOfIllusion = true
+          _hasVeilOfIllusion = true
         }
 
         // Regular stealth - cannot be targeted until it attacks
@@ -394,7 +402,7 @@ class CombatService {
       })
       return {
         units: tauntUnits,
-        canAttackNexus: false
+        canAttackNexus: false,
       }
     }
 
@@ -403,7 +411,7 @@ class CombatService {
 
     return {
       units: validUnits,
-      canAttackNexus
+      canAttackNexus,
     }
   }
 
@@ -434,10 +442,7 @@ class CombatService {
   /**
    * Trigger all abilities for a game event
    */
-  async triggerEvent(
-    event: GameEvent,
-    context: Partial<GameEventContext>
-  ): Promise<GameState> {
+  async triggerEvent(event: GameEvent, context: Partial<GameEventContext>): Promise<GameState> {
     const fullContext: GameEventContext = {
       event,
       gameState: context.gameState!,
@@ -447,10 +452,7 @@ class CombatService {
     let updatedState = fullContext.gameState
 
     for (const ability of this.triggeredAbilities.values()) {
-      if (
-        ability.trigger === event &&
-        (!ability.condition || ability.condition(fullContext))
-      ) {
+      if (ability.trigger === event && (!ability.condition || ability.condition(fullContext))) {
         GameLogger.action(`Triggering ability: ${ability.id}`)
         updatedState = ability.effect({ ...fullContext, gameState: updatedState })
       }

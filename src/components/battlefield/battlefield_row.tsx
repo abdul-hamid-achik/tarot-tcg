@@ -1,8 +1,9 @@
-import { GameLogger } from "@/lib/game_logger"
-'use client'
+import { GameLogger } from '@/lib/game_logger'
 
-import { useCallback } from 'react'
+;('use client')
+
 import type React from 'react'
+import { useCallback } from 'react'
 import { useGameActions } from '@/hooks/use_game_actions'
 import type { Card, PlayerId } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
@@ -22,13 +23,8 @@ export function BattlefieldRow({
   isActive: _isActive,
   canInteract,
 }: BattlefieldRowProps) {
-  const {
-    highlightedSlots,
-    validDropZones,
-    interaction,
-    setHoveredSlot,
-    endCardDrag,
-  } = useGameStore()
+  const { highlightedSlots, validDropZones, interaction, setHoveredSlot, endCardDrag } =
+    useGameStore()
   const { playCard } = useGameActions()
 
   const handleRowDragOver = useCallback(
@@ -66,10 +62,9 @@ export function BattlefieldRow({
 
   return (
     <div
-      className={`flex justify-center gap-2 min-h-[100px] p-2 rounded-lg transition-all duration-300 ${player === 'player1'
-        ? 'bg-gray-100 hover:bg-gray-200'
-        : 'bg-gray-200 hover:bg-gray-300'
-        }`}
+      className={`flex justify-center gap-2 min-h-[100px] p-2 rounded-lg transition-all duration-300 ${
+        player === 'player1' ? 'bg-gray-100 hover:bg-gray-200' : 'bg-gray-200 hover:bg-gray-300'
+      }`}
       role="list"
       aria-label={player === 'player1' ? 'Player battlefield row' : 'Opponent battlefield row'}
       onDragOver={handleRowDragOver}
@@ -80,8 +75,8 @@ export function BattlefieldRow({
         const slotKey = createSlotKey(position)
         const isHighlighted = highlightedSlots.has(slotKey)
         const isValidDropZone = validDropZones.has(slotKey)
-        const isHovered = interaction.hoveredSlot?.player === player &&
-          interaction.hoveredSlot?.slot === index
+        const isHovered =
+          interaction.hoveredSlot?.player === player && interaction.hoveredSlot?.slot === index
 
         return (
           <BattlefieldSlot

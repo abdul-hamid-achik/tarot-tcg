@@ -350,7 +350,7 @@ export class AIService {
     return true
   }
 
-  private calculateOptimalAttack(gameState: GameState, availableAttackers: Card[]): string[] {
+  private calculateOptimalAttack(_gameState: GameState, availableAttackers: Card[]): string[] {
     // Simple heuristic: prioritize attackers that can trade favorably
     const opponentUnits: any[] = [] // Simplified for battlefield system
 
@@ -390,7 +390,7 @@ export class AIService {
       // Simple shuffle
       for (let i = player.deck.length - 1; i > 0; i--) {
         const j = Math.floor(Math.random() * (i + 1))
-          ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+        ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
       }
 
       // Draw replacement cards

@@ -36,7 +36,7 @@ export default function ActionBar({
 
   // Game state helpers with null checks
   const isPlayerTurn = gameState?.activePlayer === 'player1'
-  const canPass = isPlayerTurn && gameState?.phase === 'action'
+  const _canPass = isPlayerTurn && gameState?.phase === 'action'
   const isInCombat = gameState?.phase === 'combat_resolution'
   const isInAttackMode = interaction.targetingMode === 'attack'
   const hasValidTargets = interaction.validAttackTargets.size > 0
@@ -84,7 +84,7 @@ export default function ActionBar({
     return { enabled: hasValidTargets, tooltip: 'Choose attack targets' }
   }
 
-  const attackState = getAttackButtonState()
+  const _attackState = getAttackButtonState()
 
   // Get defend button state and tooltip
   const getDefendButtonState = () => {
@@ -114,7 +114,6 @@ export default function ActionBar({
     <div className={`flex flex-col gap-3 ${className}`}>
       {/* Action Buttons Container */}
       <div className="flex flex-col gap-3">
-
         {/* Defend Button - During Defender Declaration Phase */}
         {isPlayerTurn && isDefendPhase && (
           <Button
@@ -122,19 +121,16 @@ export default function ActionBar({
             disabled={!defendState.enabled}
             className={`
                 w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                ${defendState.enabled
-                ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg border border-green-400'
-                : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border border-gray-300'
-              }
+                ${
+                  defendState.enabled
+                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg border border-green-400'
+                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border border-gray-300'
+                }
               `}
             title={defendState.tooltip}
           >
             {'NO DEFENSE NEEDED'}
-            {false && (
-              <span className="ml-2 bg-green-800 px-2 py-1 rounded-full text-xs">
-                🛡️
-              </span>
-            )}
+            {false && <span className="ml-2 bg-green-800 px-2 py-1 rounded-full text-xs">🛡️</span>}
           </Button>
         )}
 
@@ -172,11 +168,11 @@ export default function ActionBar({
         {!['action', 'defense_declaration', 'combat_resolution', 'end_round', 'mulligan'].includes(
           gameState?.phase || '',
         ) && (
-            <div className="flex items-center justify-center gap-2 text-gray-600 text-sm px-6 py-3 bg-gray-100/80 rounded border border-gray-300 min-h-[44px]">
-              <Clock className="w-4 h-4 animate-pulse" />
-              <span>Waiting...</span>
-            </div>
-          )}
+          <div className="flex items-center justify-center gap-2 text-gray-600 text-sm px-6 py-3 bg-gray-100/80 rounded border border-gray-300 min-h-[44px]">
+            <Clock className="w-4 h-4 animate-pulse" />
+            <span>Waiting...</span>
+          </div>
+        )}
 
         {/* Show End Turn button when it's player's turn in action phase - Always visible in tutorial/sandbox */}
         {isPlayerTurn && gameState?.phase === 'action' && (

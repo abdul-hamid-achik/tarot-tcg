@@ -1,5 +1,14 @@
 // Game Logger Utility for debugging matches
-type LogLevel = 'action' | 'combat' | 'ai' | 'state' | 'error' | 'warn' | 'info' | 'debug' | 'system'
+type LogLevel =
+  | 'action'
+  | 'combat'
+  | 'ai'
+  | 'state'
+  | 'error'
+  | 'warn'
+  | 'info'
+  | 'debug'
+  | 'system'
 
 const LOG_COLORS = {
   action: '#4ade80', // green

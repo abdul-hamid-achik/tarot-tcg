@@ -1,4 +1,4 @@
-import { GameLogger } from "@/lib/game_logger"
+import { GameLogger } from '@/lib/game_logger'
 import type {
   EventData,
   EventFilter,

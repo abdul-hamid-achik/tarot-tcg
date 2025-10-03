@@ -2,7 +2,6 @@
 
 import { Sparkles, Sword } from 'lucide-react'
 import type React from 'react'
-import { Badge } from '@/components/ui/badge'
 import { Card } from '@/components/ui/card'
 import { getCardBackImagePath, getCardImagePath } from '@/lib/card_images'
 import type { Card as GameCard } from '@/schemas/schema'
@@ -125,7 +124,7 @@ export default function TarotCard({
           className="w-full h-full object-cover"
           onError={e => {
             // Fallback if image fails to load
-            ; (e.target as HTMLImageElement).src = getCardBackImagePath()
+            ;(e.target as HTMLImageElement).src = getCardBackImagePath()
           }}
         />
       </div>
