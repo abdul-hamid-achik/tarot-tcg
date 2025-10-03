@@ -74,6 +74,14 @@ describe('useGameActions Hook', () => {
             clearSelection: mockClearSelection,
             setAnimationState: mockSetAnimationState,
         } as any)
+        
+        // Mock getState method for direct store access
+        vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+            gameState: mockGameState,
+            setGameState: mockSetGameState,
+            clearSelection: mockClearSelection,
+            setAnimationState: mockSetAnimationState,
+        })
 
         // Setup multiplayer mock
         const { useMultiplayerActions } = await import('../use_multiplayer_actions')
@@ -127,6 +135,13 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
+            
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: null,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
 
             const { result } = renderHook(() => useGameActions())
             const card = createTestCard({ id: 'test' })
@@ -150,6 +165,13 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
+            
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: null,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
 
             const { result } = renderHook(() => useGameActions())
             const card = createTestCard({ id: 'test' })
@@ -235,6 +257,13 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
+            
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: mockGameState,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
 
             const { result } = renderHook(() => useGameActions())
 
@@ -275,6 +304,66 @@ describe('useGameActions Hook', () => {
 
             expect(mockSetGameState).toHaveBeenCalled()
         })
+
+        it('should use fresh state from store, not stale closure', async () => {
+            // Setup initial state in mulligan phase
+            const initialState = createTestGameState({
+                phase: 'mulligan',
+                activePlayer: 'player1',
+                player1: createTestPlayer('player1', {
+                    mana: 5,
+                    hand: [createTestCard({ id: 'card1', cost: 2 })],
+                    mulliganComplete: false,
+                }),
+                player2: createTestPlayer('player2', {
+                    mulliganComplete: true,
+                }),
+            })
+
+            const { useGameStore } = await import('../../store/game_store')
+            
+            // First, set the initial mulligan state
+            vi.mocked(useGameStore).mockReturnValue({
+                gameState: initialState,
+                setGameState: mockSetGameState,
+                interaction: null,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            } as any)
+
+            // Mock getState to return updated phase after mulligan
+            const updatedState = {
+                ...initialState,
+                phase: 'action',
+                player1: {
+                    ...initialState.player1,
+                    mulliganComplete: true,
+                },
+            }
+
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: updatedState,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
+
+            const { result } = renderHook(() => useGameActions())
+
+            // Complete mulligan
+            await act(async () => {
+                await result.current.completeMulligan([])
+            })
+
+            // Now try to play a card - should use fresh state with phase: 'action'
+            const card = updatedState.player1.hand[0]
+            await act(async () => {
+                await result.current.playCard(card)
+            })
+
+            // Should successfully play card without "cannot play during mulligan" error
+            expect(mockSetGameState).toHaveBeenCalled()
+        })
     })
 
     describe('endTurn', () => {
@@ -312,6 +401,13 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
+            
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: null,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
 
             const { result } = renderHook(() => useGameActions())
 
@@ -328,9 +424,24 @@ describe('useGameActions Hook', () => {
 
     describe('reverseCard', () => {
         it('should reverse a card on player battlefield', async () => {
-            mockGameState.battlefield.playerUnits[0] = createTestCard({
+            const updatedState = createTestGameState({
+                ...mockGameState,
+                battlefield: {
+                    ...mockGameState.battlefield,
+                    playerUnits: [...mockGameState.battlefield.playerUnits]
+                }
+            })
+            updatedState.battlefield.playerUnits[0] = createTestCard({
                 id: 'card-to-reverse',
                 isReversed: false
+            })
+
+            const { useGameStore } = await import('../../store/game_store')
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: updatedState,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
             })
 
             const { result } = renderHook(() => useGameActions())
@@ -348,9 +459,24 @@ describe('useGameActions Hook', () => {
         })
 
         it('should reverse a card on enemy battlefield', async () => {
-            mockGameState.battlefield.enemyUnits[1] = createTestCard({
+            const updatedState = createTestGameState({
+                ...mockGameState,
+                battlefield: {
+                    ...mockGameState.battlefield,
+                    enemyUnits: [...mockGameState.battlefield.enemyUnits]
+                }
+            })
+            updatedState.battlefield.enemyUnits[1] = createTestCard({
                 id: 'enemy-card',
                 isReversed: false
+            })
+
+            const { useGameStore } = await import('../../store/game_store')
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: updatedState,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
             })
 
             const { result } = renderHook(() => useGameActions())
@@ -365,9 +491,24 @@ describe('useGameActions Hook', () => {
         })
 
         it('should toggle isReversed from true to false', async () => {
-            mockGameState.battlefield.playerUnits[0] = createTestCard({
+            const updatedState = createTestGameState({
+                ...mockGameState,
+                battlefield: {
+                    ...mockGameState.battlefield,
+                    playerUnits: [...mockGameState.battlefield.playerUnits]
+                }
+            })
+            updatedState.battlefield.playerUnits[0] = createTestCard({
                 id: 'already-reversed',
                 isReversed: true
+            })
+
+            const { useGameStore } = await import('../../store/game_store')
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: updatedState,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
             })
 
             const { result } = renderHook(() => useGameActions())
@@ -431,6 +572,13 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
+            
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: null,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
 
             const { result } = renderHook(() => useGameActions())
 

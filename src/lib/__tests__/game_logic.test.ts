@@ -162,24 +162,164 @@ describe('Game Logic - Mana Cost Validation', () => {
 })
 
 describe('Game Logic - Card Playing Validation', () => {
-    it('should validate card ownership before playing', () => {
-        // TODO: Test that player can only play cards in their hand
-        expect(true).toBe(true)
+    let gameState: GameState
+    let playCard: (state: GameState, card: any, targetSlot?: number) => Promise<GameState>
+
+    beforeEach(async () => {
+        const gameLogic = await import('../../lib/game_logic')
+        playCard = gameLogic.playCard
+
+        gameState = createTestGameState({
+            phase: 'action',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                mana: 10,
+                hand: [
+                    createTestCard({ id: 'card1', name: 'Test Card', cost: 2, type: 'unit', attack: 2, health: 2 }),
+                ],
+                mulliganComplete: true,
+            }),
+        })
     })
 
-    it('should validate phase before allowing card play', () => {
-        // TODO: Test that cards can only be played during action phase
-        expect(true).toBe(true)
+    it('should validate card ownership before playing', async () => {
+        // Card not in player's hand
+        const foreignCard = createTestCard({ id: 'foreign-card', name: 'Foreign Card', cost: 1 })
+
+        await expect(playCard(gameState, foreignCard, 0)).rejects.toThrow(/not in your hand/)
     })
 
-    it('should validate active player before allowing card play', () => {
-        // TODO: Test that only active player can play cards
-        expect(true).toBe(true)
+    it('should validate phase before allowing card play', async () => {
+        // Try to play card during mulligan phase
+        gameState.phase = 'mulligan'
+        const card = gameState.player1.hand[0]
+
+        await expect(playCard(gameState, card, 0)).rejects.toThrow(/Cannot play cards during mulligan phase/)
     })
 
-    it('should validate battlefield space for unit cards', () => {
-        // TODO: Test that units can only be played if battlefield has space
-        expect(true).toBe(true)
+    it('should allow card play during action phase', async () => {
+        // Should succeed in action phase
+        gameState.phase = 'action'
+        const card = gameState.player1.hand[0]
+
+        await expect(playCard(gameState, card, 0)).resolves.toBeDefined()
+    })
+
+    it('should reject card play during combat_resolution phase', async () => {
+        gameState.phase = 'combat_resolution'
+        const card = gameState.player1.hand[0]
+
+        await expect(playCard(gameState, card, 0)).rejects.toThrow(/Cannot play cards during/)
+    })
+
+    it('should validate battlefield space for unit cards', async () => {
+        // Fill battlefield
+        for (let i = 0; i < 7; i++) {
+            gameState.battlefield.playerUnits[i] = createTestCard({
+                id: `unit${i}`,
+                type: 'unit',
+            })
+        }
+
+        const card = gameState.player1.hand[0]
+        await expect(playCard(gameState, card, 0)).rejects.toThrow(/battlefield full/i)
+    })
+
+    it('should validate slot bounds for unit cards', async () => {
+        const card = gameState.player1.hand[0]
+
+        // Test invalid slot numbers
+        await expect(playCard(gameState, card, -1)).rejects.toThrow(/Invalid slot number/)
+        await expect(playCard(gameState, card, 7)).rejects.toThrow(/Invalid slot number/)
+        await expect(playCard(gameState, card, 100)).rejects.toThrow(/Invalid slot number/)
+    })
+})
+
+describe('Game Logic - Mulligan to Action Phase Transition', () => {
+    let gameState: GameState
+    let completeMulligan: (state: GameState) => GameState
+    let playCard: (state: GameState, card: any, targetSlot?: number) => Promise<GameState>
+
+    beforeEach(async () => {
+        const gameLogic = await import('../../lib/game_logic')
+        completeMulligan = gameLogic.completeMulligan
+        playCard = gameLogic.playCard
+
+        // Create game state in mulligan phase
+        gameState = createTestGameState({
+            phase: 'mulligan',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                mana: 5,
+                hand: [
+                    createTestCard({ id: 'card1', name: 'Card 1', cost: 2, type: 'unit', attack: 2, health: 2 }),
+                    createTestCard({ id: 'card2', name: 'Card 2', cost: 3, type: 'unit', attack: 3, health: 3 }),
+                ],
+                deck: Array(5).fill(null).map((_, i) =>
+                    createTestCard({ id: `deck${i}`, name: `Deck Card ${i}` })
+                ),
+                mulliganComplete: false,
+            }),
+            player2: createTestPlayer('player2', {
+                mulliganComplete: true, // Already completed
+            }),
+        })
+    })
+
+    it('should reject playing cards during mulligan phase', async () => {
+        const card = gameState.player1.hand[0]
+
+        await expect(playCard(gameState, card, 0)).rejects.toThrow(/Cannot play cards during mulligan phase/)
+    })
+
+    it('should allow playing cards after mulligan completes', async () => {
+        // Complete mulligan (no cards selected)
+        const newState = completeMulligan(gameState)
+
+        // Verify phase transitioned
+        expect(newState.phase).toBe('action')
+
+        // Now try to play a card - should succeed
+        const card = newState.player1.hand[0]
+        await expect(playCard(newState, card, 0)).resolves.toBeDefined()
+    })
+
+    it('should maintain correct phase state through mulligan flow', async () => {
+        // Start in mulligan
+        expect(gameState.phase).toBe('mulligan')
+
+        // Cannot play cards
+        const card1 = gameState.player1.hand[0]
+        await expect(playCard(gameState, card1, 0)).rejects.toThrow(/mulligan phase/)
+
+        // Complete mulligan
+        const actionState = completeMulligan(gameState)
+        expect(actionState.phase).toBe('action')
+
+        // CAN play cards now
+        const card2 = actionState.player1.hand[0]
+        const finalState = await playCard(actionState, card2, 0)
+
+        // Card should be on battlefield
+        expect(finalState.battlefield.playerUnits[0]).toBeDefined()
+        expect(finalState.battlefield.playerUnits[0]?.id).toBe(card2.id)
+    })
+
+    it('should handle mulligan with card selection correctly', async () => {
+        // Select cards for mulligan
+        gameState.player1.selectedForMulligan = ['card1']
+
+        // Complete mulligan
+        const actionState = completeMulligan(gameState)
+
+        // Should transition to action phase
+        expect(actionState.phase).toBe('action')
+
+        // Should be able to play remaining cards
+        const remainingCard = actionState.player1.hand.find(c => c.id === 'card2')
+        if (remainingCard) {
+            await expect(playCard(actionState, remainingCard, 0)).resolves.toBeDefined()
+        }
     })
 })
 
