@@ -85,6 +85,15 @@ describe('Card Interaction Flow - Integration Tests', () => {
             executeAttack: mockExecuteAttack,
             cancelAttack: mockCancelAttack,
         } as any)
+        
+        // Mock getState method for direct store access
+        vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+            gameState: mockGameState,
+            interaction: mockInteraction,
+            setGameState: mockSetGameState,
+            clearSelection: mockClearSelection,
+            setAnimationState: mockSetAnimationState,
+        })
 
         // Setup multiplayer mock (not multiplayer by default)
         const { useMultiplayerActions } = await import('@/hooks/use_multiplayer_actions')
@@ -128,6 +137,13 @@ describe('Card Interaction Flow - Integration Tests', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
+            
+            vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
+                gameState: null,
+                setGameState: mockSetGameState,
+                clearSelection: mockClearSelection,
+                setAnimationState: mockSetAnimationState,
+            })
 
             const { result } = renderHook(() => useGameActions())
             const cardToPlay = createTestCard({ id: 'test' })

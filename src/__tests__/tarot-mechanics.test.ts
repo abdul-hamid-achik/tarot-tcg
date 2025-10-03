@@ -19,13 +19,13 @@ describe('Tarot Mechanics', () => {
     })
 
     describe('Orientation System (50% reversed chance)', () => {
-        it('should create reversed cards when random < 0.5', async () => {
-            mockRandom.mockReturnValue(0.3) // Below threshold
-
+        it('should preserve reversed state when card is played', async () => {
+            // Cards have their orientation set when drawn, so we test that playing preserves it
             const card = createTestCard({
                 id: 'test-card',
                 name: 'The Fool',
                 type: 'unit',
+                isReversed: true, // Already reversed when drawn
                 reversedDescription: 'Reversed effect: Draw a card'
             })
 
@@ -34,19 +34,19 @@ describe('Tarot Mechanics', () => {
 
             const newState = await playCard(gameState, card, 0)
 
-            // Check that unit was placed on battlefield with reversed state
+            // Check that unit was placed on battlefield with preserved reversed state
             const placedUnit = newState.battlefield.playerUnits[0]
             expect(placedUnit).toBeTruthy()
             expect(placedUnit?.isReversed).toBe(true)
         })
 
-        it('should create upright cards when random >= 0.5', async () => {
-            mockRandom.mockReturnValue(0.7) // Above threshold
-
+        it('should preserve upright state when card is played', async () => {
+            // Cards have their orientation set when drawn
             const card = createTestCard({
                 id: 'test-card',
                 name: 'The Magician',
-                type: 'unit'
+                type: 'unit',
+                isReversed: false // Upright when drawn
             })
 
             gameState.player1.hand = [card]
@@ -58,20 +58,18 @@ describe('Tarot Mechanics', () => {
             expect(placedUnit?.isReversed).toBe(false)
         })
 
-        it('should preserve 50% statistical distribution over multiple plays', async () => {
+        it('should preserve orientation across multiple card plays', async () => {
+            // Test that orientation set when drawn is preserved through playing
             const results: boolean[] = []
 
-            // Mock alternating random values
-            let callCount = 0
-            mockRandom.mockImplementation(() => {
-                return callCount++ % 2 === 0 ? 0.3 : 0.7
-            })
-
             for (let i = 0; i < 10; i++) {
+                // Alternate between reversed and upright (simulating draw orientation)
+                const isReversed = i % 2 === 0
                 const card = createTestCard({
                     id: `test-card-${i}`,
                     name: `Test Card ${i}`,
-                    type: 'unit'
+                    type: 'unit',
+                    isReversed
                 })
 
                 const testState = createTestGameState()
@@ -83,7 +81,7 @@ describe('Tarot Mechanics', () => {
             }
 
             const reversedCount = results.filter(r => r).length
-            expect(reversedCount).toBe(5) // Exactly 50% with our mocked alternating pattern
+            expect(reversedCount).toBe(5) // Exactly 50% with our alternating pattern
         })
     })
 

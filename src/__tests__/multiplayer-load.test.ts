@@ -91,17 +91,18 @@ describe('Multiplayer Load Testing', () => {
         it('should preserve 50% orientation distribution under concurrent play', async () => {
             const results: boolean[] = []
 
-            // Mock Math.random to return predictable sequence
-            let callCount = 0
-            vi.spyOn(Math, 'random').mockImplementation(() => {
-                return (callCount++ % 2) * 0.6 + 0.2 // Alternates between 0.2 and 0.8
-            })
-
-            // Simulate concurrent card plays
+            // Simulate concurrent card plays with pre-set orientation
+            // (in real game, orientation is set when drawn)
             const promises = Array(1000).fill(0).map(async (_, i) => {
                 const { playCard } = await import('@/lib/game_logic')
                 const testState = createTestGameState()
-                const card = createTestCard({ id: `load_card_${i}` })
+                
+                // Alternate orientation to simulate draw distribution
+                const isReversed = i % 2 === 0
+                const card = createTestCard({ 
+                    id: `load_card_${i}`,
+                    isReversed
+                })
 
                 testState.player1.hand = [card]
 
@@ -114,9 +115,8 @@ describe('Multiplayer Load Testing', () => {
             const orientationResults = await Promise.all(promises)
             const reversedCount = orientationResults.filter(r => r).length
 
-            // Should maintain 50% distribution (500 ± 50 for statistical variance)
-            expect(reversedCount).toBeGreaterThan(450)
-            expect(reversedCount).toBeLessThan(550)
+            // Should maintain 50% distribution (exactly 500 with alternating pattern)
+            expect(reversedCount).toBe(500)
         })
 
         it('should handle rapid zodiac buff calculations', async () => {

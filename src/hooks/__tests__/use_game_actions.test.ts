@@ -74,7 +74,7 @@ describe('useGameActions Hook', () => {
             clearSelection: mockClearSelection,
             setAnimationState: mockSetAnimationState,
         } as any)
-        
+
         // Mock getState method for direct store access
         vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
             gameState: mockGameState,
@@ -135,7 +135,7 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
-            
+
             vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
                 gameState: null,
                 setGameState: mockSetGameState,
@@ -165,7 +165,7 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
-            
+
             vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
                 gameState: null,
                 setGameState: mockSetGameState,
@@ -257,7 +257,7 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
-            
+
             vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
                 gameState: mockGameState,
                 setGameState: mockSetGameState,
@@ -321,7 +321,7 @@ describe('useGameActions Hook', () => {
             })
 
             const { useGameStore } = await import('../../store/game_store')
-            
+
             // First, set the initial mulligan state
             vi.mocked(useGameStore).mockReturnValue({
                 gameState: initialState,
@@ -401,7 +401,7 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
-            
+
             vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
                 gameState: null,
                 setGameState: mockSetGameState,
@@ -572,7 +572,7 @@ describe('useGameActions Hook', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
-            
+
             vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
                 gameState: null,
                 setGameState: mockSetGameState,
