@@ -1,7 +1,6 @@
+'use client'
+
 import { GameLogger } from '@/lib/game_logger'
-
-  ; ('use client')
-
 import React from 'react'
 // Game Components
 import { Battlefield } from '@/components/battlefield/battlefield'
