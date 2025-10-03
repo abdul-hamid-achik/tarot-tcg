@@ -20,23 +20,23 @@ describe('Battlefield Persistence', () => {
                 mana: 10,
                 spellMana: 5,
                 hand: [
-                    createTestCard({ 
-                        id: 'card1', 
-                        name: 'Page of Wands', 
-                        cost: 2, 
-                        type: 'unit', 
-                        attack: 2, 
+                    createTestCard({
+                        id: 'card1',
+                        name: 'Page of Wands',
+                        cost: 2,
+                        type: 'unit',
+                        attack: 2,
                         health: 3,
-                        isReversed: true 
+                        isReversed: true
                     }),
-                    createTestCard({ 
-                        id: 'card2', 
-                        name: 'Temperance', 
-                        cost: 5, 
-                        type: 'unit', 
-                        attack: 4, 
+                    createTestCard({
+                        id: 'card2',
+                        name: 'Temperance',
+                        cost: 5,
+                        type: 'unit',
+                        attack: 4,
                         health: 5,
-                        isReversed: true 
+                        isReversed: true
                     }),
                 ],
                 deck: [
@@ -257,6 +257,124 @@ describe('Battlefield Persistence', () => {
             expect(newState.battlefield.playerUnits[6]?.name).toBe('Temperance')
             expect(newState.battlefield.playerUnits[1]).toBeNull()
             expect(newState.battlefield.playerUnits[5]).toBeNull()
+        })
+    })
+
+    describe('Multiple endTurn Calls (Regression Test)', () => {
+        it('should handle multiple rapid endTurn calls on same state safely', async () => {
+            const cardToPlay = gameState.player1.hand[0]
+            let state = await playCard(gameState, cardToPlay, 2)
+
+            expect(state.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
+
+            // Simulate the bug: calling endTurn multiple times on the same state
+            // (This was happening due to useEffect re-triggering)
+            const endTurnPromise1 = endTurn(state)
+            const endTurnPromise2 = endTurn(state)
+            
+            const [result1, result2] = await Promise.all([endTurnPromise1, endTurnPromise2])
+
+            // Both should complete successfully
+            expect(result1.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
+            expect(result2.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
+        })
+
+        it('should maintain battlefield when endTurn is called sequentially multiple times', async () => {
+            const cardToPlay = gameState.player1.hand[0]
+            let state = await playCard(gameState, cardToPlay, 3)
+
+            // Call endTurn multiple times
+            state = await endTurn(state)
+            const stateAfterFirstEnd = { ...state }
+            
+            state = await endTurn(state)
+            state = await endTurn(state)
+            
+            // Card should still be there
+            expect(state.battlefield.playerUnits[3]?.name).toBe('Page of Wands')
+            
+            // First state should not be affected by subsequent calls
+            expect(stateAfterFirstEnd.battlefield.playerUnits[3]?.name).toBe('Page of Wands')
+        })
+    })
+
+    describe('Attack Flags and Status Effects', () => {
+        it('should reset hasAttackedThisTurn flag at end of turn', async () => {
+            const cardToPlay = gameState.player1.hand[0]
+            let state = await playCard(gameState, cardToPlay, 1)
+
+            // Manually set hasAttackedThisTurn (simulating an attack)
+            state.battlefield.playerUnits[1]!.hasAttackedThisTurn = true
+
+            expect(state.battlefield.playerUnits[1]?.hasAttackedThisTurn).toBe(true)
+
+            // End turn
+            state = await endTurn(state)
+
+            // hasAttackedThisTurn should be reset
+            expect(state.battlefield.playerUnits[1]?.hasAttackedThisTurn).toBe(false)
+        })
+
+        it('should preserve card after hasAttackedThisTurn reset', async () => {
+            const card1 = gameState.player1.hand[0]
+            const card2 = gameState.player1.hand[1]
+
+            let state = await playCard(gameState, card1, 0)
+            state = await playCard(state, card2, 5)
+
+            // Simulate attacks
+            state.battlefield.playerUnits[0]!.hasAttackedThisTurn = true
+            state.battlefield.playerUnits[5]!.hasAttackedThisTurn = true
+
+            // End turn
+            state = await endTurn(state)
+
+            // Cards should still exist with reset flags
+            expect(state.battlefield.playerUnits[0]?.name).toBe('Page of Wands')
+            expect(state.battlefield.playerUnits[0]?.hasAttackedThisTurn).toBe(false)
+            expect(state.battlefield.playerUnits[5]?.name).toBe('Temperance')
+            expect(state.battlefield.playerUnits[5]?.hasAttackedThisTurn).toBe(false)
+        })
+    })
+
+    describe('Object.assign Merge Safety (Regression Test)', () => {
+        it('should preserve battlefield arrays after persistent effects update', async () => {
+            const cardToPlay = gameState.player1.hand[0]
+            let state = await playCard(gameState, cardToPlay, 4)
+
+            expect(state.battlefield.playerUnits[4]?.name).toBe('Page of Wands')
+
+            // End turn triggers persistent effects which use Object.assign
+            state = await endTurn(state)
+
+            // Battlefield should survive the Object.assign merge
+            expect(state.battlefield.playerUnits[4]).toBeDefined()
+            expect(state.battlefield.playerUnits[4]?.name).toBe('Page of Wands')
+            expect(Array.isArray(state.battlefield.playerUnits)).toBe(true)
+            expect(state.battlefield.playerUnits).toHaveLength(7)
+        })
+
+        it('should not share battlefield array references after Object.assign merge', async () => {
+            const cardToPlay = gameState.player1.hand[0]
+            const state1 = await playCard(gameState, cardToPlay, 2)
+            const state2 = await endTurn(state1)
+
+            // Modify state2's battlefield
+            state2.battlefield.playerUnits[6] = createTestCard({
+                id: 'modified',
+                name: 'Modified Card',
+                type: 'unit',
+                attack: 1,
+                health: 1,
+            })
+
+            // state1 should not be affected
+            expect(state1.battlefield.playerUnits[6]).toBeNull()
+            expect(state2.battlefield.playerUnits[6]?.name).toBe('Modified Card')
+            
+            // Original card should still be in both
+            expect(state1.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
+            expect(state2.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
         })
     })
 
