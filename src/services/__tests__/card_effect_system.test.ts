@@ -444,15 +444,15 @@ describe('CardEffectSystem', () => {
                 createEffect.gainHealth(1),
                 createEffect.drawCards(1),
                 createEffect.statBuff(1, 1),
-            ]
+            ] as CardEffect[]
 
             const context: EffectContext = {
                 gameState,
                 source: createTestCard({ id: 'test-card' }),
             }
 
-            effects.forEach(effect => {
-                const result = effect.execute(context) as { success: boolean; newGameState: any }
+            effects.forEach((effect) => {
+                const result = (effect.execute as any)(context) as { success: boolean; newGameState: any }
                 expect(result.success).toBe(true)
                 expect(result.newGameState).toBeDefined()
             })

@@ -374,7 +374,7 @@ describe('WinConditionService', () => {
 
             // Check the result message
             if (arcanaCondition?.checkCondition) {
-                const result = arcanaCondition.checkCondition(testState, 'player1') as any
+                const result = (arcanaCondition.checkCondition as any)(testState, 'player1')
                 expect(result?.message).toContain('3/7')
             }
         })
@@ -464,7 +464,7 @@ describe('WinConditionService', () => {
             const zodiacCondition = conditions.find(c => c.id === 'zodiac_alignment')
 
             if (zodiacCondition?.checkCondition) {
-                const result = zodiacCondition.checkCondition(testState, 'player1') as any
+                const result = (zodiacCondition.checkCondition as any)(testState, 'player1')
 
                 expect(result?.conditions_met).toBeDefined()
                 expect(Array.isArray(result?.conditions_met)).toBe(true)
