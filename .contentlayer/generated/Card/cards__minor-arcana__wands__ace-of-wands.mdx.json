@@ -1,0 +1,50 @@
+{
+  "id": "wands-ace",
+  "name": "Ace of Wands",
+  "zodiacClass": "aries",
+  "element": "fire",
+  "cardType": "spell",
+  "cost": 1,
+  "rarity": "common",
+  "tarotSymbol": "🜂",
+  "orientation": "random",
+  "suitSymbol": "🪄",
+  "keywords": [
+    "inspiration",
+    "creation",
+    "potential",
+    "spark"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Divine Spark",
+        "description": "Deal 2 damage to any target. If this destroys a unit, draw a card and gain 1 spell mana."
+      }
+    ],
+    "reversed": [
+      {
+        "name": "False Start",
+        "description": "Deal 1 damage to any target. Return this card to your hand. It costs 1 more each time it returns."
+      }
+    ]
+  },
+  "spellType": "instant",
+  "body": {
+    "raw": "\n# Ace of Wands\n\n*\"In the beginning was the Word, and the Word was Fire.\"*\n\n## Upright Meaning\nNew creative energy, inspiration, potential for growth, and spiritual awakening. The Ace of Wands represents the pure spark of divine fire - the moment of inspiration that begins all creative endeavors. It's raw potential waiting to be shaped.\n\n**Gameplay**: *Divine Spark* rewards successful aggression with card advantage and mana acceleration, representing how initial inspiration leads to greater creative momentum.\n\n## Reversed Meaning\nCreative blocks, lack of direction, and false starts. The reversed Ace suggests that while the spark exists, it's being misdirected or repeatedly extinguished before it can grow into something meaningful.\n\n**Gameplay**: *False Start* can be used repeatedly but becomes increasingly expensive, representing creative efforts that restart rather than building momentum.\n\n## Symbolism & Lore\nA hand emerges from a cloud holding a wooden wand, with leaves beginning to sprout - representing divine creative force made manifest in the material world. The landscape below shows potential for growth and development.\n\nAs the first card of the Wands suit, it embodies pure fire energy before it takes specific form through the numbered cards and court cards.\n\n## Strategic Notes\n- **Early Game Power**: Low cost makes it excellent for early pressure\n- **Scaling Reward**: Upright form provides card advantage for successful aggression\n- **Repeatable Effect**: Reversed form offers renewable but increasingly expensive damage\n- **Aries Synergy**: Enhanced damage during Aries season\n- **Suit Foundation**: Essential for Wands-focused decks",
+    "code": "var Component=(()=>{var g=Object.create;var a=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var u=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var w=(r,e)=>()=>(e||r((e={exports:{}}).exports,e),e.exports),y=(r,e)=>{for(var t in e)a(r,t,{get:e[t],enumerable:!0})},o=(r,e,t,s)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let i of p(e))!f.call(r,i)&&i!==t&&a(r,i,{get:()=>e[i],enumerable:!(s=m(e,i))||s.enumerable});return r};var b=(r,e,t)=>(t=r!=null?g(u(r)):{},o(e||!r||!r.__esModule?a(t,\"default\",{value:r,enumerable:!0}):t,r)),v=r=>o(a({},\"__esModule\",{value:!0}),r);var l=w((A,d)=>{d.exports=_jsx_runtime});var k={};y(k,{default:()=>h,frontmatter:()=>x});var n=b(l()),x={id:\"wands-ace\",name:\"Ace of Wands\",zodiacClass:\"aries\",element:\"fire\",cardType:\"spell\",cost:1,rarity:\"common\",tarotSymbol:\"\\u{1F702}\",suitSymbol:\"\\u{1FA84}\",keywords:[\"inspiration\",\"creation\",\"potential\",\"spark\"],spellType:\"instant\",abilities:{upright:[{name:\"Divine Spark\",description:\"Deal 2 damage to any target. If this destroys a unit, draw a card and gain 1 spell mana.\"}],reversed:[{name:\"False Start\",description:\"Deal 1 damage to any target. Return this card to your hand. It costs 1 more each time it returns.\"}]},orientation:\"random\"};function c(r){let e={em:\"em\",h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",strong:\"strong\",ul:\"ul\",...r.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Ace of Wands\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"In the beginning was the Word, and the Word was Fire.\"'})}),`\n`,(0,n.jsx)(e.h2,{children:\"Upright Meaning\"}),`\n`,(0,n.jsx)(e.p,{children:\"New creative energy, inspiration, potential for growth, and spiritual awakening. The Ace of Wands represents the pure spark of divine fire - the moment of inspiration that begins all creative endeavors. It's raw potential waiting to be shaped.\"}),`\n`,(0,n.jsxs)(e.p,{children:[(0,n.jsx)(e.strong,{children:\"Gameplay\"}),\": \",(0,n.jsx)(e.em,{children:\"Divine Spark\"}),\" rewards successful aggression with card advantage and mana acceleration, representing how initial inspiration leads to greater creative momentum.\"]}),`\n`,(0,n.jsx)(e.h2,{children:\"Reversed Meaning\"}),`\n`,(0,n.jsx)(e.p,{children:\"Creative blocks, lack of direction, and false starts. The reversed Ace suggests that while the spark exists, it's being misdirected or repeatedly extinguished before it can grow into something meaningful.\"}),`\n`,(0,n.jsxs)(e.p,{children:[(0,n.jsx)(e.strong,{children:\"Gameplay\"}),\": \",(0,n.jsx)(e.em,{children:\"False Start\"}),\" can be used repeatedly but becomes increasingly expensive, representing creative efforts that restart rather than building momentum.\"]}),`\n`,(0,n.jsx)(e.h2,{children:\"Symbolism & Lore\"}),`\n`,(0,n.jsx)(e.p,{children:\"A hand emerges from a cloud holding a wooden wand, with leaves beginning to sprout - representing divine creative force made manifest in the material world. The landscape below shows potential for growth and development.\"}),`\n`,(0,n.jsx)(e.p,{children:\"As the first card of the Wands suit, it embodies pure fire energy before it takes specific form through the numbered cards and court cards.\"}),`\n`,(0,n.jsx)(e.h2,{children:\"Strategic Notes\"}),`\n`,(0,n.jsxs)(e.ul,{children:[`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Early Game Power\"}),\": Low cost makes it excellent for early pressure\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Scaling Reward\"}),\": Upright form provides card advantage for successful aggression\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Repeatable Effect\"}),\": Reversed form offers renewable but increasingly expensive damage\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Aries Synergy\"}),\": Enhanced damage during Aries season\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Suit Foundation\"}),\": Essential for Wands-focused decks\"]}),`\n`]})]})}function h(r={}){let{wrapper:e}=r.components||{};return e?(0,n.jsx)(e,{...r,children:(0,n.jsx)(c,{...r})}):c(r)}return v(k);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/wands/ace-of-wands.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/wands/ace-of-wands.mdx",
+    "sourceFileName": "ace-of-wands.mdx",
+    "sourceFileDir": "cards/minor-arcana/wands",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/wands/ace-of-wands"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/wands/ace-of-wands",
+  "zodiacPath": "aries",
+  "isUnit": false,
+  "isSpell": true
+}

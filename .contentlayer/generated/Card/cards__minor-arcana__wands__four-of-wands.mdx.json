@@ -1,0 +1,39 @@
+{
+  "id": "wands-04",
+  "name": "Four of Wands",
+  "zodiacClass": "sagittarius",
+  "element": "fire",
+  "cardType": "spell",
+  "cost": 4,
+  "rarity": "common",
+  "tarotSymbol": "🜂",
+  "keywords": [
+    "celebration",
+    "harmony",
+    "homecoming"
+  ],
+  "spellType": "ritual",
+  "effects": [
+    {
+      "name": "Joyous Celebration",
+      "description": "All your units gain +1/+1. If you control 4 or more units, draw 2 cards"
+    }
+  ],
+  "body": {
+    "raw": "\n# Four of Wands\n\nA celebration of achievement, where success is shared with all.\n\n*\"In unity, we celebrate. In celebration, we unite.\"*",
+    "code": "var Component=(()=>{var u=Object.create;var s=Object.defineProperty;var h=Object.getOwnPropertyDescriptor;var f=Object.getOwnPropertyNames;var p=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var x=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),w=(n,e)=>{for(var o in e)s(n,o,{get:e[o],enumerable:!0})},i=(n,e,o,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of f(e))!y.call(n,r)&&r!==o&&s(n,r,{get:()=>e[r],enumerable:!(a=h(e,r))||a.enumerable});return n};var _=(n,e,o)=>(o=n!=null?u(p(n)):{},i(e||!n||!n.__esModule?s(o,\"default\",{value:n,enumerable:!0}):o,n)),b=n=>i(s({},\"__esModule\",{value:!0}),n);var l=x((F,c)=>{c.exports=_jsx_runtime});var j={};w(j,{default:()=>d,frontmatter:()=>g});var t=_(l()),g={id:\"wands-04\",name:\"Four of Wands\",zodiacClass:\"sagittarius\",element:\"fire\",cardType:\"spell\",cost:4,rarity:\"common\",tarotSymbol:\"\\u{1F702}\",keywords:[\"celebration\",\"harmony\",\"homecoming\"],spellType:\"ritual\",effects:[{name:\"Joyous Celebration\",description:\"All your units gain +1/+1. If you control 4 or more units, draw 2 cards\"}]};function m(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"Four of Wands\"}),`\n`,(0,t.jsx)(e.p,{children:\"A celebration of achievement, where success is shared with all.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"In unity, we celebrate. In celebration, we unite.\"'})})]})}function d(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(m,{...n})}):m(n)}return b(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/wands/four-of-wands.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/wands/four-of-wands.mdx",
+    "sourceFileName": "four-of-wands.mdx",
+    "sourceFileDir": "cards/minor-arcana/wands",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/wands/four-of-wands"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/wands/four-of-wands",
+  "zodiacPath": "sagittarius",
+  "isUnit": false,
+  "isSpell": true
+}

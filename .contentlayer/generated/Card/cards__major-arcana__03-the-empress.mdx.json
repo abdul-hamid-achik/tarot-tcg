@@ -1,0 +1,53 @@
+{
+  "id": "major-03-empress",
+  "name": "The Empress",
+  "zodiacClass": "taurus",
+  "element": "earth",
+  "cardType": "unit",
+  "cost": 4,
+  "attack": 3,
+  "health": 5,
+  "rarity": "rare",
+  "tarotSymbol": "III",
+  "orientation": "random",
+  "keywords": [
+    "fertility",
+    "creation",
+    "growth"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Mother of Creation",
+        "description": "At the end of your turn, create a 1/1 Nature Spirit token with 'When this dies, gain 1 life'"
+      },
+      {
+        "name": "Abundant Growth",
+        "description": "Your other units have +0/+1"
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Overwhelming Growth",
+        "description": "At the end of your turn, create a 2/2 Thorn Beast token. All tokens cost 1 life to maintain."
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# The Empress\n\nThe divine mother, The Empress nurtures all creation with boundless love and abundance, bringing life to barren lands.\n\n*\"From the fertile void, all life springs eternal.\"*\n\nThe Empress represents femininity, beauty, nature, and abundance. She creates board presence through tokens while protecting your forces.",
+    "code": "var Component=(()=>{var m=Object.create;var i=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,g=Object.prototype.hasOwnProperty;var y=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),b=(t,e)=>{for(var r in e)i(t,r,{get:e[r],enumerable:!0})},s=(t,e,r,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let o of p(e))!g.call(t,o)&&o!==r&&i(t,o,{get:()=>e[o],enumerable:!(a=u(e,o))||a.enumerable});return t};var w=(t,e,r)=>(r=t!=null?m(f(t)):{},s(e||!t||!t.__esModule?i(r,\"default\",{value:t,enumerable:!0}):r,t)),x=t=>s(i({},\"__esModule\",{value:!0}),t);var c=y((k,h)=>{h.exports=_jsx_runtime});var _={};b(_,{default:()=>l,frontmatter:()=>T});var n=w(c()),T={id:\"major-03-empress\",name:\"The Empress\",zodiacClass:\"taurus\",element:\"earth\",cardType:\"unit\",cost:4,attack:3,health:5,rarity:\"rare\",tarotSymbol:\"III\",keywords:[\"fertility\",\"creation\",\"growth\"],abilities:{upright:[{name:\"Mother of Creation\",description:\"At the end of your turn, create a 1/1 Nature Spirit token with 'When this dies, gain 1 life'\"},{name:\"Abundant Growth\",description:\"Your other units have +0/+1\"}],reversed:[{name:\"Overwhelming Growth\",description:\"At the end of your turn, create a 2/2 Thorn Beast token. All tokens cost 1 life to maintain.\"}]},orientation:\"random\"};function d(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"The Empress\"}),`\n`,(0,n.jsx)(e.p,{children:\"The divine mother, The Empress nurtures all creation with boundless love and abundance, bringing life to barren lands.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"From the fertile void, all life springs eternal.\"'})}),`\n`,(0,n.jsx)(e.p,{children:\"The Empress represents femininity, beauty, nature, and abundance. She creates board presence through tokens while protecting your forces.\"})]})}function l(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(d,{...t})}):d(t)}return x(_);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/03-the-empress.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/03-the-empress.mdx",
+    "sourceFileName": "03-the-empress.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/03-the-empress"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/03-the-empress",
+  "zodiacPath": "taurus",
+  "isUnit": true,
+  "isSpell": false
+}

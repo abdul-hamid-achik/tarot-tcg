@@ -1,0 +1,44 @@
+{
+  "id": "pentacles-04",
+  "name": "Four of Pentacles",
+  "zodiacClass": "taurus",
+  "element": "earth",
+  "cardType": "unit",
+  "cost": 4,
+  "attack": 3,
+  "health": 5,
+  "rarity": "common",
+  "tarotSymbol": "🜃",
+  "keywords": [
+    "conservation",
+    "control",
+    "stability"
+  ],
+  "abilities": [
+    {
+      "name": "Resource Hoarding",
+      "description": "Your opponent's spells cost 1 more"
+    },
+    {
+      "name": "Protective Grip",
+      "description": "Can't be returned to hand or deck"
+    }
+  ],
+  "body": {
+    "raw": "\n# Four of Pentacles\n\nClutching tightly to material wealth, fearing loss above all.\n\n*\"What we grip too tightly, we often lose.\"*",
+    "code": "var Component=(()=>{var h=Object.create;var a=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var g=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),y=(t,e)=>{for(var o in e)a(t,o,{get:e[o],enumerable:!0})},i=(t,e,o,s)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of u(e))!x.call(t,r)&&r!==o&&a(t,r,{get:()=>e[r],enumerable:!(s=p(e,r))||s.enumerable});return t};var _=(t,e,o)=>(o=t!=null?h(f(t)):{},i(e||!t||!t.__esModule?a(o,\"default\",{value:t,enumerable:!0}):o,t)),b=t=>i(a({},\"__esModule\",{value:!0}),t);var l=g((F,c)=>{c.exports=_jsx_runtime});var w={};y(w,{default:()=>d,frontmatter:()=>j});var n=_(l()),j={id:\"pentacles-04\",name:\"Four of Pentacles\",zodiacClass:\"taurus\",element:\"earth\",cardType:\"unit\",cost:4,attack:3,health:5,rarity:\"common\",tarotSymbol:\"\\u{1F703}\",keywords:[\"conservation\",\"control\",\"stability\"],abilities:[{name:\"Resource Hoarding\",description:\"Your opponent's spells cost 1 more\"},{name:\"Protective Grip\",description:\"Can't be returned to hand or deck\"}]};function m(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Four of Pentacles\"}),`\n`,(0,n.jsx)(e.p,{children:\"Clutching tightly to material wealth, fearing loss above all.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"What we grip too tightly, we often lose.\"'})})]})}function d(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(m,{...t})}):m(t)}return b(w);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/pentacles/four-of-pentacles.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/pentacles/four-of-pentacles.mdx",
+    "sourceFileName": "four-of-pentacles.mdx",
+    "sourceFileDir": "cards/minor-arcana/pentacles",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/pentacles/four-of-pentacles"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/pentacles/four-of-pentacles",
+  "zodiacPath": "taurus",
+  "isUnit": true,
+  "isSpell": false
+}

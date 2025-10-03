@@ -24,6 +24,39 @@ npm run dev
 
 Open [http://localhost:3000](http://localhost:3000) to play the game.
 
+## 💾 Database Setup
+
+The game uses [Neon Postgres](https://neon.tech) with Drizzle ORM for persistence.
+
+### Local Development (Neon Local)
+
+1. Create `.env.local` with your Neon credentials:
+```bash
+DATABASE_URL="postgresql://neon:npg@localhost:5432/tarot_tcg"
+NEON_API_KEY=your_api_key
+NEON_PROJECT_ID=your_project_id
+BRANCH_ID=your_branch_id
+```
+
+2. Start the database and push schema:
+```bash
+npm run db:setup
+```
+
+### Production (Vercel + Neon)
+
+Set `DATABASE_URL` in Vercel environment variables with your Neon connection string.
+
+### Database Commands
+
+```bash
+npm run db:start      # Start Neon Local (Docker)
+npm run db:stop       # Stop database
+npm run db:push       # Push schema changes
+npm run db:studio     # Open Drizzle Studio
+npm run db:logs       # View database logs
+```
+
 ## 🛠️ Development Commands
 
 ```bash

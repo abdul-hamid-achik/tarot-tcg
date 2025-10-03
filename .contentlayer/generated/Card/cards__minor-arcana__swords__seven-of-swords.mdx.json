@@ -1,0 +1,44 @@
+{
+  "id": "swords-07",
+  "name": "Seven of Swords",
+  "zodiacClass": "aquarius",
+  "element": "air",
+  "cardType": "unit",
+  "cost": 7,
+  "attack": 4,
+  "health": 4,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜁",
+  "keywords": [
+    "deception",
+    "stealth",
+    "strategy"
+  ],
+  "abilities": [
+    {
+      "name": "Sneaky Theft",
+      "description": "Stealth. When this attacks, steal a random card from your opponent's hand"
+    },
+    {
+      "name": "Cunning Escape",
+      "description": "When this would be destroyed, return it to your hand instead (once per game)"
+    }
+  ],
+  "body": {
+    "raw": "\n# Seven of Swords\n\nThe thief escapes with stolen swords, using cunning over force.\n\n*\"Sometimes the clever path beats the direct one.\"*",
+    "code": "var Component=(()=>{var l=Object.create;var s=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var x=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),w=(t,e)=>{for(var o in e)s(t,o,{get:e[o],enumerable:!0})},i=(t,e,o,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of p(e))!y.call(t,r)&&r!==o&&s(t,r,{get:()=>e[r],enumerable:!(a=u(e,r))||a.enumerable});return t};var S=(t,e,o)=>(o=t!=null?l(f(t)):{},i(e||!t||!t.__esModule?s(o,\"default\",{value:t,enumerable:!0}):o,t)),g=t=>i(s({},\"__esModule\",{value:!0}),t);var d=x((k,c)=>{c.exports=_jsx_runtime});var j={};w(j,{default:()=>m,frontmatter:()=>_});var n=S(d()),_={id:\"swords-07\",name:\"Seven of Swords\",zodiacClass:\"aquarius\",element:\"air\",cardType:\"unit\",cost:7,attack:4,health:4,rarity:\"uncommon\",tarotSymbol:\"\\u{1F701}\",keywords:[\"deception\",\"stealth\",\"strategy\"],abilities:[{name:\"Sneaky Theft\",description:\"Stealth. When this attacks, steal a random card from your opponent's hand\"},{name:\"Cunning Escape\",description:\"When this would be destroyed, return it to your hand instead (once per game)\"}]};function h(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Seven of Swords\"}),`\n`,(0,n.jsx)(e.p,{children:\"The thief escapes with stolen swords, using cunning over force.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"Sometimes the clever path beats the direct one.\"'})})]})}function m(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(h,{...t})}):h(t)}return g(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/swords/seven-of-swords.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/swords/seven-of-swords.mdx",
+    "sourceFileName": "seven-of-swords.mdx",
+    "sourceFileDir": "cards/minor-arcana/swords",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/swords/seven-of-swords"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/swords/seven-of-swords",
+  "zodiacPath": "aquarius",
+  "isUnit": true,
+  "isSpell": false
+}

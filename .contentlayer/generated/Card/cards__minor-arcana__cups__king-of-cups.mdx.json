@@ -1,0 +1,44 @@
+{
+  "id": "cups-king",
+  "name": "King of Cups",
+  "zodiacClass": "scorpio",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 8,
+  "attack": 5,
+  "health": 8,
+  "rarity": "rare",
+  "tarotSymbol": "🜄",
+  "keywords": [
+    "emotional-balance",
+    "compassion",
+    "diplomacy"
+  ],
+  "abilities": [
+    {
+      "name": "Emotional Mastery",
+      "description": "At the end of your turn, you may return a card from your hand to your deck to draw 2 cards"
+    },
+    {
+      "name": "Diplomatic Resolution",
+      "description": "When an enemy unit attacks this, both units are healed for 2 instead of dealing damage (once per turn)"
+    }
+  ],
+  "body": {
+    "raw": "\n# King of Cups\n\nMaster of emotional waters, balancing feelings with wisdom.\n\n*\"True power flows from emotional mastery.\"*",
+    "code": "var Component=(()=>{var u=Object.create;var r=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var h=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var g=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),w=(t,e)=>{for(var o in e)r(t,o,{get:e[o],enumerable:!0})},s=(t,e,o,i)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let a of h(e))!y.call(t,a)&&a!==o&&r(t,a,{get:()=>e[a],enumerable:!(i=p(e,a))||i.enumerable});return t};var x=(t,e,o)=>(o=t!=null?u(f(t)):{},s(e||!t||!t.__esModule?r(o,\"default\",{value:t,enumerable:!0}):o,t)),_=t=>s(r({},\"__esModule\",{value:!0}),t);var m=g((C,c)=>{c.exports=_jsx_runtime});var j={};w(j,{default:()=>l,frontmatter:()=>b});var n=x(m()),b={id:\"cups-king\",name:\"King of Cups\",zodiacClass:\"scorpio\",element:\"water\",cardType:\"unit\",cost:8,attack:5,health:8,rarity:\"rare\",tarotSymbol:\"\\u{1F704}\",keywords:[\"emotional-balance\",\"compassion\",\"diplomacy\"],abilities:[{name:\"Emotional Mastery\",description:\"At the end of your turn, you may return a card from your hand to your deck to draw 2 cards\"},{name:\"Diplomatic Resolution\",description:\"When an enemy unit attacks this, both units are healed for 2 instead of dealing damage (once per turn)\"}]};function d(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"King of Cups\"}),`\n`,(0,n.jsx)(e.p,{children:\"Master of emotional waters, balancing feelings with wisdom.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"True power flows from emotional mastery.\"'})})]})}function l(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(d,{...t})}):d(t)}return _(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/cups/king-of-cups.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/cups/king-of-cups.mdx",
+    "sourceFileName": "king-of-cups.mdx",
+    "sourceFileDir": "cards/minor-arcana/cups",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/cups/king-of-cups"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/cups/king-of-cups",
+  "zodiacPath": "scorpio",
+  "isUnit": true,
+  "isSpell": false
+}

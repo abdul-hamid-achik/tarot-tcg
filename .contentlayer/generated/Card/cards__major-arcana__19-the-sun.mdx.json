@@ -1,0 +1,44 @@
+{
+  "id": "major-19-sun",
+  "name": "The Sun",
+  "zodiacClass": "leo",
+  "element": "fire",
+  "cardType": "unit",
+  "cost": 8,
+  "attack": 6,
+  "health": 6,
+  "rarity": "legendary",
+  "tarotSymbol": "XIX",
+  "keywords": [
+    "joy",
+    "success",
+    "vitality"
+  ],
+  "abilities": [
+    {
+      "name": "Radiant Glory",
+      "description": "When played, give all friendly units +2/+2 and they gain Lifesteal this turn"
+    },
+    {
+      "name": "Solar Blessing",
+      "description": "At the start of your turn, restore 3 health to your hero"
+    }
+  ],
+  "body": {
+    "raw": "\n# The Sun\n\nGlorious and life-giving, The Sun banishes all shadows and fills the world with warmth and joy.\n\n*\"In the sun's light, all things flourish.\"*\n\nThe Sun represents joy, success, and celebration. This powerful late-game card can swing battles with massive buffs and healing.",
+    "code": "var Component=(()=>{var u=Object.create;var r=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var y=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,p=Object.prototype.hasOwnProperty;var g=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),j=(n,e)=>{for(var a in e)r(n,a,{get:e[a],enumerable:!0})},o=(n,e,a,i)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let s of y(e))!p.call(n,s)&&s!==a&&r(n,s,{get:()=>e[s],enumerable:!(i=m(e,s))||i.enumerable});return n};var w=(n,e,a)=>(a=n!=null?u(f(n)):{},o(e||!n||!n.__esModule?r(a,\"default\",{value:n,enumerable:!0}):a,n)),x=n=>o(r({},\"__esModule\",{value:!0}),n);var h=g((T,l)=>{l.exports=_jsx_runtime});var b={};j(b,{default:()=>d,frontmatter:()=>_});var t=w(h()),_={id:\"major-19-sun\",name:\"The Sun\",zodiacClass:\"leo\",element:\"fire\",cardType:\"unit\",cost:8,attack:6,health:6,rarity:\"legendary\",tarotSymbol:\"XIX\",keywords:[\"joy\",\"success\",\"vitality\"],abilities:[{name:\"Radiant Glory\",description:\"When played, give all friendly units +2/+2 and they gain Lifesteal this turn\"},{name:\"Solar Blessing\",description:\"At the start of your turn, restore 3 health to your hero\"}]};function c(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"The Sun\"}),`\n`,(0,t.jsx)(e.p,{children:\"Glorious and life-giving, The Sun banishes all shadows and fills the world with warmth and joy.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:`\"In the sun's light, all things flourish.\"`})}),`\n`,(0,t.jsx)(e.p,{children:\"The Sun represents joy, success, and celebration. This powerful late-game card can swing battles with massive buffs and healing.\"})]})}function d(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(c,{...n})}):c(n)}return x(b);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/19-the-sun.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/19-the-sun.mdx",
+    "sourceFileName": "19-the-sun.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/19-the-sun"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/19-the-sun",
+  "zodiacPath": "leo",
+  "isUnit": true,
+  "isSpell": false
+}

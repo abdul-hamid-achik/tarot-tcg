@@ -1,0 +1,44 @@
+{
+  "id": "cups-06",
+  "name": "Six of Cups",
+  "zodiacClass": "pisces",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 6,
+  "attack": 4,
+  "health": 5,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜄",
+  "keywords": [
+    "nostalgia",
+    "childhood",
+    "innocence"
+  ],
+  "abilities": [
+    {
+      "name": "Nostalgic Return",
+      "description": "When played, return a unit that died this game to your hand. It costs 2 less"
+    },
+    {
+      "name": "Innocent Joy",
+      "description": "Your units with cost 3 or less have +1/+1"
+    }
+  ],
+  "body": {
+    "raw": "\n# Six of Cups\n\nChildhood memories bring comfort and renewed innocence.\n\n*\"In remembering our past, we find our future.\"*",
+    "code": "var Component=(()=>{var h=Object.create;var i=Object.defineProperty;var l=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var x=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var y=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),g=(n,e)=>{for(var o in e)i(n,o,{get:e[o],enumerable:!0})},a=(n,e,o,s)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of p(e))!f.call(n,r)&&r!==o&&i(n,r,{get:()=>e[r],enumerable:!(s=l(e,r))||s.enumerable});return n};var _=(n,e,o)=>(o=n!=null?h(x(n)):{},a(e||!n||!n.__esModule?i(o,\"default\",{value:n,enumerable:!0}):o,n)),w=n=>a(i({},\"__esModule\",{value:!0}),n);var d=y((I,c)=>{c.exports=_jsx_runtime});var j={};g(j,{default:()=>u,frontmatter:()=>C});var t=_(d()),C={id:\"cups-06\",name:\"Six of Cups\",zodiacClass:\"pisces\",element:\"water\",cardType:\"unit\",cost:6,attack:4,health:5,rarity:\"uncommon\",tarotSymbol:\"\\u{1F704}\",keywords:[\"nostalgia\",\"childhood\",\"innocence\"],abilities:[{name:\"Nostalgic Return\",description:\"When played, return a unit that died this game to your hand. It costs 2 less\"},{name:\"Innocent Joy\",description:\"Your units with cost 3 or less have +1/+1\"}]};function m(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"Six of Cups\"}),`\n`,(0,t.jsx)(e.p,{children:\"Childhood memories bring comfort and renewed innocence.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"In remembering our past, we find our future.\"'})})]})}function u(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(m,{...n})}):m(n)}return w(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/cups/six-of-cups.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/cups/six-of-cups.mdx",
+    "sourceFileName": "six-of-cups.mdx",
+    "sourceFileDir": "cards/minor-arcana/cups",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/cups/six-of-cups"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/cups/six-of-cups",
+  "zodiacPath": "pisces",
+  "isUnit": true,
+  "isSpell": false
+}

@@ -1,0 +1,39 @@
+{
+  "id": "major-20-judgement",
+  "name": "Judgement",
+  "zodiacClass": "scorpio",
+  "element": "water",
+  "cardType": "spell",
+  "cost": 9,
+  "rarity": "legendary",
+  "tarotSymbol": "XX",
+  "keywords": [
+    "rebirth",
+    "inner-calling",
+    "absolution"
+  ],
+  "spellType": "ritual",
+  "effects": [
+    {
+      "name": "Final Judgement",
+      "description": "Return all units that died this game to the battlefield under their owner's control with 1 health"
+    }
+  ],
+  "body": {
+    "raw": "\n# Judgement\n\nThe final trumpet sounds, calling all souls to rise and face their ultimate reckoning.\n\n*\"In the moment of judgement, all are made equal.\"*\n\nJudgement represents reflection, reckoning, and inner calling. This ultimate spell can completely reverse the course of a game.",
+    "code": "var Component=(()=>{var u=Object.create;var l=Object.defineProperty;var h=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var g=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var x=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),j=(n,e)=>{for(var r in e)l(n,r,{get:e[r],enumerable:!0})},i=(n,e,r,o)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let a of p(e))!f.call(n,a)&&a!==r&&l(n,a,{get:()=>e[a],enumerable:!(o=h(e,a))||o.enumerable});return n};var y=(n,e,r)=>(r=n!=null?u(g(n)):{},i(e||!n||!n.__esModule?l(r,\"default\",{value:n,enumerable:!0}):r,n)),_=n=>i(l({},\"__esModule\",{value:!0}),n);var c=x((T,s)=>{s.exports=_jsx_runtime});var b={};j(b,{default:()=>d,frontmatter:()=>w});var t=y(c()),w={id:\"major-20-judgement\",name:\"Judgement\",zodiacClass:\"scorpio\",element:\"water\",cardType:\"spell\",cost:9,rarity:\"legendary\",tarotSymbol:\"XX\",keywords:[\"rebirth\",\"inner-calling\",\"absolution\"],spellType:\"ritual\",effects:[{name:\"Final Judgement\",description:\"Return all units that died this game to the battlefield under their owner's control with 1 health\"}]};function m(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"Judgement\"}),`\n`,(0,t.jsx)(e.p,{children:\"The final trumpet sounds, calling all souls to rise and face their ultimate reckoning.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"In the moment of judgement, all are made equal.\"'})}),`\n`,(0,t.jsx)(e.p,{children:\"Judgement represents reflection, reckoning, and inner calling. This ultimate spell can completely reverse the course of a game.\"})]})}function d(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(m,{...n})}):m(n)}return _(b);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/20-judgement.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/20-judgement.mdx",
+    "sourceFileName": "20-judgement.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/20-judgement"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/20-judgement",
+  "zodiacPath": "scorpio",
+  "isUnit": false,
+  "isSpell": true
+}

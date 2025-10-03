@@ -1,0 +1,44 @@
+{
+  "id": "swords-02",
+  "name": "Two of Swords",
+  "zodiacClass": "libra",
+  "element": "air",
+  "cardType": "unit",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "rarity": "common",
+  "tarotSymbol": "🜁",
+  "keywords": [
+    "indecision",
+    "stalemate",
+    "blocked"
+  ],
+  "abilities": [
+    {
+      "name": "Crossed Blades",
+      "description": "Can't attack or be attacked"
+    },
+    {
+      "name": "Breaking Stalemate",
+      "description": "Pay 2 mana: This can attack and be attacked this turn"
+    }
+  ],
+  "body": {
+    "raw": "\n# Two of Swords\n\nBlindfolded with crossed swords, trapped in indecision.\n\n*\"When paths diverge, the mind must choose.\"*",
+    "code": "var Component=(()=>{var h=Object.create;var r=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var w=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var f=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),k=(t,e)=>{for(var a in e)r(t,a,{get:e[a],enumerable:!0})},i=(t,e,a,s)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let o of u(e))!x.call(t,o)&&o!==a&&r(t,o,{get:()=>e[o],enumerable:!(s=p(e,o))||s.enumerable});return t};var _=(t,e,a)=>(a=t!=null?h(w(t)):{},i(e||!t||!t.__esModule?r(a,\"default\",{value:t,enumerable:!0}):a,t)),b=t=>i(r({},\"__esModule\",{value:!0}),t);var c=f((g,d)=>{d.exports=_jsx_runtime});var j={};k(j,{default:()=>l,frontmatter:()=>y});var n=_(c()),y={id:\"swords-02\",name:\"Two of Swords\",zodiacClass:\"libra\",element:\"air\",cardType:\"unit\",cost:2,attack:2,health:2,rarity:\"common\",tarotSymbol:\"\\u{1F701}\",keywords:[\"indecision\",\"stalemate\",\"blocked\"],abilities:[{name:\"Crossed Blades\",description:\"Can't attack or be attacked\"},{name:\"Breaking Stalemate\",description:\"Pay 2 mana: This can attack and be attacked this turn\"}]};function m(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Two of Swords\"}),`\n`,(0,n.jsx)(e.p,{children:\"Blindfolded with crossed swords, trapped in indecision.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"When paths diverge, the mind must choose.\"'})})]})}function l(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(m,{...t})}):m(t)}return b(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/swords/two-of-swords.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/swords/two-of-swords.mdx",
+    "sourceFileName": "two-of-swords.mdx",
+    "sourceFileDir": "cards/minor-arcana/swords",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/swords/two-of-swords"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/swords/two-of-swords",
+  "zodiacPath": "libra",
+  "isUnit": true,
+  "isSpell": false
+}

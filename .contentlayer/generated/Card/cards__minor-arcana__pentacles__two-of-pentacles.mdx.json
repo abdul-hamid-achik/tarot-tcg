@@ -1,0 +1,44 @@
+{
+  "id": "pentacles-02",
+  "name": "Two of Pentacles",
+  "zodiacClass": "virgo",
+  "element": "earth",
+  "cardType": "unit",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "rarity": "common",
+  "tarotSymbol": "🜃",
+  "keywords": [
+    "balance",
+    "adaptability",
+    "juggling"
+  ],
+  "abilities": [
+    {
+      "name": "Resource Juggling",
+      "description": "At the start of your turn, you may swap this unit's attack and health"
+    },
+    {
+      "name": "Flexible Economy",
+      "description": "When played, gain 1 mana crystal this turn only"
+    }
+  ],
+  "body": {
+    "raw": "\n# Two of Pentacles\n\nJuggling resources with skill, maintaining balance in chaos.\n\n*\"Balance is not stillness, but graceful motion.\"*",
+    "code": "var Component=(()=>{var u=Object.create;var i=Object.defineProperty;var d=Object.getOwnPropertyDescriptor;var g=Object.getOwnPropertyNames;var p=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var x=(t,n)=>()=>(n||t((n={exports:{}}).exports,n),n.exports),f=(t,n)=>{for(var a in n)i(t,a,{get:n[a],enumerable:!0})},r=(t,n,a,s)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let o of g(n))!y.call(t,o)&&o!==a&&i(t,o,{get:()=>n[o],enumerable:!(s=d(n,o))||s.enumerable});return t};var b=(t,n,a)=>(a=t!=null?u(p(t)):{},r(n||!t||!t.__esModule?i(a,\"default\",{value:t,enumerable:!0}):a,t)),_=t=>r(i({},\"__esModule\",{value:!0}),t);var l=x((C,c)=>{c.exports=_jsx_runtime});var w={};f(w,{default:()=>h,frontmatter:()=>j});var e=b(l()),j={id:\"pentacles-02\",name:\"Two of Pentacles\",zodiacClass:\"virgo\",element:\"earth\",cardType:\"unit\",cost:2,attack:2,health:2,rarity:\"common\",tarotSymbol:\"\\u{1F703}\",keywords:[\"balance\",\"adaptability\",\"juggling\"],abilities:[{name:\"Resource Juggling\",description:\"At the start of your turn, you may swap this unit's attack and health\"},{name:\"Flexible Economy\",description:\"When played, gain 1 mana crystal this turn only\"}]};function m(t){let n={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,e.jsxs)(e.Fragment,{children:[(0,e.jsx)(n.h1,{children:\"Two of Pentacles\"}),`\n`,(0,e.jsx)(n.p,{children:\"Juggling resources with skill, maintaining balance in chaos.\"}),`\n`,(0,e.jsx)(n.p,{children:(0,e.jsx)(n.em,{children:'\"Balance is not stillness, but graceful motion.\"'})})]})}function h(t={}){let{wrapper:n}=t.components||{};return n?(0,e.jsx)(n,{...t,children:(0,e.jsx)(m,{...t})}):m(t)}return _(w);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/pentacles/two-of-pentacles.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/pentacles/two-of-pentacles.mdx",
+    "sourceFileName": "two-of-pentacles.mdx",
+    "sourceFileDir": "cards/minor-arcana/pentacles",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/pentacles/two-of-pentacles"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/pentacles/two-of-pentacles",
+  "zodiacPath": "virgo",
+  "isUnit": true,
+  "isSpell": false
+}

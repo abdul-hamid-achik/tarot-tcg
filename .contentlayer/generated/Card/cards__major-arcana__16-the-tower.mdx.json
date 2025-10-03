@@ -1,0 +1,50 @@
+{
+  "id": "major-16-tower",
+  "name": "The Tower",
+  "zodiacClass": "aries",
+  "element": "fire",
+  "cardType": "spell",
+  "cost": 6,
+  "rarity": "mythic",
+  "tarotNumber": "XVI",
+  "tarotSymbol": "⚡",
+  "orientation": "random",
+  "keywords": [
+    "upheaval",
+    "revelation",
+    "chaos",
+    "liberation"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Lightning Revelation",
+        "description": "Deal 4 damage to all units and players. Destroy all units with 2 or less health remaining. Each player discards their hand and draws 5 cards."
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Delayed Catastrophe",
+        "description": "At the start of each player's turn for the next 3 turns, that player must sacrifice a unit or take 3 damage. Draw 2 cards."
+      }
+    ]
+  },
+  "spellType": "instant",
+  "body": {
+    "raw": "\n# The Tower - XVI\n\n*\"When lightning strikes the tower of lies, only truth remains standing.\"*\n\n## Upright Meaning\nSudden upheaval, revelation, chaos, and liberation from illusion. The Tower represents the moment when false beliefs and structures are destroyed by divine intervention, clearing the way for authentic truth and genuine progress.\n\n**Gameplay**: *Lightning Revelation* delivers immediate, dramatic change - widespread damage followed by complete hand refreshing, embodying the Tower's sudden, transformative chaos.\n\n## Reversed Meaning\nDelayed disaster, avoidance of necessary change, and internal upheaval. The reversed Tower suggests that while catastrophe may be postponed, the underlying problems remain and will eventually demand attention.\n\n**Gameplay**: *Delayed Catastrophe* spreads the Tower's destruction over time, creating ongoing pressure and difficult choices while providing card advantage for strategic planning.\n\n## Symbolism & Lore\nLightning strikes a tall tower, knocking the crown from its peak and casting figures from its windows. The 22 flames represent the Hebrew letters and the path of spiritual illumination. The falling figures represent the ego and false personas being stripped away.\n\nThe Tower was built on false foundations - pride, ego, and illusion - and must fall for authentic spiritual growth to occur.\n\n## Strategic Notes\n- **Immediate Impact**: Upright form provides instant board reset with hand refresh\n- **Pressure Tactics**: Reversed form creates ongoing strategic pressure\n- **Aries Synergy**: Enhanced aggressive damage during Aries season\n- **Combo Potential**: Works well with cards that benefit from hand refreshing\n- **Risk/Reward**: Both forms affect all players, requiring careful timing\n- **Meta Disruption**: Excellent against established board states and combo decks",
+    "code": "var Component=(()=>{var g=Object.create;var a=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var u=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var w=(r,e)=>()=>(e||r((e={exports:{}}).exports,e),e.exports),y=(r,e)=>{for(var t in e)a(r,t,{get:e[t],enumerable:!0})},o=(r,e,t,s)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let i of p(e))!f.call(r,i)&&i!==t&&a(r,i,{get:()=>e[i],enumerable:!(s=m(e,i))||s.enumerable});return r};var v=(r,e,t)=>(t=r!=null?g(u(r)):{},o(e||!r||!r.__esModule?a(t,\"default\",{value:r,enumerable:!0}):t,r)),b=r=>o(a({},\"__esModule\",{value:!0}),r);var d=w((D,l)=>{l.exports=_jsx_runtime});var x={};y(x,{default:()=>c,frontmatter:()=>T});var n=v(d()),T={id:\"major-16-tower\",name:\"The Tower\",zodiacClass:\"aries\",element:\"fire\",cardType:\"spell\",cost:6,rarity:\"mythic\",tarotNumber:\"XVI\",tarotSymbol:\"\\u26A1\",keywords:[\"upheaval\",\"revelation\",\"chaos\",\"liberation\"],spellType:\"instant\",abilities:{upright:[{name:\"Lightning Revelation\",description:\"Deal 4 damage to all units and players. Destroy all units with 2 or less health remaining. Each player discards their hand and draws 5 cards.\"}],reversed:[{name:\"Delayed Catastrophe\",description:\"At the start of each player's turn for the next 3 turns, that player must sacrifice a unit or take 3 damage. Draw 2 cards.\"}]},orientation:\"random\"};function h(r){let e={em:\"em\",h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",strong:\"strong\",ul:\"ul\",...r.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"The Tower - XVI\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"When lightning strikes the tower of lies, only truth remains standing.\"'})}),`\n`,(0,n.jsx)(e.h2,{children:\"Upright Meaning\"}),`\n`,(0,n.jsx)(e.p,{children:\"Sudden upheaval, revelation, chaos, and liberation from illusion. The Tower represents the moment when false beliefs and structures are destroyed by divine intervention, clearing the way for authentic truth and genuine progress.\"}),`\n`,(0,n.jsxs)(e.p,{children:[(0,n.jsx)(e.strong,{children:\"Gameplay\"}),\": \",(0,n.jsx)(e.em,{children:\"Lightning Revelation\"}),\" delivers immediate, dramatic change - widespread damage followed by complete hand refreshing, embodying the Tower's sudden, transformative chaos.\"]}),`\n`,(0,n.jsx)(e.h2,{children:\"Reversed Meaning\"}),`\n`,(0,n.jsx)(e.p,{children:\"Delayed disaster, avoidance of necessary change, and internal upheaval. The reversed Tower suggests that while catastrophe may be postponed, the underlying problems remain and will eventually demand attention.\"}),`\n`,(0,n.jsxs)(e.p,{children:[(0,n.jsx)(e.strong,{children:\"Gameplay\"}),\": \",(0,n.jsx)(e.em,{children:\"Delayed Catastrophe\"}),\" spreads the Tower's destruction over time, creating ongoing pressure and difficult choices while providing card advantage for strategic planning.\"]}),`\n`,(0,n.jsx)(e.h2,{children:\"Symbolism & Lore\"}),`\n`,(0,n.jsx)(e.p,{children:\"Lightning strikes a tall tower, knocking the crown from its peak and casting figures from its windows. The 22 flames represent the Hebrew letters and the path of spiritual illumination. The falling figures represent the ego and false personas being stripped away.\"}),`\n`,(0,n.jsx)(e.p,{children:\"The Tower was built on false foundations - pride, ego, and illusion - and must fall for authentic spiritual growth to occur.\"}),`\n`,(0,n.jsx)(e.h2,{children:\"Strategic Notes\"}),`\n`,(0,n.jsxs)(e.ul,{children:[`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Immediate Impact\"}),\": Upright form provides instant board reset with hand refresh\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Pressure Tactics\"}),\": Reversed form creates ongoing strategic pressure\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Aries Synergy\"}),\": Enhanced aggressive damage during Aries season\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Combo Potential\"}),\": Works well with cards that benefit from hand refreshing\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Risk/Reward\"}),\": Both forms affect all players, requiring careful timing\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Meta Disruption\"}),\": Excellent against established board states and combo decks\"]}),`\n`]})]})}function c(r={}){let{wrapper:e}=r.components||{};return e?(0,n.jsx)(e,{...r,children:(0,n.jsx)(h,{...r})}):h(r)}return b(x);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/16-the-tower.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/16-the-tower.mdx",
+    "sourceFileName": "16-the-tower.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/16-the-tower"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/16-the-tower",
+  "zodiacPath": "aries",
+  "isUnit": false,
+  "isSpell": true
+}

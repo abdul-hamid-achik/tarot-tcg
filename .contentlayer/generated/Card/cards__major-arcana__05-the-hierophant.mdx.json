@@ -1,0 +1,57 @@
+{
+  "id": "major-05-hierophant",
+  "name": "The Hierophant",
+  "zodiacClass": "taurus",
+  "element": "earth",
+  "cardType": "unit",
+  "cost": 5,
+  "attack": 2,
+  "health": 6,
+  "rarity": "rare",
+  "tarotSymbol": "V",
+  "orientation": "random",
+  "keywords": [
+    "wisdom",
+    "tradition",
+    "teaching"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Sacred Knowledge",
+        "description": "When you play a spell, draw a card"
+      },
+      {
+        "name": "Divine Teaching",
+        "description": "At the start of your turn, reduce the cost of a random spell in your hand by 1"
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Dogmatic Control",
+        "description": "When you play a spell, all opponents discard a random card"
+      },
+      {
+        "name": "Forbidden Knowledge",
+        "description": "At the start of your turn, look at opponent's hand and name a card type. They can't play that type this turn."
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# The Hierophant\n\nThe bridge between heaven and earth, The Hierophant preserves sacred wisdom and guides seekers toward enlightenment.\n\n*\"In tradition lies wisdom; in wisdom, transcendence.\"*\n\nThe Hierophant represents spiritual wisdom, religious beliefs, and institutions. He rewards spell-casting with card advantage and cost reduction.",
+    "code": "var Component=(()=>{var p=Object.create;var o=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var y=Object.getPrototypeOf,g=Object.prototype.hasOwnProperty;var w=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),f=(n,e)=>{for(var a in e)o(n,a,{get:e[a],enumerable:!0})},s=(n,e,a,i)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of u(e))!g.call(n,r)&&r!==a&&o(n,r,{get:()=>e[r],enumerable:!(i=m(e,r))||i.enumerable});return n};var x=(n,e,a)=>(a=n!=null?p(y(n)):{},s(e||!n||!n.__esModule?o(a,\"default\",{value:n,enumerable:!0}):a,n)),T=n=>s(o({},\"__esModule\",{value:!0}),n);var c=w((v,d)=>{d.exports=_jsx_runtime});var _={};f(_,{default:()=>l,frontmatter:()=>b});var t=x(c()),b={id:\"major-05-hierophant\",name:\"The Hierophant\",zodiacClass:\"taurus\",element:\"earth\",cardType:\"unit\",cost:5,attack:2,health:6,rarity:\"rare\",tarotSymbol:\"V\",keywords:[\"wisdom\",\"tradition\",\"teaching\"],abilities:{upright:[{name:\"Sacred Knowledge\",description:\"When you play a spell, draw a card\"},{name:\"Divine Teaching\",description:\"At the start of your turn, reduce the cost of a random spell in your hand by 1\"}],reversed:[{name:\"Dogmatic Control\",description:\"When you play a spell, all opponents discard a random card\"},{name:\"Forbidden Knowledge\",description:\"At the start of your turn, look at opponent's hand and name a card type. They can't play that type this turn.\"}]},orientation:\"random\"};function h(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"The Hierophant\"}),`\n`,(0,t.jsx)(e.p,{children:\"The bridge between heaven and earth, The Hierophant preserves sacred wisdom and guides seekers toward enlightenment.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"In tradition lies wisdom; in wisdom, transcendence.\"'})}),`\n`,(0,t.jsx)(e.p,{children:\"The Hierophant represents spiritual wisdom, religious beliefs, and institutions. He rewards spell-casting with card advantage and cost reduction.\"})]})}function l(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(h,{...n})}):h(n)}return T(_);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/05-the-hierophant.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/05-the-hierophant.mdx",
+    "sourceFileName": "05-the-hierophant.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/05-the-hierophant"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/05-the-hierophant",
+  "zodiacPath": "taurus",
+  "isUnit": true,
+  "isSpell": false
+}

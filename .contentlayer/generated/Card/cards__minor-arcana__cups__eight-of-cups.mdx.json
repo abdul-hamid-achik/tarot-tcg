@@ -1,0 +1,44 @@
+{
+  "id": "cups-08",
+  "name": "Eight of Cups",
+  "zodiacClass": "cancer",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 8,
+  "attack": 3,
+  "health": 6,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜄",
+  "keywords": [
+    "departure",
+    "withdrawal",
+    "seeking"
+  ],
+  "abilities": [
+    {
+      "name": "Spiritual Journey",
+      "description": "When played, return all your other units to your hand. They cost 1 less"
+    },
+    {
+      "name": "Seeker's Path",
+      "description": "At the end of your turn, discover a spell"
+    }
+  ],
+  "body": {
+    "raw": "\n# Eight of Cups\n\nLeaving behind what no longer serves, seeking deeper meaning.\n\n*\"Sometimes we must abandon the familiar to find the truth.\"*",
+    "code": "var Component=(()=>{var u=Object.create;var a=Object.defineProperty;var l=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var y=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var g=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),x=(t,e)=>{for(var r in e)a(t,r,{get:e[r],enumerable:!0})},s=(t,e,r,i)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let o of p(e))!f.call(t,o)&&o!==r&&a(t,o,{get:()=>e[o],enumerable:!(i=l(e,o))||i.enumerable});return t};var w=(t,e,r)=>(r=t!=null?u(y(t)):{},s(e||!t||!t.__esModule?a(r,\"default\",{value:t,enumerable:!0}):r,t)),_=t=>s(a({},\"__esModule\",{value:!0}),t);var h=g((b,c)=>{c.exports=_jsx_runtime});var k={};x(k,{default:()=>m,frontmatter:()=>j});var n=w(h()),j={id:\"cups-08\",name:\"Eight of Cups\",zodiacClass:\"cancer\",element:\"water\",cardType:\"unit\",cost:8,attack:3,health:6,rarity:\"uncommon\",tarotSymbol:\"\\u{1F704}\",keywords:[\"departure\",\"withdrawal\",\"seeking\"],abilities:[{name:\"Spiritual Journey\",description:\"When played, return all your other units to your hand. They cost 1 less\"},{name:\"Seeker's Path\",description:\"At the end of your turn, discover a spell\"}]};function d(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Eight of Cups\"}),`\n`,(0,n.jsx)(e.p,{children:\"Leaving behind what no longer serves, seeking deeper meaning.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"Sometimes we must abandon the familiar to find the truth.\"'})})]})}function m(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(d,{...t})}):d(t)}return _(k);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/cups/eight-of-cups.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/cups/eight-of-cups.mdx",
+    "sourceFileName": "eight-of-cups.mdx",
+    "sourceFileDir": "cards/minor-arcana/cups",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/cups/eight-of-cups"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/cups/eight-of-cups",
+  "zodiacPath": "cancer",
+  "isUnit": true,
+  "isSpell": false
+}

@@ -1,0 +1,39 @@
+{
+  "id": "pentacles-05",
+  "name": "Five of Pentacles",
+  "zodiacClass": "virgo",
+  "element": "earth",
+  "cardType": "spell",
+  "cost": 5,
+  "rarity": "common",
+  "tarotSymbol": "🜃",
+  "keywords": [
+    "hardship",
+    "loss",
+    "poverty"
+  ],
+  "spellType": "instant",
+  "effects": [
+    {
+      "name": "Material Loss",
+      "description": "Destroy your highest cost unit. Draw cards equal to its cost"
+    }
+  ],
+  "body": {
+    "raw": "\n# Five of Pentacles\n\nIn the cold outside the church, learning that loss leads to wisdom.\n\n*\"In our darkest hour, we find our true wealth.\"*",
+    "code": "var Component=(()=>{var m=Object.create;var r=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var y=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),_=(t,e)=>{for(var o in e)r(t,o,{get:e[o],enumerable:!0})},c=(t,e,o,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let s of p(e))!x.call(t,s)&&s!==o&&r(t,s,{get:()=>e[s],enumerable:!(a=u(e,s))||a.enumerable});return t};var w=(t,e,o)=>(o=t!=null?m(f(t)):{},c(e||!t||!t.__esModule?r(o,\"default\",{value:t,enumerable:!0}):o,t)),g=t=>c(r({},\"__esModule\",{value:!0}),t);var l=y((F,i)=>{i.exports=_jsx_runtime});var v={};_(v,{default:()=>h,frontmatter:()=>j});var n=w(l()),j={id:\"pentacles-05\",name:\"Five of Pentacles\",zodiacClass:\"virgo\",element:\"earth\",cardType:\"spell\",cost:5,rarity:\"common\",tarotSymbol:\"\\u{1F703}\",keywords:[\"hardship\",\"loss\",\"poverty\"],spellType:\"instant\",effects:[{name:\"Material Loss\",description:\"Destroy your highest cost unit. Draw cards equal to its cost\"}]};function d(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Five of Pentacles\"}),`\n`,(0,n.jsx)(e.p,{children:\"In the cold outside the church, learning that loss leads to wisdom.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"In our darkest hour, we find our true wealth.\"'})})]})}function h(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(d,{...t})}):d(t)}return g(v);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/pentacles/five-of-pentacles.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/pentacles/five-of-pentacles.mdx",
+    "sourceFileName": "five-of-pentacles.mdx",
+    "sourceFileDir": "cards/minor-arcana/pentacles",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/pentacles/five-of-pentacles"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/pentacles/five-of-pentacles",
+  "zodiacPath": "virgo",
+  "isUnit": false,
+  "isSpell": true
+}

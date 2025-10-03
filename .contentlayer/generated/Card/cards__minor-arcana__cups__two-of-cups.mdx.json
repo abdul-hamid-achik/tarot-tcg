@@ -1,0 +1,44 @@
+{
+  "id": "cups-02",
+  "name": "Two of Cups",
+  "zodiacClass": "cancer",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 2,
+  "attack": 1,
+  "health": 3,
+  "rarity": "common",
+  "tarotSymbol": "🜄",
+  "keywords": [
+    "unity",
+    "partnership",
+    "connection"
+  ],
+  "abilities": [
+    {
+      "name": "Perfect Partnership",
+      "description": "When played, if you control another unit, both gain +1/+1"
+    },
+    {
+      "name": "Emotional Bond",
+      "description": "When another friendly unit is healed, this gains +1 health"
+    }
+  ],
+  "body": {
+    "raw": "\n# Two of Cups\n\nTwo souls unite in perfect harmony, their bond unbreakable.\n\n*\"In unity, we find our strength.\"*",
+    "code": "var Component=(()=>{var l=Object.create;var i=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var x=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports),w=(e,n)=>{for(var o in n)i(e,o,{get:n[o],enumerable:!0})},s=(e,n,o,a)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let r of p(n))!y.call(e,r)&&r!==o&&i(e,r,{get:()=>n[r],enumerable:!(a=u(n,r))||a.enumerable});return e};var _=(e,n,o)=>(o=e!=null?l(f(e)):{},s(n||!e||!e.__esModule?i(o,\"default\",{value:e,enumerable:!0}):o,e)),b=e=>s(i({},\"__esModule\",{value:!0}),e);var h=x((T,c)=>{c.exports=_jsx_runtime});var j={};w(j,{default:()=>d,frontmatter:()=>g});var t=_(h()),g={id:\"cups-02\",name:\"Two of Cups\",zodiacClass:\"cancer\",element:\"water\",cardType:\"unit\",cost:2,attack:1,health:3,rarity:\"common\",tarotSymbol:\"\\u{1F704}\",keywords:[\"unity\",\"partnership\",\"connection\"],abilities:[{name:\"Perfect Partnership\",description:\"When played, if you control another unit, both gain +1/+1\"},{name:\"Emotional Bond\",description:\"When another friendly unit is healed, this gains +1 health\"}]};function m(e){let n={em:\"em\",h1:\"h1\",p:\"p\",...e.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(n.h1,{children:\"Two of Cups\"}),`\n`,(0,t.jsx)(n.p,{children:\"Two souls unite in perfect harmony, their bond unbreakable.\"}),`\n`,(0,t.jsx)(n.p,{children:(0,t.jsx)(n.em,{children:'\"In unity, we find our strength.\"'})})]})}function d(e={}){let{wrapper:n}=e.components||{};return n?(0,t.jsx)(n,{...e,children:(0,t.jsx)(m,{...e})}):m(e)}return b(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/cups/two-of-cups.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/cups/two-of-cups.mdx",
+    "sourceFileName": "two-of-cups.mdx",
+    "sourceFileDir": "cards/minor-arcana/cups",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/cups/two-of-cups"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/cups/two-of-cups",
+  "zodiacPath": "cancer",
+  "isUnit": true,
+  "isSpell": false
+}

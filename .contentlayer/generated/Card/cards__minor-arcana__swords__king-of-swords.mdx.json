@@ -1,0 +1,56 @@
+{
+  "id": "swords-king",
+  "name": "King of Swords",
+  "zodiacClass": "aquarius",
+  "element": "air",
+  "cardType": "unit",
+  "cost": 8,
+  "attack": 6,
+  "health": 6,
+  "rarity": "rare",
+  "tarotSymbol": "🜁",
+  "description": "When played, destroy all enemy units with 3 or less health. A commanding presence on the battlefield.",
+  "reversedDescription": "When played, destroy all friendly units with 3 or less health. Tyrannical rule destroys what it seeks to protect.",
+  "orientation": "random",
+  "keywords": [
+    "authority",
+    "intellectual",
+    "truth",
+    "taunt"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Divine Judgment",
+        "description": "When played, destroy all enemy units with 3 or less health"
+      },
+      {
+        "name": "Intellectual Authority",
+        "description": "Your Air spells cost 2 less"
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Tyrannical Rule",
+        "description": "When played, destroy all friendly units with 3 or less health. Gain +2/+2 for each unit destroyed."
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# King of Swords\n\nThe ultimate arbiter of truth, ruling with logic and fairness.\n\n*\"Justice tempered by wisdom is the highest law.\"*\n\nThis Aquarius-class unit demonstrates the innovative, rule-changing nature of the Water Bearer.",
+    "code": "var Component=(()=>{var u=Object.create;var s=Object.defineProperty;var m=Object.getOwnPropertyDescriptor;var y=Object.getOwnPropertyNames;var p=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var g=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),w=(t,e)=>{for(var r in e)s(t,r,{get:e[r],enumerable:!0})},o=(t,e,r,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let i of y(e))!f.call(t,i)&&i!==r&&s(t,i,{get:()=>e[i],enumerable:!(a=m(e,i))||a.enumerable});return t};var x=(t,e,r)=>(r=t!=null?u(p(t)):{},o(e||!t||!t.__esModule?s(r,\"default\",{value:t,enumerable:!0}):r,t)),_=t=>o(s({},\"__esModule\",{value:!0}),t);var h=g((T,l)=>{l.exports=_jsx_runtime});var j={};w(j,{default:()=>c,frontmatter:()=>b});var n=x(h()),b={id:\"swords-king\",name:\"King of Swords\",zodiacClass:\"aquarius\",element:\"air\",cardType:\"unit\",cost:8,attack:6,health:6,rarity:\"rare\",tarotSymbol:\"\\u{1F701}\",keywords:[\"authority\",\"intellectual\",\"truth\",\"taunt\"],description:\"When played, destroy all enemy units with 3 or less health. A commanding presence on the battlefield.\",reversedDescription:\"When played, destroy all friendly units with 3 or less health. Tyrannical rule destroys what it seeks to protect.\",abilities:{upright:[{name:\"Divine Judgment\",description:\"When played, destroy all enemy units with 3 or less health\"},{name:\"Intellectual Authority\",description:\"Your Air spells cost 2 less\"}],reversed:[{name:\"Tyrannical Rule\",description:\"When played, destroy all friendly units with 3 or less health. Gain +2/+2 for each unit destroyed.\"}]},orientation:\"random\"};function d(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"King of Swords\"}),`\n`,(0,n.jsx)(e.p,{children:\"The ultimate arbiter of truth, ruling with logic and fairness.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"Justice tempered by wisdom is the highest law.\"'})}),`\n`,(0,n.jsx)(e.p,{children:\"This Aquarius-class unit demonstrates the innovative, rule-changing nature of the Water Bearer.\"})]})}function c(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(d,{...t})}):d(t)}return _(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/swords/king-of-swords.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/swords/king-of-swords.mdx",
+    "sourceFileName": "king-of-swords.mdx",
+    "sourceFileDir": "cards/minor-arcana/swords",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/swords/king-of-swords"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/swords/king-of-swords",
+  "zodiacPath": "aquarius",
+  "isUnit": true,
+  "isSpell": false
+}

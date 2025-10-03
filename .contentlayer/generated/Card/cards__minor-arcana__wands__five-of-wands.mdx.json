@@ -1,0 +1,39 @@
+{
+  "id": "wands-05",
+  "name": "Five of Wands",
+  "zodiacClass": "aries",
+  "element": "fire",
+  "cardType": "spell",
+  "cost": 5,
+  "rarity": "common",
+  "tarotSymbol": "🜂",
+  "keywords": [
+    "conflict",
+    "competition",
+    "disagreement"
+  ],
+  "spellType": "instant",
+  "effects": [
+    {
+      "name": "Chaotic Melee",
+      "description": "All units fight each other. Each unit deals 1 damage to all other units (including friendly)"
+    }
+  ],
+  "body": {
+    "raw": "\n# Five of Wands\n\nConflict erupts as competing forces clash in chaotic battle.\n\n*\"From conflict comes clarity.\"*",
+    "code": "var Component=(()=>{var h=Object.create;var i=Object.defineProperty;var f=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var u=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var y=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),g=(t,e)=>{for(var o in e)i(t,o,{get:e[o],enumerable:!0})},s=(t,e,o,r)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let c of p(e))!x.call(t,c)&&c!==o&&i(t,c,{get:()=>e[c],enumerable:!(r=f(e,c))||r.enumerable});return t};var _=(t,e,o)=>(o=t!=null?h(u(t)):{},s(e||!t||!t.__esModule?i(o,\"default\",{value:t,enumerable:!0}):o,t)),j=t=>s(i({},\"__esModule\",{value:!0}),t);var l=y((w,a)=>{a.exports=_jsx_runtime});var F={};g(F,{default:()=>d,frontmatter:()=>C});var n=_(l()),C={id:\"wands-05\",name:\"Five of Wands\",zodiacClass:\"aries\",element:\"fire\",cardType:\"spell\",cost:5,rarity:\"common\",tarotSymbol:\"\\u{1F702}\",keywords:[\"conflict\",\"competition\",\"disagreement\"],spellType:\"instant\",effects:[{name:\"Chaotic Melee\",description:\"All units fight each other. Each unit deals 1 damage to all other units (including friendly)\"}]};function m(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Five of Wands\"}),`\n`,(0,n.jsx)(e.p,{children:\"Conflict erupts as competing forces clash in chaotic battle.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"From conflict comes clarity.\"'})})]})}function d(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(m,{...t})}):m(t)}return j(F);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/wands/five-of-wands.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/wands/five-of-wands.mdx",
+    "sourceFileName": "five-of-wands.mdx",
+    "sourceFileDir": "cards/minor-arcana/wands",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/wands/five-of-wands"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/wands/five-of-wands",
+  "zodiacPath": "aries",
+  "isUnit": false,
+  "isSpell": true
+}

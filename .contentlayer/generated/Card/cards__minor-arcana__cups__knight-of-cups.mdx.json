@@ -1,0 +1,44 @@
+{
+  "id": "cups-knight",
+  "name": "Knight of Cups",
+  "zodiacClass": "pisces",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 4,
+  "attack": 3,
+  "health": 4,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜄",
+  "keywords": [
+    "romance",
+    "charm",
+    "idealism"
+  ],
+  "abilities": [
+    {
+      "name": "Romantic Quest",
+      "description": "When played, give target unit +2/+2 and 'When this unit attacks, heal your hero for 2'"
+    },
+    {
+      "name": "Charming Presence",
+      "description": "Enemy units with 2 or less attack can't attack this"
+    }
+  ],
+  "body": {
+    "raw": "\n# Knight of Cups\n\nThe romantic knight arrives bearing the grail of emotion and dreams.\n\n*\"Follow your heart, for it knows the way.\"*",
+    "code": "var Component=(()=>{var l=Object.create;var i=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var g=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var y=(e,t)=>()=>(t||e((t={exports:{}}).exports,t),t.exports),x=(e,t)=>{for(var a in t)i(e,a,{get:t[a],enumerable:!0})},s=(e,t,a,o)=>{if(t&&typeof t==\"object\"||typeof t==\"function\")for(let r of p(t))!f.call(e,r)&&r!==a&&i(e,r,{get:()=>t[r],enumerable:!(o=u(t,r))||o.enumerable});return e};var k=(e,t,a)=>(a=e!=null?l(g(e)):{},s(t||!e||!e.__esModule?i(a,\"default\",{value:e,enumerable:!0}):a,e)),w=e=>s(i({},\"__esModule\",{value:!0}),e);var h=y((b,c)=>{c.exports=_jsx_runtime});var C={};x(C,{default:()=>d,frontmatter:()=>_});var n=k(h()),_={id:\"cups-knight\",name:\"Knight of Cups\",zodiacClass:\"pisces\",element:\"water\",cardType:\"unit\",cost:4,attack:3,health:4,rarity:\"uncommon\",tarotSymbol:\"\\u{1F704}\",keywords:[\"romance\",\"charm\",\"idealism\"],abilities:[{name:\"Romantic Quest\",description:\"When played, give target unit +2/+2 and 'When this unit attacks, heal your hero for 2'\"},{name:\"Charming Presence\",description:\"Enemy units with 2 or less attack can't attack this\"}]};function m(e){let t={em:\"em\",h1:\"h1\",p:\"p\",...e.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(t.h1,{children:\"Knight of Cups\"}),`\n`,(0,n.jsx)(t.p,{children:\"The romantic knight arrives bearing the grail of emotion and dreams.\"}),`\n`,(0,n.jsx)(t.p,{children:(0,n.jsx)(t.em,{children:'\"Follow your heart, for it knows the way.\"'})})]})}function d(e={}){let{wrapper:t}=e.components||{};return t?(0,n.jsx)(t,{...e,children:(0,n.jsx)(m,{...e})}):m(e)}return w(C);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/cups/knight-of-cups.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/cups/knight-of-cups.mdx",
+    "sourceFileName": "knight-of-cups.mdx",
+    "sourceFileDir": "cards/minor-arcana/cups",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/cups/knight-of-cups"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/cups/knight-of-cups",
+  "zodiacPath": "pisces",
+  "isUnit": true,
+  "isSpell": false
+}

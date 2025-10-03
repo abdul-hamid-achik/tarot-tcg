@@ -1,0 +1,39 @@
+{
+  "id": "swords-06",
+  "name": "Six of Swords",
+  "zodiacClass": "gemini",
+  "element": "air",
+  "cardType": "spell",
+  "cost": 6,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜁",
+  "keywords": [
+    "transition",
+    "moving-on",
+    "recovery"
+  ],
+  "spellType": "ritual",
+  "effects": [
+    {
+      "name": "Safe Passage",
+      "description": "Return all your units to your hand. They cost 2 less next turn. Draw a card"
+    }
+  ],
+  "body": {
+    "raw": "\n# Six of Swords\n\nThe ferry carries souls to calmer waters, leaving troubles behind.\n\n*\"Moving forward requires leaving something behind.\"*",
+    "code": "var Component=(()=>{var u=Object.create;var s=Object.defineProperty;var h=Object.getOwnPropertyDescriptor;var f=Object.getOwnPropertyNames;var p=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var y=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),g=(n,e)=>{for(var t in e)s(n,t,{get:e[t],enumerable:!0})},i=(n,e,t,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let o of f(e))!x.call(n,o)&&o!==t&&s(n,o,{get:()=>e[o],enumerable:!(a=h(e,o))||a.enumerable});return n};var w=(n,e,t)=>(t=n!=null?u(p(n)):{},i(e||!n||!n.__esModule?s(t,\"default\",{value:n,enumerable:!0}):t,n)),_=n=>i(s({},\"__esModule\",{value:!0}),n);var l=y((b,c)=>{c.exports=_jsx_runtime});var j={};g(j,{default:()=>d,frontmatter:()=>S});var r=w(l()),S={id:\"swords-06\",name:\"Six of Swords\",zodiacClass:\"gemini\",element:\"air\",cardType:\"spell\",cost:6,rarity:\"uncommon\",tarotSymbol:\"\\u{1F701}\",keywords:[\"transition\",\"moving-on\",\"recovery\"],spellType:\"ritual\",effects:[{name:\"Safe Passage\",description:\"Return all your units to your hand. They cost 2 less next turn. Draw a card\"}]};function m(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,r.jsxs)(r.Fragment,{children:[(0,r.jsx)(e.h1,{children:\"Six of Swords\"}),`\n`,(0,r.jsx)(e.p,{children:\"The ferry carries souls to calmer waters, leaving troubles behind.\"}),`\n`,(0,r.jsx)(e.p,{children:(0,r.jsx)(e.em,{children:'\"Moving forward requires leaving something behind.\"'})})]})}function d(n={}){let{wrapper:e}=n.components||{};return e?(0,r.jsx)(e,{...n,children:(0,r.jsx)(m,{...n})}):m(n)}return _(j);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/swords/six-of-swords.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/swords/six-of-swords.mdx",
+    "sourceFileName": "six-of-swords.mdx",
+    "sourceFileDir": "cards/minor-arcana/swords",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/swords/six-of-swords"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/swords/six-of-swords",
+  "zodiacPath": "gemini",
+  "isUnit": false,
+  "isSpell": true
+}

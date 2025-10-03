@@ -1,0 +1,44 @@
+{
+  "id": "major-18-moon",
+  "name": "The Moon",
+  "zodiacClass": "pisces",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 6,
+  "attack": 4,
+  "health": 4,
+  "rarity": "rare",
+  "tarotSymbol": "XVIII",
+  "keywords": [
+    "illusion",
+    "fear",
+    "subconscious"
+  ],
+  "abilities": [
+    {
+      "name": "Veil of Illusion",
+      "description": "Stealth. Cannot be targeted by spells or abilities"
+    },
+    {
+      "name": "Lunar Madness",
+      "description": "When this attacks, create two 2/2 Illusion tokens with 'Dies at end of turn'"
+    }
+  ],
+  "body": {
+    "raw": "\n# The Moon\n\nIn the moon's pale light, nothing is as it seems. Shadows dance with secrets and fears made manifest.\n\n*\"Trust not your eyes in the realm of dreams.\"*\n\nThe Moon represents illusion, fear, and anxiety. She creates confusion through stealth and temporary threats.",
+    "code": "var Component=(()=>{var d=Object.create;var a=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var y=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),w=(t,e)=>{for(var s in e)a(t,s,{get:e[s],enumerable:!0})},i=(t,e,s,r)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let o of p(e))!x.call(t,o)&&o!==s&&a(t,o,{get:()=>e[o],enumerable:!(r=u(e,o))||r.enumerable});return t};var M=(t,e,s)=>(s=t!=null?d(f(t)):{},i(e||!t||!t.__esModule?a(s,\"default\",{value:t,enumerable:!0}):s,t)),_=t=>i(a({},\"__esModule\",{value:!0}),t);var h=y((I,c)=>{c.exports=_jsx_runtime});var g={};w(g,{default:()=>m,frontmatter:()=>b});var n=M(h()),b={id:\"major-18-moon\",name:\"The Moon\",zodiacClass:\"pisces\",element:\"water\",cardType:\"unit\",cost:6,attack:4,health:4,rarity:\"rare\",tarotSymbol:\"XVIII\",keywords:[\"illusion\",\"fear\",\"subconscious\"],abilities:[{name:\"Veil of Illusion\",description:\"Stealth. Cannot be targeted by spells or abilities\"},{name:\"Lunar Madness\",description:\"When this attacks, create two 2/2 Illusion tokens with 'Dies at end of turn'\"}]};function l(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"The Moon\"}),`\n`,(0,n.jsx)(e.p,{children:\"In the moon's pale light, nothing is as it seems. Shadows dance with secrets and fears made manifest.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"Trust not your eyes in the realm of dreams.\"'})}),`\n`,(0,n.jsx)(e.p,{children:\"The Moon represents illusion, fear, and anxiety. She creates confusion through stealth and temporary threats.\"})]})}function m(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(l,{...t})}):l(t)}return _(g);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/18-the-moon.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/18-the-moon.mdx",
+    "sourceFileName": "18-the-moon.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/18-the-moon"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/18-the-moon",
+  "zodiacPath": "pisces",
+  "isUnit": true,
+  "isSpell": false
+}

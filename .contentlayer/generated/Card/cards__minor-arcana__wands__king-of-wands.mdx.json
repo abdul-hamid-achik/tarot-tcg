@@ -1,0 +1,44 @@
+{
+  "id": "wands-king",
+  "name": "King of Wands",
+  "zodiacClass": "leo",
+  "element": "fire",
+  "cardType": "unit",
+  "cost": 8,
+  "attack": 7,
+  "health": 7,
+  "rarity": "rare",
+  "tarotSymbol": "🜂",
+  "keywords": [
+    "leadership",
+    "vision",
+    "honor"
+  ],
+  "abilities": [
+    {
+      "name": "Fiery Command",
+      "description": "Other Fire units you control have +2/+1"
+    },
+    {
+      "name": "Inspiring Presence",
+      "description": "When you play a Fire card, gain 1 life"
+    }
+  ],
+  "body": {
+    "raw": "\n# King of Wands\n\nThe embodiment of fire's nobility, ruling with passion and unwavering vision.\n\n*\"Lead with fire in your heart and others will follow.\"*",
+    "code": "var Component=(()=>{var m=Object.create;var o=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var g=(e,n)=>()=>(n||e((n={exports:{}}).exports,n),n.exports),x=(e,n)=>{for(var t in n)o(e,t,{get:n[t],enumerable:!0})},s=(e,n,t,a)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let r of u(n))!y.call(e,r)&&r!==t&&o(e,r,{get:()=>n[r],enumerable:!(a=p(n,r))||a.enumerable});return e};var w=(e,n,t)=>(t=e!=null?m(f(e)):{},s(n||!e||!e.__esModule?o(t,\"default\",{value:e,enumerable:!0}):t,e)),_=e=>s(o({},\"__esModule\",{value:!0}),e);var d=g((v,c)=>{c.exports=_jsx_runtime});var F={};x(F,{default:()=>h,frontmatter:()=>j});var i=w(d()),j={id:\"wands-king\",name:\"King of Wands\",zodiacClass:\"leo\",element:\"fire\",cardType:\"unit\",cost:8,attack:7,health:7,rarity:\"rare\",tarotSymbol:\"\\u{1F702}\",keywords:[\"leadership\",\"vision\",\"honor\"],abilities:[{name:\"Fiery Command\",description:\"Other Fire units you control have +2/+1\"},{name:\"Inspiring Presence\",description:\"When you play a Fire card, gain 1 life\"}]};function l(e){let n={em:\"em\",h1:\"h1\",p:\"p\",...e.components};return(0,i.jsxs)(i.Fragment,{children:[(0,i.jsx)(n.h1,{children:\"King of Wands\"}),`\n`,(0,i.jsx)(n.p,{children:\"The embodiment of fire's nobility, ruling with passion and unwavering vision.\"}),`\n`,(0,i.jsx)(n.p,{children:(0,i.jsx)(n.em,{children:'\"Lead with fire in your heart and others will follow.\"'})})]})}function h(e={}){let{wrapper:n}=e.components||{};return n?(0,i.jsx)(n,{...e,children:(0,i.jsx)(l,{...e})}):l(e)}return _(F);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/wands/king-of-wands.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/wands/king-of-wands.mdx",
+    "sourceFileName": "king-of-wands.mdx",
+    "sourceFileDir": "cards/minor-arcana/wands",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/wands/king-of-wands"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/wands/king-of-wands",
+  "zodiacPath": "leo",
+  "isUnit": true,
+  "isSpell": false
+}

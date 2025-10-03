@@ -1,0 +1,57 @@
+{
+  "id": "major-06-lovers",
+  "name": "The Lovers",
+  "zodiacClass": "gemini",
+  "element": "air",
+  "cardType": "unit",
+  "cost": 3,
+  "attack": 2,
+  "health": 2,
+  "rarity": "uncommon",
+  "tarotSymbol": "VI",
+  "orientation": "random",
+  "keywords": [
+    "union",
+    "choice",
+    "harmony"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Perfect Union",
+        "description": "When played, create a 2/2 Soulmate token with 'When The Lovers or Soulmate dies, the other gets +2/+2'"
+      },
+      {
+        "name": "Harmonious Bond",
+        "description": "Adjacent units have +1/+1"
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Broken Bond",
+        "description": "When played, destroy target unit. If it was paired with another unit, destroy that one too."
+      },
+      {
+        "name": "Discord",
+        "description": "Adjacent units have -1/-1"
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# The Lovers\n\nTwo souls united in perfect harmony, The Lovers represent the power of choice and the strength found in union.\n\n*\"In unity, we find our truest strength.\"*\n\nThe Lovers represent relationships, values alignment, and choices. They create powerful synergies through paired units and positioning.",
+    "code": "var Component=(()=>{var u=Object.create;var i=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var l=Object.getOwnPropertyNames;var y=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var g=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),v=(n,e)=>{for(var o in e)i(n,o,{get:e[o],enumerable:!0})},s=(n,e,o,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of l(e))!f.call(n,r)&&r!==o&&i(n,r,{get:()=>e[r],enumerable:!(a=p(e,r))||a.enumerable});return n};var w=(n,e,o)=>(o=n!=null?u(y(n)):{},s(e||!n||!n.__esModule?i(o,\"default\",{value:n,enumerable:!0}):o,n)),x=n=>s(i({},\"__esModule\",{value:!0}),n);var c=g((L,h)=>{h.exports=_jsx_runtime});var T={};v(T,{default:()=>m,frontmatter:()=>j});var t=w(c()),j={id:\"major-06-lovers\",name:\"The Lovers\",zodiacClass:\"gemini\",element:\"air\",cardType:\"unit\",cost:3,attack:2,health:2,rarity:\"uncommon\",tarotSymbol:\"VI\",keywords:[\"union\",\"choice\",\"harmony\"],abilities:{upright:[{name:\"Perfect Union\",description:\"When played, create a 2/2 Soulmate token with 'When The Lovers or Soulmate dies, the other gets +2/+2'\"},{name:\"Harmonious Bond\",description:\"Adjacent units have +1/+1\"}],reversed:[{name:\"Broken Bond\",description:\"When played, destroy target unit. If it was paired with another unit, destroy that one too.\"},{name:\"Discord\",description:\"Adjacent units have -1/-1\"}]},orientation:\"random\"};function d(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"The Lovers\"}),`\n`,(0,t.jsx)(e.p,{children:\"Two souls united in perfect harmony, The Lovers represent the power of choice and the strength found in union.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"In unity, we find our truest strength.\"'})}),`\n`,(0,t.jsx)(e.p,{children:\"The Lovers represent relationships, values alignment, and choices. They create powerful synergies through paired units and positioning.\"})]})}function m(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(d,{...n})}):d(n)}return x(T);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/06-the-lovers.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/06-the-lovers.mdx",
+    "sourceFileName": "06-the-lovers.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/06-the-lovers"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/06-the-lovers",
+  "zodiacPath": "gemini",
+  "isUnit": true,
+  "isSpell": false
+}

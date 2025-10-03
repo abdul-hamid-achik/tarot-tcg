@@ -1,0 +1,56 @@
+{
+  "id": "swords-knight",
+  "name": "Knight of Swords",
+  "zodiacClass": "aquarius",
+  "element": "air",
+  "cardType": "unit",
+  "cost": 4,
+  "attack": 4,
+  "health": 3,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜁",
+  "description": "Can attack immediately when played. Swift and relentless in pursuit of victory.",
+  "reversedDescription": "When played, must attack immediately. Reckless aggression often leads to downfall.",
+  "orientation": "random",
+  "keywords": [
+    "ambitious",
+    "fast",
+    "direct",
+    "charge"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Swift Strike",
+        "description": "Charge. When this attacks, draw a card"
+      },
+      {
+        "name": "Cutting Wind",
+        "description": "Can attack any enemy unit regardless of taunt"
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Reckless Charge",
+        "description": "Charge. Must attack when played. Take 1 damage when attacking."
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# Knight of Swords\n\nSwift as thought itself, the Knight charges forward with single-minded determination.\n\n*\"Strike fast, strike true, strike first.\"*",
+    "code": "var Component=(()=>{var l=Object.create;var r=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var g=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,p=Object.prototype.hasOwnProperty;var k=(e,t)=>()=>(t||e((t={exports:{}}).exports,t),t.exports),w=(e,t)=>{for(var a in t)r(e,a,{get:t[a],enumerable:!0})},o=(e,t,a,s)=>{if(t&&typeof t==\"object\"||typeof t==\"function\")for(let i of g(t))!p.call(e,i)&&i!==a&&r(e,i,{get:()=>t[i],enumerable:!(s=u(t,i))||s.enumerable});return e};var y=(e,t,a)=>(a=e!=null?l(f(e)):{},o(t||!e||!e.__esModule?r(a,\"default\",{value:e,enumerable:!0}):a,e)),x=e=>o(r({},\"__esModule\",{value:!0}),e);var c=k((j,d)=>{d.exports=_jsx_runtime});var S={};w(S,{default:()=>m,frontmatter:()=>C});var n=y(c()),C={id:\"swords-knight\",name:\"Knight of Swords\",zodiacClass:\"aquarius\",element:\"air\",cardType:\"unit\",cost:4,attack:4,health:3,rarity:\"uncommon\",tarotSymbol:\"\\u{1F701}\",keywords:[\"ambitious\",\"fast\",\"direct\",\"charge\"],description:\"Can attack immediately when played. Swift and relentless in pursuit of victory.\",reversedDescription:\"When played, must attack immediately. Reckless aggression often leads to downfall.\",abilities:{upright:[{name:\"Swift Strike\",description:\"Charge. When this attacks, draw a card\"},{name:\"Cutting Wind\",description:\"Can attack any enemy unit regardless of taunt\"}],reversed:[{name:\"Reckless Charge\",description:\"Charge. Must attack when played. Take 1 damage when attacking.\"}]},orientation:\"random\"};function h(e){let t={em:\"em\",h1:\"h1\",p:\"p\",...e.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(t.h1,{children:\"Knight of Swords\"}),`\n`,(0,n.jsx)(t.p,{children:\"Swift as thought itself, the Knight charges forward with single-minded determination.\"}),`\n`,(0,n.jsx)(t.p,{children:(0,n.jsx)(t.em,{children:'\"Strike fast, strike true, strike first.\"'})})]})}function m(e={}){let{wrapper:t}=e.components||{};return t?(0,n.jsx)(t,{...e,children:(0,n.jsx)(h,{...e})}):h(e)}return x(S);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/swords/knight-of-swords.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/swords/knight-of-swords.mdx",
+    "sourceFileName": "knight-of-swords.mdx",
+    "sourceFileDir": "cards/minor-arcana/swords",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/swords/knight-of-swords"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/swords/knight-of-swords",
+  "zodiacPath": "aquarius",
+  "isUnit": true,
+  "isSpell": false
+}

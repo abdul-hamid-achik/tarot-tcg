@@ -1,0 +1,40 @@
+{
+  "id": "wands-02",
+  "name": "Two of Wands",
+  "zodiacClass": "aries",
+  "element": "fire",
+  "cardType": "unit",
+  "cost": 2,
+  "attack": 2,
+  "health": 2,
+  "rarity": "common",
+  "tarotSymbol": "🜂",
+  "keywords": [
+    "planning",
+    "progress",
+    "decisions"
+  ],
+  "abilities": [
+    {
+      "name": "Future Planning",
+      "description": "When played, look at the top 2 cards of your deck. Put one in your hand and one on the bottom"
+    }
+  ],
+  "body": {
+    "raw": "\n# Two of Wands\n\nStanding at the crossroads of potential, planning the path to victory.\n\n*\"Power lies in choosing the right path.\"*",
+    "code": "var Component=(()=>{var m=Object.create;var r=Object.defineProperty;var p=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,g=Object.prototype.hasOwnProperty;var x=(t,n)=>()=>(n||t((n={exports:{}}).exports,n),n.exports),y=(t,n)=>{for(var o in n)r(t,o,{get:n[o],enumerable:!0})},s=(t,n,o,i)=>{if(n&&typeof n==\"object\"||typeof n==\"function\")for(let a of u(n))!g.call(t,a)&&a!==o&&r(t,a,{get:()=>n[a],enumerable:!(i=p(n,a))||i.enumerable});return t};var _=(t,n,o)=>(o=t!=null?m(f(t)):{},s(n||!t||!t.__esModule?r(o,\"default\",{value:t,enumerable:!0}):o,t)),w=t=>s(r({},\"__esModule\",{value:!0}),t);var d=x((C,c)=>{c.exports=_jsx_runtime});var k={};y(k,{default:()=>l,frontmatter:()=>j});var e=_(d()),j={id:\"wands-02\",name:\"Two of Wands\",zodiacClass:\"aries\",element:\"fire\",cardType:\"unit\",cost:2,attack:2,health:2,rarity:\"common\",tarotSymbol:\"\\u{1F702}\",keywords:[\"planning\",\"progress\",\"decisions\"],abilities:[{name:\"Future Planning\",description:\"When played, look at the top 2 cards of your deck. Put one in your hand and one on the bottom\"}]};function h(t){let n={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,e.jsxs)(e.Fragment,{children:[(0,e.jsx)(n.h1,{children:\"Two of Wands\"}),`\n`,(0,e.jsx)(n.p,{children:\"Standing at the crossroads of potential, planning the path to victory.\"}),`\n`,(0,e.jsx)(n.p,{children:(0,e.jsx)(n.em,{children:'\"Power lies in choosing the right path.\"'})})]})}function l(t={}){let{wrapper:n}=t.components||{};return n?(0,e.jsx)(n,{...t,children:(0,e.jsx)(h,{...t})}):h(t)}return w(k);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/wands/two-of-wands.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/wands/two-of-wands.mdx",
+    "sourceFileName": "two-of-wands.mdx",
+    "sourceFileDir": "cards/minor-arcana/wands",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/wands/two-of-wands"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/wands/two-of-wands",
+  "zodiacPath": "aries",
+  "isUnit": true,
+  "isSpell": false
+}

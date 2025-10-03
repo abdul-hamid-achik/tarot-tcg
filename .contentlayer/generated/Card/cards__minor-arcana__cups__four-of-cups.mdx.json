@@ -1,0 +1,44 @@
+{
+  "id": "cups-04",
+  "name": "Four of Cups",
+  "zodiacClass": "scorpio",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 4,
+  "attack": 3,
+  "health": 4,
+  "rarity": "common",
+  "tarotSymbol": "🜄",
+  "keywords": [
+    "contemplation",
+    "apathy",
+    "reevaluation"
+  ],
+  "abilities": [
+    {
+      "name": "Contemplation",
+      "description": "Can't attack. At the end of your turn, look at the top 3 cards of your deck and put them back in any order"
+    },
+    {
+      "name": "Awakening",
+      "description": "If you've drawn 3 or more cards this turn, this can attack and gains +2/+2"
+    }
+  ],
+  "body": {
+    "raw": "\n# Four of Cups\n\nLost in contemplation, weighing options yet to be seen.\n\n*\"Sometimes the best action is patient reflection.\"*",
+    "code": "var Component=(()=>{var u=Object.create;var r=Object.defineProperty;var h=Object.getOwnPropertyDescriptor;var l=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,y=Object.prototype.hasOwnProperty;var x=(e,t)=>()=>(t||e((t={exports:{}}).exports,t),t.exports),k=(e,t)=>{for(var o in t)r(e,o,{get:t[o],enumerable:!0})},s=(e,t,o,i)=>{if(t&&typeof t==\"object\"||typeof t==\"function\")for(let a of l(t))!y.call(e,a)&&a!==o&&r(e,a,{get:()=>t[a],enumerable:!(i=h(t,a))||i.enumerable});return e};var C=(e,t,o)=>(o=e!=null?u(f(e)):{},s(t||!e||!e.__esModule?r(o,\"default\",{value:e,enumerable:!0}):o,e)),_=e=>s(r({},\"__esModule\",{value:!0}),e);var m=x((j,c)=>{c.exports=_jsx_runtime});var w={};k(w,{default:()=>p,frontmatter:()=>g});var n=C(m()),g={id:\"cups-04\",name:\"Four of Cups\",zodiacClass:\"scorpio\",element:\"water\",cardType:\"unit\",cost:4,attack:3,health:4,rarity:\"common\",tarotSymbol:\"\\u{1F704}\",keywords:[\"contemplation\",\"apathy\",\"reevaluation\"],abilities:[{name:\"Contemplation\",description:\"Can't attack. At the end of your turn, look at the top 3 cards of your deck and put them back in any order\"},{name:\"Awakening\",description:\"If you've drawn 3 or more cards this turn, this can attack and gains +2/+2\"}]};function d(e){let t={em:\"em\",h1:\"h1\",p:\"p\",...e.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(t.h1,{children:\"Four of Cups\"}),`\n`,(0,n.jsx)(t.p,{children:\"Lost in contemplation, weighing options yet to be seen.\"}),`\n`,(0,n.jsx)(t.p,{children:(0,n.jsx)(t.em,{children:'\"Sometimes the best action is patient reflection.\"'})})]})}function p(e={}){let{wrapper:t}=e.components||{};return t?(0,n.jsx)(t,{...e,children:(0,n.jsx)(d,{...e})}):d(e)}return _(w);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/cups/four-of-cups.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/cups/four-of-cups.mdx",
+    "sourceFileName": "four-of-cups.mdx",
+    "sourceFileDir": "cards/minor-arcana/cups",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/cups/four-of-cups"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/cups/four-of-cups",
+  "zodiacPath": "scorpio",
+  "isUnit": true,
+  "isSpell": false
+}

@@ -1,0 +1,44 @@
+{
+  "id": "major-12-hanged-man",
+  "name": "The Hanged Man",
+  "zodiacClass": "pisces",
+  "element": "water",
+  "cardType": "unit",
+  "cost": 4,
+  "attack": 0,
+  "health": 5,
+  "rarity": "uncommon",
+  "tarotSymbol": "XII",
+  "keywords": [
+    "sacrifice",
+    "release",
+    "perspective"
+  ],
+  "abilities": [
+    {
+      "name": "Ultimate Sacrifice",
+      "description": "At the start of your turn, you may destroy this unit to draw 3 cards and gain 3 mana this turn only"
+    },
+    {
+      "name": "Suspended State",
+      "description": "Cannot attack. Enemy units must attack this if able"
+    }
+  ],
+  "body": {
+    "raw": "\n# The Hanged Man\n\nSuspended between worlds, The Hanged Man sees what others cannot, finding wisdom in surrender.\n\n*\"Sometimes we must let go to truly gain.\"*\n\nThe Hanged Man represents suspension, letting go, and sacrifice. He offers powerful resource generation at the cost of his own existence.",
+    "code": "var Component=(()=>{var u=Object.create;var s=Object.defineProperty;var l=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,g=Object.prototype.hasOwnProperty;var y=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),w=(n,e)=>{for(var a in e)s(n,a,{get:e[a],enumerable:!0})},i=(n,e,a,o)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of p(e))!g.call(n,r)&&r!==a&&s(n,r,{get:()=>e[r],enumerable:!(o=l(e,r))||o.enumerable});return n};var x=(n,e,a)=>(a=n!=null?u(f(n)):{},i(e||!n||!n.__esModule?s(a,\"default\",{value:n,enumerable:!0}):a,n)),M=n=>i(s({},\"__esModule\",{value:!0}),n);var d=y((H,c)=>{c.exports=_jsx_runtime});var j={};w(j,{default:()=>h,frontmatter:()=>_});var t=x(d()),_={id:\"major-12-hanged-man\",name:\"The Hanged Man\",zodiacClass:\"pisces\",element:\"water\",cardType:\"unit\",cost:4,attack:0,health:5,rarity:\"uncommon\",tarotSymbol:\"XII\",keywords:[\"sacrifice\",\"release\",\"perspective\"],abilities:[{name:\"Ultimate Sacrifice\",description:\"At the start of your turn, you may destroy this unit to draw 3 cards and gain 3 mana this turn only\"},{name:\"Suspended State\",description:\"Cannot attack. Enemy units must attack this if able\"}]};function m(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"The Hanged Man\"}),`\n`,(0,t.jsx)(e.p,{children:\"Suspended between worlds, The Hanged Man sees what others cannot, finding wisdom in surrender.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"Sometimes we must let go to truly gain.\"'})}),`\n`,(0,t.jsx)(e.p,{children:\"The Hanged Man represents suspension, letting go, and sacrifice. He offers powerful resource generation at the cost of his own existence.\"})]})}function h(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(m,{...n})}):m(n)}return M(j);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/12-the-hanged-man.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/12-the-hanged-man.mdx",
+    "sourceFileName": "12-the-hanged-man.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/12-the-hanged-man"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/12-the-hanged-man",
+  "zodiacPath": "pisces",
+  "isUnit": true,
+  "isSpell": false
+}

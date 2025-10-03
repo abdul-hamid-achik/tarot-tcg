@@ -1,0 +1,39 @@
+{
+  "id": "swords-09",
+  "name": "Nine of Swords",
+  "zodiacClass": "gemini",
+  "element": "air",
+  "cardType": "spell",
+  "cost": 9,
+  "rarity": "rare",
+  "tarotSymbol": "🜁",
+  "keywords": [
+    "anxiety",
+    "nightmares",
+    "fear"
+  ],
+  "spellType": "instant",
+  "effects": [
+    {
+      "name": "Nightmare Manifest",
+      "description": "Deal 3 damage to all units. Each player discards their hand and draws 3 cards"
+    }
+  ],
+  "body": {
+    "raw": "\n# Nine of Swords\n\nNine blades hang above the sleepless, manifesting fears in the dark.\n\n*\"Our greatest fears exist only in the mind.\"*",
+    "code": "var Component=(()=>{var h=Object.create;var s=Object.defineProperty;var f=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var x=Object.getPrototypeOf,g=Object.prototype.hasOwnProperty;var u=(n,e)=>()=>(e||n((e={exports:{}}).exports,e),e.exports),y=(n,e)=>{for(var r in e)s(n,r,{get:e[r],enumerable:!0})},o=(n,e,r,i)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let a of p(e))!g.call(n,a)&&a!==r&&s(n,a,{get:()=>e[a],enumerable:!(i=f(e,a))||i.enumerable});return n};var _=(n,e,r)=>(r=n!=null?h(x(n)):{},o(e||!n||!n.__esModule?s(r,\"default\",{value:n,enumerable:!0}):r,n)),w=n=>o(s({},\"__esModule\",{value:!0}),n);var c=u((b,d)=>{d.exports=_jsx_runtime});var M={};y(M,{default:()=>m,frontmatter:()=>j});var t=_(c()),j={id:\"swords-09\",name:\"Nine of Swords\",zodiacClass:\"gemini\",element:\"air\",cardType:\"spell\",cost:9,rarity:\"rare\",tarotSymbol:\"\\u{1F701}\",keywords:[\"anxiety\",\"nightmares\",\"fear\"],spellType:\"instant\",effects:[{name:\"Nightmare Manifest\",description:\"Deal 3 damage to all units. Each player discards their hand and draws 3 cards\"}]};function l(n){let e={em:\"em\",h1:\"h1\",p:\"p\",...n.components};return(0,t.jsxs)(t.Fragment,{children:[(0,t.jsx)(e.h1,{children:\"Nine of Swords\"}),`\n`,(0,t.jsx)(e.p,{children:\"Nine blades hang above the sleepless, manifesting fears in the dark.\"}),`\n`,(0,t.jsx)(e.p,{children:(0,t.jsx)(e.em,{children:'\"Our greatest fears exist only in the mind.\"'})})]})}function m(n={}){let{wrapper:e}=n.components||{};return e?(0,t.jsx)(e,{...n,children:(0,t.jsx)(l,{...n})}):l(n)}return w(M);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/swords/nine-of-swords.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/swords/nine-of-swords.mdx",
+    "sourceFileName": "nine-of-swords.mdx",
+    "sourceFileDir": "cards/minor-arcana/swords",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/swords/nine-of-swords"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/swords/nine-of-swords",
+  "zodiacPath": "gemini",
+  "isUnit": false,
+  "isSpell": true
+}

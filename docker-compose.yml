@@ -1,0 +1,11 @@
+services:
+  # Neon Local - PostgreSQL database for local development
+  db:
+    image: neondatabase/neon_local:latest
+    container_name: tarot-tcg-db
+    ports:
+      - '5432:5432'
+    environment:
+      - NEON_API_KEY=${NEON_API_KEY}
+      - NEON_PROJECT_ID=${NEON_PROJECT_ID}
+      - BRANCH_ID=${BRANCH_ID}

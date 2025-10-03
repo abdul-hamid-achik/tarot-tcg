@@ -1,0 +1,51 @@
+{
+  "id": "major-21-world",
+  "name": "The World",
+  "zodiacClass": "capricorn",
+  "element": "earth",
+  "cardType": "unit",
+  "cost": 10,
+  "attack": 7,
+  "health": 7,
+  "rarity": "mythic",
+  "tarotNumber": "XXI",
+  "tarotSymbol": "🌍",
+  "orientation": "random",
+  "keywords": [
+    "completion",
+    "achievement",
+    "cosmic",
+    "mastery"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Cosmic Completion",
+        "description": "When played, if you control units of all four elements (Fire, Water, Air, Earth), win the game. Otherwise, gain +X/+X where X is the number of different elements among units you control."
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Incomplete Journey",
+        "description": "When played, return all other units to their owners' hands. Draw cards equal to units returned. Costs 2 less for each different zodiac class among cards in your hand."
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# The World - XXI\n\n*\"The dance is complete, the circle closed, the journey fulfilled.\"*\n\n## Upright Meaning\nCompletion, achievement, cosmic consciousness, and mastery. The World represents the successful completion of the Fool's journey through all 21 Major Arcana lessons. It signifies wholeness, fulfillment, and the integration of all elemental and spiritual aspects.\n\n**Gameplay**: *Cosmic Completion* offers an alternative win condition requiring elemental mastery, or provides scaling power based on elemental diversity - rewarding complete strategic understanding.\n\n## Reversed Meaning\nIncomplete goals, lack of closure, and ongoing journey. The reversed World suggests that while much has been accomplished, the journey is not yet complete, and more learning or integration is needed.\n\n**Gameplay**: *Incomplete Journey* represents starting over with greater wisdom - clearing the board while providing massive card advantage and cost reduction based on accumulated knowledge (zodiac diversity).\n\n## Symbolism & Lore\nA dancing figure within a laurel wreath (victory and completion) surrounded by the four fixed signs of the zodiac: the Angel (Aquarius/Air), Eagle (Scorpio/Water), Lion (Leo/Fire), and Bull (Taurus/Earth). These represent the mastery of all four elements and the completion of cosmic understanding.\n\nThe figure holds two wands (active and passive forces balanced) and dances the eternal dance of creation and completion.\n\n## Strategic Notes\n- **Alt Win Condition**: Upright form provides a unique victory path through elemental mastery\n- **Late Game Reset**: Reversed form offers powerful board control with massive hand refill\n- **Capricorn Synergy**: Grows stronger over time during Capricorn season\n- **Elemental Synergy**: Rewards diverse deck building with different elemental cards\n- **High Impact**: Expensive but potentially game-ending effects\n- **Knowledge Reward**: Reversed form rewards zodiac class diversity, encouraging varied strategies",
+    "code": "var Component=(()=>{var m=Object.create;var o=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var g=Object.getOwnPropertyNames;var p=Object.getPrototypeOf,f=Object.prototype.hasOwnProperty;var y=(r,e)=>()=>(e||r((e={exports:{}}).exports,e),e.exports),w=(r,e)=>{for(var i in e)o(r,i,{get:e[i],enumerable:!0})},s=(r,e,i,a)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let t of g(e))!f.call(r,t)&&t!==i&&o(r,t,{get:()=>e[t],enumerable:!(a=u(e,t))||a.enumerable});return r};var v=(r,e,i)=>(i=r!=null?m(p(r)):{},s(e||!r||!r.__esModule?o(i,\"default\",{value:r,enumerable:!0}):i,r)),b=r=>s(o({},\"__esModule\",{value:!0}),r);var d=y((T,l)=>{l.exports=_jsx_runtime});var j={};w(j,{default:()=>h,frontmatter:()=>C});var n=v(d()),C={id:\"major-21-world\",name:\"The World\",zodiacClass:\"capricorn\",element:\"earth\",cardType:\"unit\",cost:10,attack:7,health:7,rarity:\"mythic\",tarotNumber:\"XXI\",tarotSymbol:\"\\u{1F30D}\",keywords:[\"completion\",\"achievement\",\"cosmic\",\"mastery\"],abilities:{upright:[{name:\"Cosmic Completion\",description:\"When played, if you control units of all four elements (Fire, Water, Air, Earth), win the game. Otherwise, gain +X/+X where X is the number of different elements among units you control.\"}],reversed:[{name:\"Incomplete Journey\",description:\"When played, return all other units to their owners' hands. Draw cards equal to units returned. Costs 2 less for each different zodiac class among cards in your hand.\"}]},orientation:\"random\"};function c(r){let e={em:\"em\",h1:\"h1\",h2:\"h2\",li:\"li\",p:\"p\",strong:\"strong\",ul:\"ul\",...r.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"The World - XXI\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"The dance is complete, the circle closed, the journey fulfilled.\"'})}),`\n`,(0,n.jsx)(e.h2,{children:\"Upright Meaning\"}),`\n`,(0,n.jsx)(e.p,{children:\"Completion, achievement, cosmic consciousness, and mastery. The World represents the successful completion of the Fool's journey through all 21 Major Arcana lessons. It signifies wholeness, fulfillment, and the integration of all elemental and spiritual aspects.\"}),`\n`,(0,n.jsxs)(e.p,{children:[(0,n.jsx)(e.strong,{children:\"Gameplay\"}),\": \",(0,n.jsx)(e.em,{children:\"Cosmic Completion\"}),\" offers an alternative win condition requiring elemental mastery, or provides scaling power based on elemental diversity - rewarding complete strategic understanding.\"]}),`\n`,(0,n.jsx)(e.h2,{children:\"Reversed Meaning\"}),`\n`,(0,n.jsx)(e.p,{children:\"Incomplete goals, lack of closure, and ongoing journey. The reversed World suggests that while much has been accomplished, the journey is not yet complete, and more learning or integration is needed.\"}),`\n`,(0,n.jsxs)(e.p,{children:[(0,n.jsx)(e.strong,{children:\"Gameplay\"}),\": \",(0,n.jsx)(e.em,{children:\"Incomplete Journey\"}),\" represents starting over with greater wisdom - clearing the board while providing massive card advantage and cost reduction based on accumulated knowledge (zodiac diversity).\"]}),`\n`,(0,n.jsx)(e.h2,{children:\"Symbolism & Lore\"}),`\n`,(0,n.jsx)(e.p,{children:\"A dancing figure within a laurel wreath (victory and completion) surrounded by the four fixed signs of the zodiac: the Angel (Aquarius/Air), Eagle (Scorpio/Water), Lion (Leo/Fire), and Bull (Taurus/Earth). These represent the mastery of all four elements and the completion of cosmic understanding.\"}),`\n`,(0,n.jsx)(e.p,{children:\"The figure holds two wands (active and passive forces balanced) and dances the eternal dance of creation and completion.\"}),`\n`,(0,n.jsx)(e.h2,{children:\"Strategic Notes\"}),`\n`,(0,n.jsxs)(e.ul,{children:[`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Alt Win Condition\"}),\": Upright form provides a unique victory path through elemental mastery\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Late Game Reset\"}),\": Reversed form offers powerful board control with massive hand refill\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Capricorn Synergy\"}),\": Grows stronger over time during Capricorn season\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Elemental Synergy\"}),\": Rewards diverse deck building with different elemental cards\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"High Impact\"}),\": Expensive but potentially game-ending effects\"]}),`\n`,(0,n.jsxs)(e.li,{children:[(0,n.jsx)(e.strong,{children:\"Knowledge Reward\"}),\": Reversed form rewards zodiac class diversity, encouraging varied strategies\"]}),`\n`]})]})}function h(r={}){let{wrapper:e}=r.components||{};return e?(0,n.jsx)(e,{...r,children:(0,n.jsx)(c,{...r})}):c(r)}return b(j);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/21-the-world.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/21-the-world.mdx",
+    "sourceFileName": "21-the-world.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/21-the-world"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/21-the-world",
+  "zodiacPath": "capricorn",
+  "isUnit": true,
+  "isSpell": false
+}

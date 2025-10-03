@@ -91,27 +91,27 @@ describe('useMultiplayerActions', () => {
     Object.defineProperty(webSocketService, 'connectionState', { value: 'disconnected', configurable: true })
     Object.defineProperty(webSocketService, 'queuedMessages', { value: 0, configurable: true })
     vi.mocked(webSocketService.connect).mockResolvedValue(true)
-    vi.mocked(webSocketService.disconnect).mockImplementation(() => {})
+    vi.mocked(webSocketService.disconnect).mockImplementation(() => { })
 
     // Mock optimistic updateService
     vi.mocked(optimisticUpdateService.getPendingCount).mockReturnValue(0)
-    vi.mocked(optimisticUpdateService.applyOptimistic).mockImplementation(() => {})
-    vi.mocked(optimisticUpdateService.confirmAction).mockReturnValue({ 
-      success: true, 
+    vi.mocked(optimisticUpdateService.applyOptimistic).mockImplementation(() => { })
+    vi.mocked(optimisticUpdateService.confirmAction).mockReturnValue({
+      success: true,
       actionId: 'test-action-1',
-      serverState: undefined 
+      serverState: undefined
     })
-    vi.mocked(optimisticUpdateService.revertAction).mockReturnValue({ 
-      success: true, 
+    vi.mocked(optimisticUpdateService.revertAction).mockReturnValue({
+      success: true,
       actionId: 'test-action-2',
-      serverState: undefined 
+      serverState: undefined
     })
 
     // Mock GameLogger
-    vi.mocked(GameLogger.state).mockImplementation(() => {})
-    vi.mocked(GameLogger.error).mockImplementation(() => {})
-    vi.mocked(GameLogger.action).mockImplementation(() => {})
-    vi.mocked(GameLogger.combat).mockImplementation(() => {})
+    vi.mocked(GameLogger.state).mockImplementation(() => { })
+    vi.mocked(GameLogger.error).mockImplementation(() => { })
+    vi.mocked(GameLogger.action).mockImplementation(() => { })
+    vi.mocked(GameLogger.combat).mockImplementation(() => { })
   })
 
   describe('Initialization', () => {
@@ -184,12 +184,12 @@ describe('useMultiplayerActions', () => {
   describe('Connection Management (WebSockets Enabled)', () => {
     beforeEach(() => {
       // Enable WebSockets for these tests
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
     })
 
     afterEach(() => {
       // Restore default
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
     })
 
     it('should connect to game when WebSockets enabled', async () => {
@@ -230,8 +230,8 @@ describe('useMultiplayerActions', () => {
   describe('Local Mode Actions', () => {
     beforeEach(() => {
       // Ensure we're in local mode
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
-      ;(FEATURE_FLAGS as any).ENABLE_MULTIPLAYER_SYNC = false
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
+        ; (FEATURE_FLAGS as any).ENABLE_MULTIPLAYER_SYNC = false
       Object.defineProperty(webSocketService, 'isConnected', { value: false, configurable: true })
     })
 
@@ -316,7 +316,7 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should correctly determine isMultiplayer', () => {
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
       Object.defineProperty(webSocketService, 'isConnected', { value: true, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())
@@ -325,7 +325,7 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should correctly determine isLocal', () => {
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
       Object.defineProperty(webSocketService, 'isConnected', { value: false, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())
@@ -423,7 +423,7 @@ describe('useMultiplayerActions', () => {
 
   describe('Feature Flag Interactions', () => {
     it('should respect ENABLE_WEBSOCKETS flag', () => {
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
 
       const { result } = renderHook(() => useMultiplayerActions())
 
@@ -432,7 +432,7 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should respect both WebSocket and connection state for multiplayer', () => {
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
       Object.defineProperty(webSocketService, 'isConnected', { value: false, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())
@@ -441,8 +441,8 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should require both flags for multiplayer mode', () => {
-      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
-      ;(FEATURE_FLAGS as any).ENABLE_MULTIPLAYER_SYNC = false
+      ; (FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
+        ; (FEATURE_FLAGS as any).ENABLE_MULTIPLAYER_SYNC = false
       Object.defineProperty(webSocketService, 'isConnected', { value: true, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())

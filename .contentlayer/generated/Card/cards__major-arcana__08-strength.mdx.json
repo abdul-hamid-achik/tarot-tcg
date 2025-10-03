@@ -1,0 +1,56 @@
+{
+  "id": "major-08-strength",
+  "name": "Strength",
+  "zodiacClass": "leo",
+  "element": "fire",
+  "cardType": "unit",
+  "cost": 6,
+  "attack": 4,
+  "health": 8,
+  "rarity": "rare",
+  "tarotSymbol": "VIII",
+  "description": "Must be attacked first. Inner strength protects what matters most.",
+  "reversedDescription": "Can't attack. Inner turmoil renders strength useless.",
+  "orientation": "random",
+  "keywords": [
+    "courage",
+    "patience",
+    "fortitude",
+    "taunt"
+  ],
+  "abilities": {
+    "upright": [
+      {
+        "name": "Inner Fortitude",
+        "description": "Taunt. Takes 1 less damage from all sources"
+      },
+      {
+        "name": "Gentle Strength",
+        "description": "At the start of your turn, heal this unit for 2"
+      }
+    ],
+    "reversed": [
+      {
+        "name": "Paralyzed by Fear",
+        "description": "Can't attack. At the start of your turn, take 1 damage."
+      }
+    ]
+  },
+  "body": {
+    "raw": "\n# Strength\n\nTrue power flows not from force but from the gentle mastery of one's inner beast.\n\n*\"The greatest strength is found in compassion.\"*\n\nStrength represents inner strength, courage, and patience. This card is incredibly durable and hard to remove from the battlefield.",
+    "code": "var Component=(()=>{var l=Object.create;var o=Object.defineProperty;var u=Object.getOwnPropertyDescriptor;var p=Object.getOwnPropertyNames;var f=Object.getPrototypeOf,g=Object.prototype.hasOwnProperty;var y=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),b=(t,e)=>{for(var n in e)o(t,n,{get:e[n],enumerable:!0})},i=(t,e,n,s)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let a of p(e))!g.call(t,a)&&a!==n&&o(t,a,{get:()=>e[a],enumerable:!(s=u(e,a))||s.enumerable});return t};var x=(t,e,n)=>(n=t!=null?l(f(t)):{},i(e||!t||!t.__esModule?o(n,\"default\",{value:t,enumerable:!0}):n,t)),k=t=>i(o({},\"__esModule\",{value:!0}),t);var d=y((T,c)=>{c.exports=_jsx_runtime});var j={};b(j,{default:()=>m,frontmatter:()=>_});var r=x(d()),_={id:\"major-08-strength\",name:\"Strength\",zodiacClass:\"leo\",element:\"fire\",cardType:\"unit\",cost:6,attack:4,health:8,rarity:\"rare\",tarotSymbol:\"VIII\",keywords:[\"courage\",\"patience\",\"fortitude\",\"taunt\"],description:\"Must be attacked first. Inner strength protects what matters most.\",reversedDescription:\"Can't attack. Inner turmoil renders strength useless.\",abilities:{upright:[{name:\"Inner Fortitude\",description:\"Taunt. Takes 1 less damage from all sources\"},{name:\"Gentle Strength\",description:\"At the start of your turn, heal this unit for 2\"}],reversed:[{name:\"Paralyzed by Fear\",description:\"Can't attack. At the start of your turn, take 1 damage.\"}]},orientation:\"random\"};function h(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,r.jsxs)(r.Fragment,{children:[(0,r.jsx)(e.h1,{children:\"Strength\"}),`\n`,(0,r.jsx)(e.p,{children:\"True power flows not from force but from the gentle mastery of one's inner beast.\"}),`\n`,(0,r.jsx)(e.p,{children:(0,r.jsx)(e.em,{children:'\"The greatest strength is found in compassion.\"'})}),`\n`,(0,r.jsx)(e.p,{children:\"Strength represents inner strength, courage, and patience. This card is incredibly durable and hard to remove from the battlefield.\"})]})}function m(t={}){let{wrapper:e}=t.components||{};return e?(0,r.jsx)(e,{...t,children:(0,r.jsx)(h,{...t})}):h(t)}return k(j);})();\n;return Component;"
+  },
+  "_id": "cards/major-arcana/08-strength.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/major-arcana/08-strength.mdx",
+    "sourceFileName": "08-strength.mdx",
+    "sourceFileDir": "cards/major-arcana",
+    "contentType": "mdx",
+    "flattenedPath": "cards/major-arcana/08-strength"
+  },
+  "type": "Card",
+  "url": "/cards/major-arcana/08-strength",
+  "zodiacPath": "leo",
+  "isUnit": true,
+  "isSpell": false
+}

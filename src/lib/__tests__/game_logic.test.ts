@@ -641,7 +641,7 @@ describe('Game Logic - aiTurn()', () => {
     it('should attack with units when has attack token', async () => {
         // Switch to AI's turn
         gameState.activePlayer = 'player2'
-        
+
         // Place AI units on battlefield (from player2's perspective, these are playerUnits)
         gameState.battlefield.enemyUnits[0] = createTestCard({
             id: 'ai-unit1',

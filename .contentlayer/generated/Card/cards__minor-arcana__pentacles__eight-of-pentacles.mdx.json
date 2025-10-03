@@ -1,0 +1,44 @@
+{
+  "id": "pentacles-08",
+  "name": "Eight of Pentacles",
+  "zodiacClass": "virgo",
+  "element": "earth",
+  "cardType": "unit",
+  "cost": 8,
+  "attack": 4,
+  "health": 8,
+  "rarity": "uncommon",
+  "tarotSymbol": "🜃",
+  "keywords": [
+    "apprenticeship",
+    "diligence",
+    "mastery"
+  ],
+  "abilities": [
+    {
+      "name": "Dedicated Practice",
+      "description": "Each time you play a spell, gain +1/+0"
+    },
+    {
+      "name": "Master's Skill",
+      "description": "When this has 8 or more attack, your spells cost 1 less"
+    }
+  ],
+  "body": {
+    "raw": "\n# Eight of Pentacles\n\nThe apprentice works tirelessly, each piece better than the last.\n\n*\"Mastery is earned one patient stroke at a time.\"*",
+    "code": "var Component=(()=>{var p=Object.create;var s=Object.defineProperty;var d=Object.getOwnPropertyDescriptor;var u=Object.getOwnPropertyNames;var y=Object.getPrototypeOf,x=Object.prototype.hasOwnProperty;var f=(t,e)=>()=>(e||t((e={exports:{}}).exports,e),e.exports),g=(t,e)=>{for(var a in e)s(t,a,{get:e[a],enumerable:!0})},o=(t,e,a,i)=>{if(e&&typeof e==\"object\"||typeof e==\"function\")for(let r of u(e))!x.call(t,r)&&r!==a&&s(t,r,{get:()=>e[r],enumerable:!(i=d(e,r))||i.enumerable});return t};var _=(t,e,a)=>(a=t!=null?p(y(t)):{},o(e||!t||!t.__esModule?s(a,\"default\",{value:t,enumerable:!0}):a,t)),k=t=>o(s({},\"__esModule\",{value:!0}),t);var l=f((w,c)=>{c.exports=_jsx_runtime});var M={};g(M,{default:()=>m,frontmatter:()=>j});var n=_(l()),j={id:\"pentacles-08\",name:\"Eight of Pentacles\",zodiacClass:\"virgo\",element:\"earth\",cardType:\"unit\",cost:8,attack:4,health:8,rarity:\"uncommon\",tarotSymbol:\"\\u{1F703}\",keywords:[\"apprenticeship\",\"diligence\",\"mastery\"],abilities:[{name:\"Dedicated Practice\",description:\"Each time you play a spell, gain +1/+0\"},{name:\"Master's Skill\",description:\"When this has 8 or more attack, your spells cost 1 less\"}]};function h(t){let e={em:\"em\",h1:\"h1\",p:\"p\",...t.components};return(0,n.jsxs)(n.Fragment,{children:[(0,n.jsx)(e.h1,{children:\"Eight of Pentacles\"}),`\n`,(0,n.jsx)(e.p,{children:\"The apprentice works tirelessly, each piece better than the last.\"}),`\n`,(0,n.jsx)(e.p,{children:(0,n.jsx)(e.em,{children:'\"Mastery is earned one patient stroke at a time.\"'})})]})}function m(t={}){let{wrapper:e}=t.components||{};return e?(0,n.jsx)(e,{...t,children:(0,n.jsx)(h,{...t})}):h(t)}return k(M);})();\n;return Component;"
+  },
+  "_id": "cards/minor-arcana/pentacles/eight-of-pentacles.mdx",
+  "_raw": {
+    "sourceFilePath": "cards/minor-arcana/pentacles/eight-of-pentacles.mdx",
+    "sourceFileName": "eight-of-pentacles.mdx",
+    "sourceFileDir": "cards/minor-arcana/pentacles",
+    "contentType": "mdx",
+    "flattenedPath": "cards/minor-arcana/pentacles/eight-of-pentacles"
+  },
+  "type": "Card",
+  "url": "/cards/minor-arcana/pentacles/eight-of-pentacles",
+  "zodiacPath": "virgo",
+  "isUnit": true,
+  "isSpell": false
+}
