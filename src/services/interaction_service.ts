@@ -180,19 +180,43 @@ class InteractionService {
         )
 
         if (canDrop) {
-          // Animate the drop
-          animationService.animateCardMove(
-            this.dragState.draggedCard,
-            this.dragState.sourcePosition,
-            dropLane,
-          )
+          // Determine if this is a move or attack based on source and target
+          const isFromHand = this.dragState.sourcePosition === 'hand'
+          const isTargetOccupied = !canDrop || dropLane.player !== 'player1' // Assumes attacking enemy
 
-          // Trigger the move callback
-          this.callbacks.onCardMove?.(
-            this.dragState.draggedCard,
-            this.dragState.sourcePosition,
-            dropLane,
-          )
+          if (isFromHand) {
+            // Playing a card from hand to battlefield
+            animationService.animateCardMove(
+              this.dragState.draggedCard,
+              this.dragState.sourcePosition,
+              dropLane,
+            )
+            this.callbacks.onCardMove?.(
+              this.dragState.draggedCard,
+              this.dragState.sourcePosition,
+              dropLane,
+            )
+          } else if (this.dragState.sourcePosition !== 'hand') {
+            // Dragging from battlefield - check if attacking or moving
+            const fromPos = this.dragState.sourcePosition as BattlefieldPosition
+            
+            // If dropping on enemy slot, it's an attack
+            if (dropLane.player !== fromPos.player) {
+              this.callbacks.onCardAttack?.(this.dragState.draggedCard, fromPos, dropLane)
+            } else {
+              // Moving on own battlefield (if allowed)
+              animationService.animateCardMove(
+                this.dragState.draggedCard,
+                this.dragState.sourcePosition,
+                dropLane,
+              )
+              this.callbacks.onCardMove?.(
+                this.dragState.draggedCard,
+                this.dragState.sourcePosition,
+                dropLane,
+              )
+            }
+          }
         }
       }
 
@@ -247,19 +271,36 @@ class InteractionService {
    * Start the drag operation
    */
   private startDrag(): void {
-    if (!this.dragState.draggedCard) return
+    if (!this.dragState.draggedCard || !this.dragState.dragElement) return
 
     this.dragState.isDragging = true
 
-    // Add drag visual class to element
-    if (this.dragState.dragElement) {
-      this.dragState.dragElement.classList.add('dragging')
-      this.dragState.dragElement.style.position = 'fixed'
-      this.dragState.dragElement.style.zIndex = '9999'
-      this.dragState.dragElement.style.pointerEvents = 'none'
-      // Store original transform to restore later
-      this.dragState.dragElement.dataset.originalTransform =
-        this.dragState.dragElement.style.transform || ''
+    // Make original card semi-transparent to show it's being dragged
+    this.dragState.dragElement.classList.add('dragging')
+    this.dragState.dragElement.style.opacity = '0.4'
+
+    // Create a drag preview element (clone of the card)
+    const dragPreview = this.dragState.dragElement.cloneNode(true) as HTMLElement
+    dragPreview.id = 'drag-preview'
+    dragPreview.classList.remove('dragging')
+    dragPreview.classList.add('card-drag-preview')
+    dragPreview.style.position = 'fixed'
+    dragPreview.style.zIndex = '9999'
+    dragPreview.style.pointerEvents = 'none'
+    dragPreview.style.opacity = '0.9'
+    dragPreview.style.transform = 'scale(1.05) rotate(2deg)'
+    dragPreview.style.transition = 'transform 0.1s ease-out'
+    dragPreview.style.filter = 'drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4))'
+
+    // Store the preview element
+    this.dragState.dragElement.dataset.previewId = 'drag-preview'
+    
+    // Add to document body
+    document.body.appendChild(dragPreview)
+
+    // Store a reference to the preview for cleanup
+    if (!this.dragState.dragElement.dataset.hasPreview) {
+      this.dragState.dragElement.dataset.hasPreview = 'true'
     }
   }
 
@@ -267,18 +308,18 @@ class InteractionService {
    * End the drag operation
    */
   private endDrag(): void {
-    // Remove drag visual class and restore original styles
+    // Remove drag preview if it exists
+    const dragPreview = document.getElementById('drag-preview')
+    if (dragPreview) {
+      dragPreview.remove()
+    }
+
+    // Restore original element opacity
     if (this.dragState.dragElement) {
       this.dragState.dragElement.classList.remove('dragging')
-      this.dragState.dragElement.style.position = ''
-      this.dragState.dragElement.style.zIndex = ''
-      this.dragState.dragElement.style.pointerEvents = ''
-      this.dragState.dragElement.style.left = ''
-      this.dragState.dragElement.style.top = ''
-      // Restore original transform
-      const originalTransform = this.dragState.dragElement.dataset.originalTransform || ''
-      this.dragState.dragElement.style.transform = originalTransform
-      delete this.dragState.dragElement.dataset.originalTransform
+      this.dragState.dragElement.style.opacity = ''
+      delete this.dragState.dragElement.dataset.hasPreview
+      delete this.dragState.dragElement.dataset.previewId
     }
 
     this.callbacks.onHideTooltip?.()
@@ -288,15 +329,16 @@ class InteractionService {
    * Update the visual position of the dragged element
    */
   private updateDragVisual(x: number, y: number): void {
-    if (!this.dragState.dragElement) return
+    // Update the drag preview position (not the original element)
+    const dragPreview = document.getElementById('drag-preview')
+    if (!dragPreview) return
 
-    // Position the element at the cursor position, centered on the cursor
-    const offsetX = x - this.dragState.dragElement.offsetWidth / 2
-    const offsetY = y - this.dragState.dragElement.offsetHeight / 2
+    // Position the preview at the cursor position, centered on the cursor
+    const offsetX = x - dragPreview.offsetWidth / 2
+    const offsetY = y - dragPreview.offsetHeight / 2
 
-    this.dragState.dragElement.style.left = `${offsetX}px`
-    this.dragState.dragElement.style.top = `${offsetY}px`
-    this.dragState.dragElement.style.transform = 'none' // Remove any existing transform
+    dragPreview.style.left = `${offsetX}px`
+    dragPreview.style.top = `${offsetY}px`
   }
 
   /**
@@ -407,6 +449,16 @@ class InteractionService {
    */
   hasSelectedCard(): boolean {
     return this.clickState.selectedCard !== null
+  }
+
+  /**
+   * Reset the service state (for testing)
+   */
+  reset(): void {
+    this.endDrag()
+    this.resetDragState()
+    this.resetClickState()
+    this.callbacks = {}
   }
 }
 

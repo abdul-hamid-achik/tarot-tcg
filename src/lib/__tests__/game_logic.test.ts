@@ -946,12 +946,12 @@ describe('Game Logic - Reversed Card Orientation', () => {
 
     it('should maintain isReversed property when card is played', async () => {
         const { playCard } = await import('../../lib/game_logic')
-        
+
         // Create a card with reversed orientation
-        const reversedCard = createTestCard({ 
-            id: 'reversed1', 
-            name: 'Reversed Card', 
-            cost: 2, 
+        const reversedCard = createTestCard({
+            id: 'reversed1',
+            name: 'Reversed Card',
+            cost: 2,
             type: 'unit',
             attack: 2,
             health: 3,
@@ -986,7 +986,7 @@ describe('Game Logic - Reversed Card Orientation', () => {
                     createTestCard({ id: 'card2', name: 'Card 2' }),
                     createTestCard({ id: 'card3', name: 'Card 3' }),
                 ],
-                deck: Array(10).fill(null).map((_, i) => 
+                deck: Array(10).fill(null).map((_, i) =>
                     createTestCard({ id: `deck${i}`, name: `Deck Card ${i}` })
                 ),
                 selectedForMulligan: ['card1', 'card3'], // Mulligan 2 cards
@@ -1120,9 +1120,9 @@ describe('Game Logic - State Immutability', () => {
         const newState = await playCard(gameState, cardToPlay, 0)
 
         // Modify new state's battlefield
-        newState.battlefield.playerUnits[3] = createTestCard({ 
-            id: 'injected', 
-            name: 'Injected Card', 
+        newState.battlefield.playerUnits[3] = createTestCard({
+            id: 'injected',
+            name: 'Injected Card',
             type: 'unit',
             attack: 1,
             health: 1,

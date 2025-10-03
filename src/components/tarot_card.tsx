@@ -126,7 +126,7 @@ export default function TarotCard({
           className="w-full h-full object-cover"
           onError={e => {
             // Fallback if image fails to load
-            ;(e.target as HTMLImageElement).src = getCardBackImagePath()
+            ; (e.target as HTMLImageElement).src = getCardBackImagePath()
           }}
         />
       </div>

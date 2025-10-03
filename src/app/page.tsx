@@ -4,15 +4,40 @@ import { ChevronRight, Moon, Sparkles, Sun, Swords } from 'lucide-react'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 import { Navigation } from '@/components/layout/navigation'
+import TarotCard from '@/components/tarot_card'
 import { Button } from '@/components/ui/button'
+import { getAllCards } from '@/lib/card_loader'
+import type { Card as GameCard } from '@/schemas/schema'
 
 export default function Home() {
   const [_hoveredCard, setHoveredCard] = useState<number | null>(null)
   const [flippedCards, setFlippedCards] = useState<Set<number>>(new Set())
   const [mounted, setMounted] = useState(false)
+  const [demoCards, setDemoCards] = useState<GameCard[]>([])
 
   useEffect(() => {
     setMounted(true)
+
+    // Load actual cards from CMS
+    const allCards = getAllCards()
+
+    // Pick 4 featured cards (The Fool, The Magician, Death, The World)
+    const featuredCardNames = ['The Fool', 'The Magician', 'Death', 'The World']
+    const featured = featuredCardNames
+      .map(name => allCards.find(card => card.name === name))
+      .filter(Boolean) as GameCard[]
+
+    // If we don't have all featured cards, pick random ones
+    if (featured.length < 4) {
+      const remaining = 4 - featured.length
+      const randomCards = allCards
+        .filter(card => !featured.some(f => f.id === card.id))
+        .sort(() => Math.random() - 0.5)
+        .slice(0, remaining)
+      featured.push(...randomCards)
+    }
+
+    setDemoCards(featured.slice(0, 4))
   }, [])
 
   const toggleCard = (index: number) => {
@@ -26,45 +51,6 @@ export default function Home() {
       return newSet
     })
   }
-
-  const demoCards = [
-    {
-      name: 'The Fool',
-      number: '0',
-      upright: 'Draw a card. Invest mana for +X/+X',
-      reversed: 'Discard hand, deal 2 damage per card',
-      cost: 0,
-      attack: 1,
-      health: 1,
-    },
-    {
-      name: 'The Magician',
-      number: 'I',
-      upright: 'Manifest creative power',
-      reversed: 'Manipulation and illusion',
-      cost: 2,
-      attack: 2,
-      health: 2,
-    },
-    {
-      name: 'Death',
-      number: 'XIII',
-      upright: 'Transformation and rebirth',
-      reversed: 'Resistance to change',
-      cost: 6,
-      attack: 4,
-      health: 4,
-    },
-    {
-      name: 'The World',
-      number: 'XXI',
-      upright: 'Win with 4 elements',
-      reversed: 'Reset board, draw cards',
-      cost: 10,
-      attack: 7,
-      health: 7,
-    },
-  ]
 
   return (
     <>
@@ -146,78 +132,39 @@ export default function Home() {
             </p>
           </div>
 
-          {/* Interactive Cards Grid */}
+          {/* Interactive Cards Grid - Using TarotCard component with real CMS data */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            {demoCards.map((card, index) => (
-              <div
-                key={index}
-                className="group perspective-1000 animate-slide-up"
-                style={{ animationDelay: `${index * 0.1}s` }}
-                onMouseEnter={() => setHoveredCard(index)}
-                onMouseLeave={() => setHoveredCard(null)}
-              >
+            {demoCards.length === 0 ? (
+              // Loading skeleton
+              [...Array(4)].map((_, index) => (
                 <div
-                  className={`relative w-full aspect-[2/3] cursor-pointer transition-transform duration-700 transform-style-3d ${
-                    flippedCards.has(index) ? 'rotate-y-180' : ''
-                  }`}
-                  onClick={() => toggleCard(index)}
+                  key={index}
+                  className="aspect-[2/3] bg-white/5 border-2 border-white/20 rounded-lg animate-pulse"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                />
+              ))
+            ) : (
+              demoCards.map((card, index) => (
+                <div
+                  key={card.id}
+                  className="animate-slide-up"
+                  style={{ animationDelay: `${index * 0.1}s` }}
+                  onMouseEnter={() => setHoveredCard(index)}
+                  onMouseLeave={() => setHoveredCard(null)}
                 >
-                  {/* Front - Upright */}
-                  <div className="absolute inset-0 backface-hidden border-2 border-white bg-black p-6 flex flex-col justify-between hover:border-white/70 transition-colors">
-                    <div>
-                      <div className="text-xs opacity-50 mb-2">UPRIGHT</div>
-                      <div className="text-4xl font-bold mb-1">{card.number}</div>
-                      <h3 className="text-xl font-bold mb-4">{card.name}</h3>
-                      <div className="h-px bg-white/20 mb-4" />
-                      <p className="text-sm opacity-70 leading-relaxed">{card.upright}</p>
-                    </div>
-                    <div className="flex gap-4 pt-4 border-t border-white/20 text-sm">
-                      <div className="flex items-center gap-1">
-                        <span className="opacity-50">Mana:</span>
-                        <span className="font-bold">{card.cost}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Swords className="w-4 h-4 opacity-50" />
-                        <span className="font-bold">{card.attack}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="opacity-50">♥</span>
-                        <span className="font-bold">{card.health}</span>
-                      </div>
-                    </div>
-                    <div className="absolute top-4 right-4 text-xs opacity-30">TAP TO FLIP</div>
-                  </div>
-
-                  {/* Back - Reversed */}
-                  <div className="absolute inset-0 backface-hidden rotate-y-180 border-2 border-white bg-gradient-to-br from-black to-gray-900 p-6 flex flex-col justify-between">
-                    <div>
-                      <div className="text-xs opacity-50 mb-2">REVERSED</div>
-                      <div className="text-4xl font-bold mb-1 rotate-180 inline-block">
-                        {card.number}
-                      </div>
-                      <h3 className="text-xl font-bold mb-4 opacity-90">{card.name}</h3>
-                      <div className="h-px bg-white/20 mb-4" />
-                      <p className="text-sm opacity-70 leading-relaxed italic">{card.reversed}</p>
-                    </div>
-                    <div className="flex gap-4 pt-4 border-t border-white/20 text-sm opacity-70">
-                      <div className="flex items-center gap-1">
-                        <span className="opacity-50">Mana:</span>
-                        <span className="font-bold">{card.cost}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Swords className="w-4 h-4 opacity-50" />
-                        <span className="font-bold">{card.attack}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <span className="opacity-50">♥</span>
-                        <span className="font-bold">{card.health}</span>
-                      </div>
-                    </div>
-                    <div className="absolute top-4 right-4 text-xs opacity-30">TAP TO FLIP</div>
+                  <TarotCard
+                    card={flippedCards.has(index) ? { ...card, isReversed: true } : card}
+                    size="large"
+                    onClick={() => toggleCard(index)}
+                    showReversedEffects={flippedCards.has(index)}
+                    className="hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="text-center mt-2 text-xs opacity-50">
+                    Click to see {flippedCards.has(index) ? 'upright' : 'reversed'}
                   </div>
                 </div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
 
           <div className="text-center text-sm opacity-50 italic">
@@ -368,19 +315,21 @@ export default function Home() {
           animation: slide-up 0.8s ease-out backwards;
         }
 
-        .perspective-1000 {
+        /* Global 3D card flip styles - must be :global to override jsx scoping */
+        :global(.perspective-1000) {
           perspective: 1000px;
         }
 
-        .transform-style-3d {
+        :global(.transform-style-3d) {
           transform-style: preserve-3d;
         }
 
-        .backface-hidden {
+        :global(.backface-hidden) {
           backface-visibility: hidden;
+          -webkit-backface-visibility: hidden;
         }
 
-        .rotate-y-180 {
+        :global(.rotate-y-180) {
           transform: rotateY(180deg);
         }
       `}</style>

@@ -271,7 +271,7 @@ describe('Battlefield Persistence', () => {
             // (This was happening due to useEffect re-triggering)
             const endTurnPromise1 = endTurn(state)
             const endTurnPromise2 = endTurn(state)
-            
+
             const [result1, result2] = await Promise.all([endTurnPromise1, endTurnPromise2])
 
             // Both should complete successfully
@@ -286,13 +286,13 @@ describe('Battlefield Persistence', () => {
             // Call endTurn multiple times
             state = await endTurn(state)
             const stateAfterFirstEnd = { ...state }
-            
+
             state = await endTurn(state)
             state = await endTurn(state)
-            
+
             // Card should still be there
             expect(state.battlefield.playerUnits[3]?.name).toBe('Page of Wands')
-            
+
             // First state should not be affected by subsequent calls
             expect(stateAfterFirstEnd.battlefield.playerUnits[3]?.name).toBe('Page of Wands')
         })
@@ -371,7 +371,7 @@ describe('Battlefield Persistence', () => {
             // state1 should not be affected
             expect(state1.battlefield.playerUnits[6]).toBeNull()
             expect(state2.battlefield.playerUnits[6]?.name).toBe('Modified Card')
-            
+
             // Original card should still be in both
             expect(state1.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
             expect(state2.battlefield.playerUnits[2]?.name).toBe('Page of Wands')

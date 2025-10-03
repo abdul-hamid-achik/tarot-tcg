@@ -37,12 +37,16 @@ export function BattlefieldSlot({
 
   const handleDragOver = useCallback(
     (e: React.DragEvent) => {
-      if (isValidDropZone && isEmpty) {
+      // Allow drops on empty slots (for playing cards) or enemy slots (for attacks)
+      const isEnemySlot = position.player === 'player2' && card !== null
+      const isValidDrop = isValidDropZone && (isEmpty || isEnemySlot)
+      
+      if (isValidDrop) {
         e.preventDefault()
         setHoveredSlot(position)
       }
     },
-    [isValidDropZone, isEmpty, position, setHoveredSlot],
+    [isValidDropZone, isEmpty, position, setHoveredSlot, card],
   )
 
   const handleDragLeave = useCallback(() => {
@@ -54,19 +58,45 @@ export function BattlefieldSlot({
       e.preventDefault()
       setHoveredSlot(null)
 
-      if (isValidDropZone && interaction.draggedCard && isEmpty) {
-        GameLogger.debug('🎮 [Drag&Drop] Dropping card at slot:', position)
+      if (!interaction.draggedCard) {
+        endCardDrag()
+        return
+      }
+
+      const isEnemySlot = position.player === 'player2' && card !== null
+      
+      // Handle different drop scenarios
+      if (isEmpty && isValidDropZone) {
+        // Playing a card from hand to empty battlefield slot
+        GameLogger.debug('🎮 [Drag&Drop] Dropping card at empty slot:', position)
         try {
           await playCard(interaction.draggedCard, position)
           GameLogger.debug('🎮 [Drag&Drop] Successfully played card via drag&drop')
           // Note: clearSelection (which includes endCardDrag) is handled in playCard
         } catch (error) {
           GameLogger.error('🎮 [Drag&Drop] Failed to play card:', error)
-          // Clear drag state even on error to prevent stuck UI
+          endCardDrag()
+        }
+      } else if (isEnemySlot && card) {
+        // Attacking an enemy unit
+        GameLogger.debug('🎮 [Drag&Drop] Attacking enemy unit:', card.name)
+        try {
+          // Trigger attack via combat actions
+          if (isInTargetingMode()) {
+            handleTargetClick(card.id, 'unit')
+          } else {
+            // If we're dragging from battlefield, start attack
+            handleUnitClick(interaction.draggedCard)
+            // Then immediately target this enemy
+            setTimeout(() => handleTargetClick(card.id, 'unit'), 50)
+          }
+          endCardDrag()
+        } catch (error) {
+          GameLogger.error('🎮 [Drag&Drop] Failed to attack:', error)
           endCardDrag()
         }
       } else {
-        // Clear drag state if drop was invalid
+        // Invalid drop
         endCardDrag()
       }
     },
@@ -75,9 +105,13 @@ export function BattlefieldSlot({
       interaction.draggedCard,
       isEmpty,
       position,
+      card,
       setHoveredSlot,
       endCardDrag,
       playCard,
+      isInTargetingMode,
+      handleTargetClick,
+      handleUnitClick,
     ],
   )
 
