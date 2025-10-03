@@ -1,6 +1,5 @@
+import { describe, it, expect, beforeEach, vi } from 'vitest'
 vi.unmock('@/lib/game_logger')
-
-import { describe, it, expect, beforeEach } from 'vitest'
 import { BattlefieldService } from '../battlefield_service'
 import type { Battlefield, PlayerId } from '@/schemas/schema'
 import { createTestCard } from '@/test_utils'

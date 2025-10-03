@@ -1,5 +1,5 @@
 import { renderHook, waitFor } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useMultiplayerActions } from '../use_multiplayer_actions'
 import { useGameStore } from '@/store/game_store'
 import { webSocketService } from '@/services/websocket_service'
@@ -29,42 +29,50 @@ vi.mock('@/lib/combat_logic', () => ({
 
 describe('useMultiplayerActions', () => {
   const mockGameState: GameState = {
-    player1: {
-      id: 'player1',
-      health: 30,
-      maxHealth: 30,
-      mana: 5,
-      maxMana: 5,
-      spellMana: 2,
-      maxSpellMana: 3,
-      deck: [],
-      hand: [],
-      zodiacClass: 'aries',
-      attackToken: true,
-    },
-    player2: {
-      id: 'player2',
-      health: 30,
-      maxHealth: 30,
-      mana: 5,
-      maxMana: 5,
-      spellMana: 2,
-      maxSpellMana: 3,
-      deck: [],
-      hand: [],
-      zodiacClass: 'taurus',
-      attackToken: false,
-    },
-    battlefield: {
-      player1: Array(7).fill(null),
-      player2: Array(7).fill(null),
-    },
+    round: 1,
     turn: 1,
     phase: 'action',
     activePlayer: 'player1',
-    effectStack: [],
-    turnHistory: [],
-    timestamp: Date.now(),
+    attackingPlayer: null,
+    waitingForAction: false,
+    combatResolved: false,
+    passCount: 0,
+    canRespond: false,
+    player1: {
+      id: 'player1',
+      name: 'Player 1',
+      health: 30,
+      mana: 5,
+      maxMana: 5,
+      spellMana: 2,
+      deck: [],
+      hand: [],
+      hasAttackToken: true,
+      mulliganComplete: true,
+      selectedForMulligan: [],
+      hasPassed: false,
+      actionsThisTurn: 0,
+    },
+    player2: {
+      id: 'player2',
+      name: 'Player 2',
+      health: 30,
+      mana: 5,
+      maxMana: 5,
+      spellMana: 2,
+      deck: [],
+      hand: [],
+      hasAttackToken: false,
+      mulliganComplete: true,
+      selectedForMulligan: [],
+      hasPassed: false,
+      actionsThisTurn: 0,
+    },
+    battlefield: {
+      playerUnits: Array(7).fill(null),
+      enemyUnits: Array(7).fill(null),
+      maxSlots: 7,
+    },
   }
 
   const mockSetGameState = vi.fn()
@@ -88,8 +96,8 @@ describe('useMultiplayerActions', () => {
     // Mock optimistic updateService
     vi.mocked(optimisticUpdateService.getPendingCount).mockReturnValue(0)
     vi.mocked(optimisticUpdateService.applyOptimistic).mockImplementation(() => {})
-    vi.mocked(optimisticUpdateService.confirmAction).mockReturnValue({ serverState: null })
-    vi.mocked(optimisticUpdateService.revertAction).mockReturnValue({ serverState: null })
+    vi.mocked(optimisticUpdateService.confirmAction).mockReturnValue({ serverState: undefined })
+    vi.mocked(optimisticUpdateService.revertAction).mockReturnValue({ serverState: undefined })
 
     // Mock GameLogger
     vi.mocked(GameLogger.state).mockImplementation(() => {})
@@ -168,12 +176,12 @@ describe('useMultiplayerActions', () => {
   describe('Connection Management (WebSockets Enabled)', () => {
     beforeEach(() => {
       // Enable WebSockets for these tests
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = true
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
     })
 
     afterEach(() => {
       // Restore default
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = false
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
     })
 
     it('should connect to game when WebSockets enabled', async () => {
@@ -214,8 +222,8 @@ describe('useMultiplayerActions', () => {
   describe('Local Mode Actions', () => {
     beforeEach(() => {
       // Ensure we're in local mode
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = false
-      vi.mocked(FEATURE_FLAGS).ENABLE_MULTIPLAYER_SYNC = false
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
+      ;(FEATURE_FLAGS as any).ENABLE_MULTIPLAYER_SYNC = false
       Object.defineProperty(webSocketService, 'isConnected', { value: false, configurable: true })
     })
 
@@ -300,7 +308,7 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should correctly determine isMultiplayer', () => {
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = true
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
       Object.defineProperty(webSocketService, 'isConnected', { value: true, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())
@@ -309,7 +317,7 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should correctly determine isLocal', () => {
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = false
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
       Object.defineProperty(webSocketService, 'isConnected', { value: false, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())
@@ -407,7 +415,7 @@ describe('useMultiplayerActions', () => {
 
   describe('Feature Flag Interactions', () => {
     it('should respect ENABLE_WEBSOCKETS flag', () => {
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = false
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = false
 
       const { result } = renderHook(() => useMultiplayerActions())
 
@@ -416,7 +424,7 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should respect both WebSocket and connection state for multiplayer', () => {
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = true
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
       Object.defineProperty(webSocketService, 'isConnected', { value: false, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())
@@ -425,8 +433,8 @@ describe('useMultiplayerActions', () => {
     })
 
     it('should require both flags for multiplayer mode', () => {
-      vi.mocked(FEATURE_FLAGS).ENABLE_WEBSOCKETS = true
-      vi.mocked(FEATURE_FLAGS).ENABLE_MULTIPLAYER_SYNC = false
+      ;(FEATURE_FLAGS as any).ENABLE_WEBSOCKETS = true
+      ;(FEATURE_FLAGS as any).ENABLE_MULTIPLAYER_SYNC = false
       Object.defineProperty(webSocketService, 'isConnected', { value: true, configurable: true })
 
       const { result } = renderHook(() => useMultiplayerActions())

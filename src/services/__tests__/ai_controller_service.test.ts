@@ -272,7 +272,7 @@ describe('AIControllerService', () => {
                 id: 'attacker',
                 attack: 5,
                 health: 5,
-                hasAttacked: false,
+                hasAttackedThisTurn: false,
             })
 
             const result = await aiController.executeAITurn(attackState)
@@ -331,7 +331,7 @@ describe('AIControllerService', () => {
                 id: 'new-unit',
                 attack: 3,
                 health: 3,
-                canAttack: false, // Summoning sickness
+                hasSummoningSickness: true,
             })
 
             const result = await aiController.executeAITurn(summoningSicknessState)
@@ -353,8 +353,8 @@ describe('AIControllerService', () => {
                 id: 'ready-attacker',
                 attack: 4,
                 health: 4,
-                canAttack: true,
-                hasAttacked: false,
+                hasSummoningSickness: false,
+                hasAttackedThisTurn: false,
             })
 
             const result = await aiController.executeAITurn(canAttackState)

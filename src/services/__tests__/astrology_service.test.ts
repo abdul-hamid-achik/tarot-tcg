@@ -3,7 +3,7 @@ vi.unmock('@/services/astrology_service')
 
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { astrologyService } from '../astrology_service'
-import type { Card, ZodiacClass, ZodiacElement } from '@/schemas/schema'
+import type { Card, ZodiacClass, Element } from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 import { createTestCard } from '@/test_utils'
 

@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react'
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameEffects } from '../use_game_effects'
 import { useGameActions } from '../use_game_actions'
 import { useGameStore } from '@/store/game_store'
@@ -15,42 +15,50 @@ vi.mock('@/lib/game_logger')
 
 describe('useGameEffects', () => {
   const mockGameState: GameState = {
-    player1: {
-      id: 'player1',
-      health: 30,
-      maxHealth: 30,
-      mana: 5,
-      maxMana: 5,
-      spellMana: 2,
-      maxSpellMana: 3,
-      deck: [],
-      hand: [],
-      zodiacClass: 'aries',
-      attackToken: true,
-    },
-    player2: {
-      id: 'player2',
-      health: 30,
-      maxHealth: 30,
-      mana: 5,
-      maxMana: 5,
-      spellMana: 2,
-      maxSpellMana: 3,
-      deck: [],
-      hand: [],
-      zodiacClass: 'taurus',
-      attackToken: false,
-    },
-    battlefield: {
-      player1: Array(7).fill(null),
-      player2: Array(7).fill(null),
-    },
+    round: 1,
     turn: 1,
     phase: 'action',
     activePlayer: 'player1',
-    effectStack: [],
-    turnHistory: [],
-    timestamp: Date.now(),
+    attackingPlayer: null,
+    waitingForAction: false,
+    combatResolved: false,
+    passCount: 0,
+    canRespond: false,
+    player1: {
+      id: 'player1',
+      name: 'Player 1',
+      health: 30,
+      mana: 5,
+      maxMana: 5,
+      spellMana: 2,
+      deck: [],
+      hand: [],
+      hasAttackToken: true,
+      mulliganComplete: true,
+      selectedForMulligan: [],
+      hasPassed: false,
+      actionsThisTurn: 0,
+    },
+    player2: {
+      id: 'player2',
+      name: 'Player 2',
+      health: 30,
+      mana: 5,
+      maxMana: 5,
+      spellMana: 2,
+      deck: [],
+      hand: [],
+      hasAttackToken: false,
+      mulliganComplete: true,
+      selectedForMulligan: [],
+      hasPassed: false,
+      actionsThisTurn: 0,
+    },
+    battlefield: {
+      playerUnits: Array(7).fill(null),
+      enemyUnits: Array(7).fill(null),
+      maxSlots: 7,
+    },
   }
 
   const mockSetValidDropZones = vi.fn()

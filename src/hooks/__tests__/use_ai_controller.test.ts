@@ -274,7 +274,7 @@ describe('useAIController', () => {
         })
 
         it('should work regardless of phase', async () => {
-            mockGameState.phase = 'combat'
+            mockGameState.phase = 'combat_resolution'
 
             const { result } = renderHook(() => useAIController({ autoPlay: false }))
 
@@ -408,7 +408,7 @@ describe('useAIController', () => {
             // Change phase during delay
             await act(async () => {
                 vi.advanceTimersByTime(250)
-                mockGameState.phase = 'combat'
+                mockGameState.phase = 'combat_resolution'
                 vi.advanceTimersByTime(250)
                 await Promise.resolve()
             })
