@@ -166,9 +166,8 @@ export default function CardsPage() {
       filters.costRange.min !== undefined &&
       filters.costRange.max !== undefined
     ) {
-      cards = cards.filter(
-        card => card.cost >= filters.costRange?.min && card.cost <= filters.costRange?.max,
-      )
+      const { min, max } = filters.costRange
+      cards = cards.filter(card => card.cost >= min && card.cost <= max)
     }
 
     return cards

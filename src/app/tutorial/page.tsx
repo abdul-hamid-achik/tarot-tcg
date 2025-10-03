@@ -94,7 +94,7 @@ export default function Tutorial() {
     gameState?.phase,
     gameOutcome,
     executeAI,
-    gameState.player2.hand.map,
+    gameState?.player2?.hand?.map,
     gameState?.player1?.mulliganComplete,
     gameState?.player2?.hand?.length,
     gameState?.player2?.mana,

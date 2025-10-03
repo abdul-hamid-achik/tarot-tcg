@@ -1,6 +1,6 @@
 import { GameLogger } from '@/lib/game_logger'
 
-;('use client')
+  ; ('use client')
 
 import React from 'react'
 // Game Components
@@ -153,12 +153,6 @@ export default function GameBoard({
     }
   }, [gameState, playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones])
 
-  // Auto-end turn when timer expires
-  React.useEffect(() => {
-    if (isTimerExpired && gameState?.activePlayer === 'player1') {
-      handleEndTurn()
-    }
-  }, [isTimerExpired, gameState?.activePlayer, handleEndTurn])
 
   // Handle action bar events (simplified for direct attack system)
   const handleAttack = async () => {
@@ -187,6 +181,13 @@ export default function GameBoard({
   const handlePass = async () => {
     await handleEndTurn()
   }
+
+  // Auto-end turn when timer expires
+  React.useEffect(() => {
+    if (isTimerExpired && gameState?.activePlayer === 'player1') {
+      handleEndTurn()
+    }
+  }, [isTimerExpired, gameState?.activePlayer, handleEndTurn])
 
   const handleCardPlay = async (card: GameCard) => {
     if (card.type === 'unit') {
