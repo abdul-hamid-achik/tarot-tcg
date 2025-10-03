@@ -21,7 +21,9 @@ export const useGameActions = () => {
    */
   const playCard = useCallback(
     async (card: GameCard, targetPosition?: BattlefieldPosition) => {
-      if (!gameState) return
+      // Get the latest state directly from the store to avoid stale closure issues
+      const currentState = useGameStore.getState().gameState
+      if (!currentState) return
 
       // Use multiplayer action if connected
       if (multiplayer.isMultiplayer) {
@@ -36,7 +38,7 @@ export const useGameActions = () => {
 
         // Import game logic dynamically to avoid circular deps
         const { playCard: localPlayCard } = await import('@/lib/game_logic')
-        const newGameState = await localPlayCard(gameState, card, targetPosition?.slot)
+        const newGameState = await localPlayCard(currentState, card, targetPosition?.slot)
 
         // Only update state and clear selection if successful
         setGameState(newGameState)
@@ -51,7 +53,7 @@ export const useGameActions = () => {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, clearSelection, setAnimationState, multiplayer],
+    [setGameState, clearSelection, setAnimationState, multiplayer],
   )
 
   /**
@@ -59,7 +61,9 @@ export const useGameActions = () => {
    */
   const declareAttack = useCallback(
     async (attackerId: string, targetType: 'unit' | 'player', targetId?: string) => {
-      if (!gameState) return
+      // Get the latest state directly from the store to avoid stale closure issues
+      const currentState = useGameStore.getState().gameState
+      if (!currentState) return
 
       // Use multiplayer action if connected
       if (multiplayer.isMultiplayer) {
@@ -72,7 +76,7 @@ export const useGameActions = () => {
         setAnimationState(true)
 
         const { declareAttack: localDeclareAttack } = await import('@/lib/combat_logic')
-        const newGameState = await localDeclareAttack(gameState, {
+        const newGameState = await localDeclareAttack(currentState, {
           attackerId,
           targetType,
           targetId,
@@ -89,7 +93,7 @@ export const useGameActions = () => {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, clearSelection, setAnimationState, multiplayer],
+    [setGameState, clearSelection, setAnimationState, multiplayer],
   )
 
   // Legacy declareAttack completely removed
@@ -102,11 +106,14 @@ export const useGameActions = () => {
       if (target === 'nexus') {
         await declareAttack(attackerId, 'player')
       } else {
+        // Get the latest state directly from the store to avoid stale closure issues
+        const currentState = useGameStore.getState().gameState
+        
         // Find the target unit ID
         const targetUnits =
           target.player === 'player1'
-            ? gameState?.battlefield.playerUnits
-            : gameState?.battlefield.enemyUnits
+            ? currentState?.battlefield.playerUnits
+            : currentState?.battlefield.enemyUnits
 
         const targetUnit = targetUnits?.[target.slot]
         if (targetUnit) {
@@ -114,7 +121,7 @@ export const useGameActions = () => {
         }
       }
     },
-    [gameState, declareAttack],
+    [declareAttack],
   )
 
   /**
@@ -122,7 +129,9 @@ export const useGameActions = () => {
    */
   const completeMulligan = useCallback(
     async (selectedCardIds: string[]) => {
-      if (!gameState) return
+      // Get the latest state directly from the store to avoid stale closure issues
+      const currentState = useGameStore.getState().gameState
+      if (!currentState) return
 
       try {
         setAnimationState(true)
@@ -130,7 +139,7 @@ export const useGameActions = () => {
         const { completeMulligan: localCompleteMulligan } = await import('@/lib/game_logic')
 
         // Apply mulligan selections to game state
-        let newGameState = { ...gameState }
+        let newGameState = { ...currentState }
         newGameState.player1.selectedForMulligan = selectedCardIds
 
         newGameState = localCompleteMulligan(newGameState)
@@ -143,14 +152,16 @@ export const useGameActions = () => {
         setAnimationState(false)
       }
     },
-    [gameState, setGameState, setAnimationState],
+    [setGameState, setAnimationState],
   )
 
   /**
    * End turn
    */
   const endTurn = useCallback(async () => {
-    if (!gameState) return
+    // Get the latest state directly from the store to avoid stale closure issues
+    const currentState = useGameStore.getState().gameState
+    if (!currentState) return
 
     // Use multiplayer action if connected
     if (multiplayer.isMultiplayer) {
@@ -161,29 +172,31 @@ export const useGameActions = () => {
     // Local game logic
     try {
       const { endTurn: localEndTurn } = await import('@/lib/game_logic')
-      const newGameState = await localEndTurn(gameState)
+      const newGameState = await localEndTurn(currentState)
       setGameState(newGameState)
 
       GameLogger.action('Turn ended')
     } catch (error) {
       GameLogger.error('Error ending turn:', error)
     }
-  }, [gameState, setGameState, multiplayer])
+  }, [setGameState, multiplayer])
 
   /**
    * Reverse a card on the battlefield (Tarot mechanic)
    */
   const reverseCard = useCallback(
     async (cardId: string) => {
-      if (!gameState) return
+      // Get the latest state directly from the store to avoid stale closure issues
+      const currentState = useGameStore.getState().gameState
+      if (!currentState) return
 
       // Find the card on battlefield directly
-      const playerUnits = gameState.battlefield.playerUnits
-      const enemyUnits = gameState.battlefield.enemyUnits
+      const playerUnits = currentState.battlefield.playerUnits
+      const enemyUnits = currentState.battlefield.enemyUnits
 
       // Find and reverse card on battlefield
       let found = false
-      const newGameState = { ...gameState }
+      const newGameState = { ...currentState }
 
       // Check player1 units
       for (let i = 0; i < playerUnits.length; i++) {
@@ -226,19 +239,21 @@ export const useGameActions = () => {
 
       setGameState(newGameState)
     },
-    [gameState, setGameState],
+    [setGameState],
   )
 
   /**
    * Pass priority/turn
    */
   const passPriority = useCallback(() => {
-    if (!gameState) return
+    // Get the latest state directly from the store to avoid stale closure issues
+    const currentState = useGameStore.getState().gameState
+    if (!currentState) return
 
     GameLogger.debug('Pass priority')
     // In direct attack system, this usually means end turn
     endTurn()
-  }, [gameState, endTurn])
+  }, [endTurn])
 
   // Deprecated functions completely removed
 
@@ -246,19 +261,21 @@ export const useGameActions = () => {
    * Get current game phase information
    */
   const getPhaseInfo = useCallback(() => {
-    if (!gameState) return null
+    // Get the latest state directly from the store to avoid stale closure issues
+    const currentState = useGameStore.getState().gameState
+    if (!currentState) return null
 
     return {
-      phase: gameState.phase,
-      description: getPhaseDescription(gameState.phase),
-      canAct: gameState.activePlayer === 'player1' && gameState.phase === 'action',
-      isPlayerTurn: gameState.activePlayer === 'player1',
-      waitingForAction: gameState.waitingForAction,
-      priorityPlayer: gameState.priorityPlayer || gameState.activePlayer,
-      passCount: gameState.passCount || 0,
+      phase: currentState.phase,
+      description: getPhaseDescription(currentState.phase),
+      canAct: currentState.activePlayer === 'player1' && currentState.phase === 'action',
+      isPlayerTurn: currentState.activePlayer === 'player1',
+      waitingForAction: currentState.waitingForAction,
+      priorityPlayer: currentState.priorityPlayer || currentState.activePlayer,
+      passCount: currentState.passCount || 0,
       validTransitions: ['action', 'combat_resolution', 'end_round'], // Simplified
     }
-  }, [gameState])
+  }, [])
 
   return {
     // Core actions
