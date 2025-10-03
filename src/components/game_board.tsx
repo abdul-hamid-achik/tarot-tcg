@@ -165,7 +165,7 @@ export default function GameBoard({
     await attackTarget(attackerId, target)
   }
 
-  const handleEndTurn = async () => {
+  const handleEndTurn = React.useCallback(async () => {
     if (!gameState) return
 
     try {
@@ -175,7 +175,7 @@ export default function GameBoard({
     } catch (error) {
       GameLogger.error('Error ending turn:', error)
     }
-  }
+  }, [gameState, setGameState, onEndTurn])
 
   const handlePass = async () => {
     await handleEndTurn()

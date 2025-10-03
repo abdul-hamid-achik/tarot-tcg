@@ -794,7 +794,30 @@ export async function endTurn(state: GameState): Promise<GameState> {
 
   // Update persistent effects at end of turn
   const updatedState = cardEffectSystem.updatePersistentEffects(newState)
-  Object.assign(newState, updatedState)
+  // Merge updated state while preserving our deep-copied arrays
+  if (updatedState !== newState) {
+    Object.assign(newState, {
+      ...updatedState,
+      battlefield: {
+        ...newState.battlefield,
+        ...(updatedState.battlefield || {}),
+        playerUnits: updatedState.battlefield?.playerUnits || newState.battlefield.playerUnits,
+        enemyUnits: updatedState.battlefield?.enemyUnits || newState.battlefield.enemyUnits,
+      },
+      player1: {
+        ...newState.player1,
+        ...(updatedState.player1 || {}),
+        hand: updatedState.player1?.hand || newState.player1.hand,
+        deck: updatedState.player1?.deck || newState.player1.deck,
+      },
+      player2: {
+        ...newState.player2,
+        ...(updatedState.player2 || {}),
+        hand: updatedState.player2?.hand || newState.player2.hand,
+        deck: updatedState.player2?.deck || newState.player2.deck,
+      },
+    })
+  }
 
   // Reset attack flags for all units (Hearthstone style)
   const playerUnits = getPlayerUnits(newState, state.activePlayer)
