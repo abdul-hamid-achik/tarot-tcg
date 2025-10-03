@@ -52,17 +52,23 @@ export function BattlefieldSlot({
   const handleDrop = useCallback(
     async (e: React.DragEvent) => {
       e.preventDefault()
+      setHoveredSlot(null)
+      
       if (isValidDropZone && interaction.draggedCard && isEmpty) {
         GameLogger.debug('🎮 [Drag&Drop] Dropping card at slot:', position)
         try {
           await playCard(interaction.draggedCard, position)
           GameLogger.debug('🎮 [Drag&Drop] Successfully played card via drag&drop')
+          // Note: clearSelection (which includes endCardDrag) is handled in playCard
         } catch (error) {
           GameLogger.error('🎮 [Drag&Drop] Failed to play card:', error)
+          // Clear drag state even on error to prevent stuck UI
+          endCardDrag()
         }
+      } else {
+        // Clear drag state if drop was invalid
+        endCardDrag()
       }
-      setHoveredSlot(null)
-      endCardDrag()
     },
     [
       isValidDropZone,
@@ -77,20 +83,22 @@ export function BattlefieldSlot({
 
   const handleSlotClick = useCallback(async () => {
     if (isEmpty && interaction.selectedCard) {
-      // Playing a card from hand via click-then-click
+      // Playing a card from hand via click-then-click (Hearthstone-style)
       GameLogger.debug('🎮 [Click-to-Play] Playing card to slot:', position)
       try {
         await playCard(interaction.selectedCard, position)
         GameLogger.debug('🎮 [Click-to-Play] Successfully played card')
+        // Note: clearSelection is handled in playCard
       } catch (error) {
         GameLogger.error('🎮 [Click-to-Play] Failed to play card:', error)
       }
     } else if (card && canInteract) {
+      // Hearthstone-style attack: click attacker, then click target
       if (isInTargetingMode() && isValidTarget(card.id)) {
-        // Being targeted in attack mode
+        // This card is being targeted for attack
         handleTargetClick(card.id, 'unit')
       } else if (!isInTargetingMode()) {
-        // Start attack with this unit
+        // Start attack targeting with this unit
         handleUnitClick(card)
       }
     }

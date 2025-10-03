@@ -88,21 +88,22 @@ export default function HandFan({
     const isSelected = interaction.selectedCard?.id === card.id
 
     if (isSelected) {
-      // Deselect if already selected
+      // Deselect if already selected (Hearthstone-style: click to cancel)
       clearSelection()
+      GameLogger.debug(`Deselected ${card.name}`)
       return
     }
 
-    // For action phase, select the card for placement (all card types)
+    // For action phase, select the card for placement (Hearthstone-style)
     const isOurTurn = gameState.activePlayer === 'player1'
     const isAction = gameState.phase === 'action'
     const totalMana = gameState.player1.mana + gameState.player1.spellMana
     const canAfford = card.cost <= totalMana
 
     if (isOurTurn && isAction && canAfford) {
-      // Select the card for click-to-place (works for all card types)
+      // Select the card for click-to-place (Hearthstone-style: click card, then click slot)
       selectCard(card)
-      GameLogger.debug(`Selected ${card.name} for placement`)
+      GameLogger.debug(`Selected ${card.name} for placement - click a slot to play`)
       return
     }
 

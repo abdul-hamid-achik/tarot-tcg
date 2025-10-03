@@ -26,6 +26,7 @@ export const useGameActions = () => {
       // Use multiplayer action if connected
       if (multiplayer.isMultiplayer) {
         await multiplayer.playCard(card, targetPosition?.slot)
+        clearSelection() // Clear selection after successful play
         return
       }
 
@@ -37,6 +38,7 @@ export const useGameActions = () => {
         const { playCard: localPlayCard } = await import('@/lib/game_logic')
         const newGameState = await localPlayCard(gameState, card, targetPosition?.slot)
 
+        // Only update state and clear selection if successful
         setGameState(newGameState)
         clearSelection()
 
@@ -44,6 +46,7 @@ export const useGameActions = () => {
       } catch (error) {
         GameLogger.error('Error playing card:', error)
         GameLogger.action(`Failed to play ${card.name}: ${error}`)
+        // Don't clear selection on error so user can see what went wrong
       } finally {
         setAnimationState(false)
       }

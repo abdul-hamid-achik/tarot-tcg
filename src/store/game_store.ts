@@ -219,6 +219,8 @@ export const useGameStore = create<GameStore>()(
           interaction: {
             ...state.interaction,
             selectedCard: null,
+            draggedCard: null,
+            dragStartPosition: null,
             attackSource: null,
             targetingMode: 'none',
             validAttackTargets: new Set(),

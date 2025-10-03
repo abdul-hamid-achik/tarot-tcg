@@ -11,6 +11,8 @@ vi.mock('../../lib/game_logger', () => ({
         ai: vi.fn(),
         state: vi.fn(),
         error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
         turnStart: vi.fn(),
     },
 }))
@@ -312,13 +314,14 @@ describe('Game Logic - endTurn()', () => {
 
         const initialHandSize = gameState.player2.hand.length
         const initialDeckSize = gameState.player2.deck.length
-        const topCard = gameState.player2.deck[0]
+        const topCardId = gameState.player2.deck[0].id
 
         const newState = await endTurn(gameState)
 
         expect(newState.player2.hand).toHaveLength(initialHandSize + 1)
         expect(newState.player2.deck).toHaveLength(initialDeckSize - 1)
-        expect(newState.player2.hand).toContain(topCard)
+        // Check for card by ID (card is wrapped with isReversed property, so reference changes)
+        expect(newState.player2.hand.some(c => c.id === topCardId)).toBe(true)
     })
 
     it('should handle empty deck gracefully', async () => {
@@ -795,5 +798,337 @@ describe('Game Logic - aiTurn()', () => {
 
         // Should play all cards (2+3+2 = 7 mana used)
         expect(newState.player2.hand.length).toBeLessThan(3)
+    })
+})
+
+describe('Game Logic - Card Hand Removal', () => {
+    let gameState: GameState
+    let playCard: (state: GameState, card: any, targetSlot?: number) => Promise<GameState>
+
+    beforeEach(async () => {
+        const gameLogic = await import('../../lib/game_logic')
+        playCard = gameLogic.playCard
+
+        // Create game state in action phase with cards in hand
+        gameState = createTestGameState({
+            phase: 'action',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                mana: 10,
+                spellMana: 5,
+                hand: [
+                    createTestCard({ id: 'card1', name: 'Test Card 1', cost: 3, type: 'unit', attack: 2, health: 3 }),
+                    createTestCard({ id: 'card2', name: 'Test Card 2', cost: 2, type: 'unit', attack: 1, health: 2 }),
+                    createTestCard({ id: 'card3', name: 'Test Card 3', cost: 1, type: 'spell' }),
+                ],
+                deck: [],
+                mulliganComplete: true,
+            }),
+        })
+    })
+
+    it('should remove unit card from hand when played', async () => {
+        const cardToPlay = gameState.player1.hand[0]
+        const initialHandSize = gameState.player1.hand.length
+
+        const newState = await playCard(gameState, cardToPlay, 0)
+
+        // Card should be removed from hand
+        expect(newState.player1.hand.length).toBe(initialHandSize - 1)
+        expect(newState.player1.hand.find(c => c.id === cardToPlay.id)).toBeUndefined()
+    })
+
+    it('should remove spell card from hand when played', async () => {
+        const spellCard = gameState.player1.hand[2] // The spell card
+        const initialHandSize = gameState.player1.hand.length
+
+        const newState = await playCard(gameState, spellCard)
+
+        // Spell should be removed from hand
+        expect(newState.player1.hand.length).toBe(initialHandSize - 1)
+        expect(newState.player1.hand.find(c => c.id === spellCard.id)).toBeUndefined()
+    })
+
+    it('should not modify original state when removing card from hand', async () => {
+        const cardToPlay = gameState.player1.hand[0]
+        const originalHandSize = gameState.player1.hand.length
+        const originalHandIds = gameState.player1.hand.map(c => c.id)
+
+        await playCard(gameState, cardToPlay, 0)
+
+        // Original state should remain unchanged (immutability test)
+        expect(gameState.player1.hand.length).toBe(originalHandSize)
+        expect(gameState.player1.hand.map(c => c.id)).toEqual(originalHandIds)
+    })
+
+    it('should place unit on battlefield and remove from hand in single operation', async () => {
+        const unitCard = gameState.player1.hand[0]
+        const initialHandSize = gameState.player1.hand.length
+
+        const newState = await playCard(gameState, unitCard, 2)
+
+        // Card removed from hand
+        expect(newState.player1.hand.length).toBe(initialHandSize - 1)
+        expect(newState.player1.hand.find(c => c.id === unitCard.id)).toBeUndefined()
+
+        // Card placed on battlefield
+        expect(newState.battlefield.playerUnits[2]).toBeDefined()
+        expect(newState.battlefield.playerUnits[2]?.name).toBe(unitCard.name)
+    })
+
+    it('should handle playing multiple cards sequentially', async () => {
+        const card1 = gameState.player1.hand[0]
+        const card2 = gameState.player1.hand[1]
+        const initialHandSize = gameState.player1.hand.length
+
+        let newState = await playCard(gameState, card1, 0)
+        expect(newState.player1.hand.length).toBe(initialHandSize - 1)
+
+        newState = await playCard(newState, card2, 1)
+        expect(newState.player1.hand.length).toBe(initialHandSize - 2)
+
+        // Both cards should be gone from hand
+        expect(newState.player1.hand.find(c => c.id === card1.id)).toBeUndefined()
+        expect(newState.player1.hand.find(c => c.id === card2.id)).toBeUndefined()
+    })
+})
+
+describe('Game Logic - Reversed Card Orientation', () => {
+    let gameState: GameState
+    let endTurn: (state: GameState) => Promise<GameState>
+    let createInitialGameState: (useZodiacDeck?: string, gameMode?: string) => GameState
+    let completeMulligan: (state: GameState) => GameState
+
+    beforeEach(async () => {
+        const gameLogic = await import('../../lib/game_logic')
+        endTurn = gameLogic.endTurn
+        createInitialGameState = gameLogic.createInitialGameState
+        completeMulligan = gameLogic.completeMulligan
+    })
+
+    it('should set isReversed property on cards in starting hand', () => {
+        const newGameState = createInitialGameState()
+
+        // Check that starting hand cards have isReversed property
+        newGameState.player1.hand.forEach(card => {
+            expect(card).toHaveProperty('isReversed')
+            expect(typeof card.isReversed).toBe('boolean')
+        })
+
+        newGameState.player2.hand.forEach(card => {
+            expect(card).toHaveProperty('isReversed')
+            expect(typeof card.isReversed).toBe('boolean')
+        })
+    })
+
+    it('should set isReversed property when drawing card on turn', async () => {
+        gameState = createTestGameState({
+            phase: 'action',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                hand: [],
+                deck: [
+                    createTestCard({ id: 'deck1', name: 'Deck Card 1' }),
+                    createTestCard({ id: 'deck2', name: 'Deck Card 2' }),
+                ],
+                mulliganComplete: true,
+            }),
+        })
+
+        const newState = await endTurn(gameState)
+
+        // Next player should have drawn a card with orientation set
+        const drawnCard = newState.player2.hand[0]
+        expect(drawnCard).toBeDefined()
+        expect(drawnCard).toHaveProperty('isReversed')
+        expect(typeof drawnCard.isReversed).toBe('boolean')
+    })
+
+    it('should maintain isReversed property when card is played', async () => {
+        const { playCard } = await import('../../lib/game_logic')
+        
+        // Create a card with reversed orientation
+        const reversedCard = createTestCard({ 
+            id: 'reversed1', 
+            name: 'Reversed Card', 
+            cost: 2, 
+            type: 'unit',
+            attack: 2,
+            health: 3,
+        })
+        reversedCard.isReversed = true
+
+        gameState = createTestGameState({
+            phase: 'action',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                mana: 10,
+                hand: [reversedCard],
+                mulliganComplete: true,
+            }),
+        })
+
+        const newState = await playCard(gameState, reversedCard, 0)
+
+        // Card on battlefield should maintain reversed orientation
+        const playedCard = newState.battlefield.playerUnits[0]
+        expect(playedCard).toBeDefined()
+        expect(playedCard?.isReversed).toBe(true)
+    })
+
+    it('should set orientation on mulliganed replacement cards', () => {
+        gameState = createTestGameState({
+            phase: 'mulligan',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                hand: [
+                    createTestCard({ id: 'card1', name: 'Card 1' }),
+                    createTestCard({ id: 'card2', name: 'Card 2' }),
+                    createTestCard({ id: 'card3', name: 'Card 3' }),
+                ],
+                deck: Array(10).fill(null).map((_, i) => 
+                    createTestCard({ id: `deck${i}`, name: `Deck Card ${i}` })
+                ),
+                selectedForMulligan: ['card1', 'card3'], // Mulligan 2 cards
+                mulliganComplete: false,
+            }),
+            player2: createTestPlayer('player2', {
+                mulliganComplete: true,
+            }),
+        })
+
+        const newState = completeMulligan(gameState)
+
+        // All cards in hand should have isReversed property
+        newState.player1.hand.forEach(card => {
+            expect(card).toHaveProperty('isReversed')
+            expect(typeof card.isReversed).toBe('boolean')
+        })
+    })
+
+    it('should randomly assign reversed orientation based on ORIENTATION_CHANCE', () => {
+        // Create many games to test randomness
+        const results = { reversed: 0, upright: 0 }
+        const iterations = 100
+
+        for (let i = 0; i < iterations; i++) {
+            const newGameState = createInitialGameState()
+            newGameState.player1.hand.forEach(card => {
+                if (card.isReversed) {
+                    results.reversed++
+                } else {
+                    results.upright++
+                }
+            })
+        }
+
+        // With ORIENTATION_CHANCE = 0.5, we expect roughly 50/50 split
+        // Allow some variance (30-70% range is reasonable for random)
+        const totalCards = results.reversed + results.upright
+        const reversedPercentage = results.reversed / totalCards
+        expect(reversedPercentage).toBeGreaterThan(0.3)
+        expect(reversedPercentage).toBeLessThan(0.7)
+    })
+})
+
+describe('Game Logic - State Immutability', () => {
+    let gameState: GameState
+    let playCard: (state: GameState, card: any, targetSlot?: number) => Promise<GameState>
+    let endTurn: (state: GameState) => Promise<GameState>
+
+    beforeEach(async () => {
+        const gameLogic = await import('../../lib/game_logic')
+        playCard = gameLogic.playCard
+        endTurn = gameLogic.endTurn
+
+        gameState = createTestGameState({
+            phase: 'action',
+            activePlayer: 'player1',
+            player1: createTestPlayer('player1', {
+                mana: 10,
+                spellMana: 2,
+                hand: [
+                    createTestCard({ id: 'card1', name: 'Test Card', cost: 3, type: 'unit', attack: 2, health: 3 }),
+                ],
+                deck: [
+                    createTestCard({ id: 'deck1', name: 'Deck Card' }),
+                ],
+                mulliganComplete: true,
+            }),
+        })
+    })
+
+    it('should not mutate original hand array when playing card', async () => {
+        const originalHand = [...gameState.player1.hand]
+        const originalHandIds = originalHand.map(c => c.id)
+        const cardToPlay = gameState.player1.hand[0]
+
+        await playCard(gameState, cardToPlay, 0)
+
+        // Original state's hand should be unchanged
+        expect(gameState.player1.hand.length).toBe(originalHand.length)
+        expect(gameState.player1.hand.map(c => c.id)).toEqual(originalHandIds)
+    })
+
+    it('should not mutate original battlefield when playing card', async () => {
+        const originalPlayerUnits = [...gameState.battlefield.playerUnits]
+        const cardToPlay = gameState.player1.hand[0]
+
+        await playCard(gameState, cardToPlay, 2)
+
+        // Original battlefield should be unchanged
+        expect(gameState.battlefield.playerUnits).toEqual(originalPlayerUnits)
+    })
+
+    it('should not mutate original player mana when playing card', async () => {
+        const originalMana = gameState.player1.mana
+        const originalSpellMana = gameState.player1.spellMana
+        const cardToPlay = gameState.player1.hand[0]
+
+        await playCard(gameState, cardToPlay, 0)
+
+        // Original mana values should be unchanged
+        expect(gameState.player1.mana).toBe(originalMana)
+        expect(gameState.player1.spellMana).toBe(originalSpellMana)
+    })
+
+    it('should not mutate original deck when drawing card on endTurn', async () => {
+        const originalDeck = [...gameState.player1.deck]
+        const originalDeckLength = originalDeck.length
+
+        await endTurn(gameState)
+
+        // Original deck should be unchanged
+        expect(gameState.player1.deck.length).toBe(originalDeckLength)
+        expect(gameState.player1.deck).toEqual(originalDeck)
+    })
+
+    it('should create independent copies of nested arrays', async () => {
+        const cardToPlay = gameState.player1.hand[0]
+        const newState = await playCard(gameState, cardToPlay, 0)
+
+        // Modify new state's hand
+        newState.player1.hand.push(createTestCard({ id: 'new-card', name: 'New Card' }))
+
+        // Original hand should not be affected
+        expect(gameState.player1.hand.length).toBe(1)
+        expect(gameState.player1.hand.find(c => c.id === 'new-card')).toBeUndefined()
+    })
+
+    it('should create independent copies of battlefield arrays', async () => {
+        const cardToPlay = gameState.player1.hand[0]
+        const newState = await playCard(gameState, cardToPlay, 0)
+
+        // Modify new state's battlefield
+        newState.battlefield.playerUnits[3] = createTestCard({ 
+            id: 'injected', 
+            name: 'Injected Card', 
+            type: 'unit',
+            attack: 1,
+            health: 1,
+        })
+
+        // Original battlefield should not be affected
+        expect(gameState.battlefield.playerUnits[3]).toBeNull()
     })
 })

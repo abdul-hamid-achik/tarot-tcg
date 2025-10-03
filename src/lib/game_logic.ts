@@ -286,7 +286,7 @@ export async function playCard(
   }
 
   // Deep copy state to avoid mutations
-  const newState = { 
+  const newState = {
     ...state,
     battlefield: {
       ...state.battlefield,
@@ -777,7 +777,7 @@ export function getWinConditionProgress(playerId: 'player1' | 'player2') {
 
 export async function endTurn(state: GameState): Promise<GameState> {
   // Deep copy state to avoid mutations
-  const newState = { 
+  const newState = {
     ...state,
     battlefield: {
       ...state.battlefield,
@@ -844,14 +844,14 @@ export async function endTurn(state: GameState): Promise<GameState> {
   // Draw a card
   if (currentPlayer.deck.length > 0) {
     const drawnCard = currentPlayer.deck.shift()!
-    
+
     // CRITICAL: Determine orientation when drawn (tarot mechanic)
     const isReversed = Math.random() < GAME_CONFIG.ORIENTATION_CHANCE
     const cardWithOrientation = {
       ...drawnCard,
       isReversed,
     }
-    
+
     currentPlayer.hand.push(cardWithOrientation)
 
     // Emit card drawn event
@@ -1102,6 +1102,6 @@ export function aiMulligan(
 function shuffleDeck(player: Player): void {
   for (let i = player.deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-    ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+      ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
   }
 }
