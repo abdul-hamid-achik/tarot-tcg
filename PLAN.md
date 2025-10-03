@@ -1102,9 +1102,9 @@ Use GitHub Issues/Projects to track:
 - [x] Remove LoR references from action_bar.tsx
 - [x] Update game description to Hearthstone-style combat
 
-**Test Status**: ✅ **430/430 tests passing (100%!)** 🎉🎉🎉  
+**Test Status**: ✅ **467/467 tests passing (100%!)** 🎉🎉🎉  
 **Coverage Progress**:
-- Overall: **~57%** (up from 55%) 📈📈
+- Overall: **~58%** (up from 57%) 📈📈
 - game_logic.ts: **31.29%** (up from 22.14%)
 - combat_service.ts: **63.35%** (24 tests)
 - **win_condition_service.ts**: **~50%** (47/47 passing, 100%!) ✅
@@ -1114,13 +1114,15 @@ Use GitHub Issues/Projects to track:
 - **game_store.ts**: **~70%** (37 tests, all passing) 🎯
 - **phase_manager_service.ts**: **~75%** (46 tests, all passing) 🔥
 - **card_effect_system.ts**: **~70%** (30 tests, all passing) 💪
-- **astrology_service.ts**: **~85%** (46 tests, all passing) 🔮 **NEW!**
+- **astrology_service.ts**: **~85%** (46 tests, all passing) 🔮
+- **effect_stack_service.ts**: **~50%** (37 tests, all passing) 🃏 **NEW!**
 - Hooks: **29.18%** (up from 1.33%)
 - Lib layer: **~25%** (up from 21.65%)
 
-**Total Tests**: 430 (430 passing, **100% pass rate!**) ✅
+**Total Tests**: 467 (467 passing, **100% pass rate!**) ✅
 
 **Recent Test Additions**:
+- +37 tests for effect_stack_service.ts (all passing) ✨ **SESSION 8** 🃏 **Oct 2, 2025**
 - +46 tests for astrology_service.ts (all passing) ✨ **SESSION 8** 🔮 **Oct 2, 2025**
 - +30 tests for card_effect_system.ts (all passing) ✨ **SESSION 8** 💪 **Oct 2, 2025**
 - +46 tests for phase_manager_service.ts (all passing) ✨ **SESSION 7** 🔥 **Sept 29**
@@ -1179,6 +1181,17 @@ Use GitHub Issues/Projects to track:
   - Edge cases handled
   - 0% → ~85% coverage (318-line service)
   - **ALL ZERO-COVERAGE SERVICES NOW TESTED!** 🏆
+- ✅ effect_stack_service.ts Tests (HIGH PRIORITY! 🃏)
+  - 37 comprehensive tests, all passing 🎯
+  - Stack operations (add, resolve, sort)
+  - Priority system (LIFO, priority-based, timestamp)
+  - Response windows & counter-spell mechanics
+  - Resolution modes (LIFO, priority, timestamp, custom)
+  - Stack state management & statistics
+  - Error handling (failed resolution, exceptions)
+  - Complex scenarios (multiple effects, all item types)
+  - Edge cases handled
+  - 14.57% → ~50% coverage (696-line service)
 
 **Linting**: ✅ No errors  
 **TypeScript**: ✅ No errors
@@ -1288,7 +1301,7 @@ Comprehensive coverage of combat system:
 
 🟡 Partial coverage:
 - `battlefield_service.ts` - 13.49%
-- `effect_stack_service.ts` - 14.57% (blocked by event_manager)
+- ✅ ~~`effect_stack_service.ts`~~ - **DONE! ~50% (37 tests)** 🃏
 - `ai_service.ts` - Some coverage
 - `animation_service.ts` - Low priority
 - `interaction_service.ts` - Low priority
@@ -1595,7 +1608,7 @@ vi.unmock('@/services/win_condition_service')
 | **P1** 🟠 | `phase_manager_service.ts` | 265 | 0% | ~15 | 3-4h | +3% |
 | ~~**P2** 🟡~~ | ~~`card_effect_system.ts`~~ | ~~489~~ | ~~0%~~ **70%** ✅ | ~~15~~ **30** | ~~4-5h~~ **DONE** | +4% ✅ |
 | ~~**P2** 🟡~~ | ~~`astrology_service.ts`~~ | ~~318~~ | ~~0%~~ **85%** ✅ | ~~12~~ **46** | ~~3h~~ **DONE** | +2% ✅ |
-| **P2** 🟡 | `effect_stack_service.ts` | 696 | 14.57% | ~10 | 3-4h | +3% |
+| ~~**P2** 🟡~~ | ~~`effect_stack_service.ts`~~ | ~~696~~ | ~~14.57%~~ **50%** ✅ | ~~10~~ **37** | ~~3-4h~~ **DONE** | +3% ✅ |
 | **P2** 🟡 | `battlefield_service.ts` | - | 13.49% | ~20 | 3-4h | +2% |
 | **P2** 🟡 | Hooks (5 files) | - | 29.18% | ~30 | 6-8h | +4% |
 
@@ -1675,7 +1688,8 @@ Priorities:
 
 1. ~~`card_effect_system.ts` - Effect execution (15 tests)~~ ✅ **DONE! 30 tests (Oct 2)**
 2. ~~`astrology_service.ts` - Zodiac buffs & seasonal effects (12 tests)~~ ✅ **DONE! 46 tests (Oct 2)**
-3. `effect_stack_service.ts` - Complete coverage (10 tests) - **NEXT**
+3. ~~`effect_stack_service.ts` - Complete coverage (10 tests)~~ ✅ **DONE! 37 tests (Oct 2)**
+4. `battlefield_service.ts` - Improve partial coverage (20 tests) - **NEXT**
 
 ### Lower Priority (Week 4+)
 
