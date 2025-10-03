@@ -96,8 +96,16 @@ describe('useMultiplayerActions', () => {
     // Mock optimistic updateService
     vi.mocked(optimisticUpdateService.getPendingCount).mockReturnValue(0)
     vi.mocked(optimisticUpdateService.applyOptimistic).mockImplementation(() => {})
-    vi.mocked(optimisticUpdateService.confirmAction).mockReturnValue({ serverState: undefined })
-    vi.mocked(optimisticUpdateService.revertAction).mockReturnValue({ serverState: undefined })
+    vi.mocked(optimisticUpdateService.confirmAction).mockReturnValue({ 
+      success: true, 
+      actionId: 'test-action-1',
+      serverState: undefined 
+    })
+    vi.mocked(optimisticUpdateService.revertAction).mockReturnValue({ 
+      success: true, 
+      actionId: 'test-action-2',
+      serverState: undefined 
+    })
 
     // Mock GameLogger
     vi.mocked(GameLogger.state).mockImplementation(() => {})

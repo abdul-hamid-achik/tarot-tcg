@@ -765,7 +765,7 @@ describe('Game Logic - aiTurn()', () => {
         // Place a unit that will cause attack to fail (e.g., taunt on enemy side)
         gameState.battlefield.playerUnits[0] = createTestCard({
             id: 'taunt-unit',
-            abilities: [{ name: 'Taunt' }],
+            abilities: [{ name: 'Taunt', description: 'Must be attacked first' }],
             health: 5
         })
         gameState.battlefield.enemyUnits[0] = createTestCard({

@@ -7,6 +7,21 @@ import { CardEffectSystem, createEffect } from '../card_effect_system'
 import type { Card, CardEffect, EffectContext, GameEvent, GameState, TriggeredAbility } from '@/schemas/schema'
 import { createTestGameState, createTestCard } from '@/test_utils'
 
+// Helper to create complete GameEvent with all required fields
+const createTestGameEvent = (partial: Partial<GameEvent>, gameState: GameState): GameEvent => ({
+    id: 'test-event-' + Date.now(),
+    type: 'card_played',
+    timestamp: Date.now(),
+    gameStateId: 'test-state-1',
+    phase: gameState.phase,
+    activePlayer: gameState.activePlayer,
+    turn: gameState.turn,
+    round: gameState.round,
+    source: { type: 'card', id: 'card-1', name: 'Test Card' },
+    data: {},
+    ...partial,
+})
+
 describe('CardEffectSystem', () => {
     let effectSystem: CardEffectSystem
     let gameState: GameState
@@ -21,6 +36,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'test-card-1' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-1',
                     name: 'On Summon',
                     description: 'Draw a card when summoned',
                     trigger: { event: 'unit_summoned', source: 'self' },
@@ -39,6 +55,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'test-card-2' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-2',
                     name: 'On Summon',
                     description: 'Draw a card',
                     trigger: { event: 'unit_summoned', source: 'self' },
@@ -46,6 +63,7 @@ describe('CardEffectSystem', () => {
                     optional: false,
                 },
                 {
+                    id: 'test-ability-3',
                     name: 'On Death',
                     description: 'Deal 1 damage',
                     trigger: { event: 'unit_dies', source: 'self' },
@@ -64,6 +82,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'test-card-3' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-4',
                     name: 'Test Ability',
                     description: 'Test',
                     trigger: { event: 'unit_summoned' },
@@ -100,13 +119,11 @@ describe('CardEffectSystem', () => {
                 gameState,
                 source: createTestCard({ id: 'source-card' }),
             }
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'event-1',
                 type: 'card_played',
-                timestamp: Date.now(),
                 source: { type: 'card', id: 'source-card', name: 'Test Card' },
-                data: {},
-            }
+            }, gameState)
 
             const result = await effectSystem.executeEffect(effect, context, event)
 
@@ -204,6 +221,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'trigger-card', name: 'Trigger Card' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-5',
                     name: 'On Summon',
                     description: 'Draw a card',
                     trigger: { event: 'unit_summoned', source: 'self' },
@@ -214,13 +232,12 @@ describe('CardEffectSystem', () => {
 
             effectSystem.registerCardAbilities(card, abilities)
 
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'event-1',
                 type: 'unit_summoned',
-                timestamp: Date.now(),
                 source: { type: 'card', id: 'trigger-card', name: 'Trigger Card' },
                 data: { gameState },
-            }
+            }, gameState)
 
             await effectSystem.processTriggeredAbilities(event)
 
@@ -232,6 +249,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'trigger-card' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-6',
                     name: 'On Death',
                     description: 'Deal damage',
                     trigger: { event: 'unit_dies', source: 'self' },
@@ -242,13 +260,12 @@ describe('CardEffectSystem', () => {
 
             effectSystem.registerCardAbilities(card, abilities)
 
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'event-2',
                 type: 'card_played',
-                timestamp: Date.now(),
                 source: { type: 'card', id: 'other-card', name: 'Other Card' },
                 data: { gameState },
-            }
+            }, gameState)
 
             // Should not trigger (different event type)
             await effectSystem.processTriggeredAbilities(event)
@@ -259,6 +276,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'optional-card' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-7',
                     name: 'Optional Draw',
                     description: 'May draw a card',
                     trigger: { event: 'unit_summoned', source: 'self' },
@@ -269,13 +287,12 @@ describe('CardEffectSystem', () => {
 
             effectSystem.registerCardAbilities(card, abilities)
 
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'event-3',
                 type: 'unit_summoned',
-                timestamp: Date.now(),
                 source: { type: 'card', id: 'optional-card', name: 'Optional Card' },
                 data: { gameState },
-            }
+            }, gameState)
 
             // Should skip optional abilities
             await effectSystem.processTriggeredAbilities(event)
@@ -288,6 +305,7 @@ describe('CardEffectSystem', () => {
 
             const abilities1: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-8',
                     name: 'On Turn Start',
                     description: 'Draw a card',
                     trigger: { event: 'turn_start' },
@@ -298,6 +316,7 @@ describe('CardEffectSystem', () => {
 
             const abilities2: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-9',
                     name: 'On Turn Start',
                     description: 'Gain 1 health',
                     trigger: { event: 'turn_start' },
@@ -309,13 +328,12 @@ describe('CardEffectSystem', () => {
             effectSystem.registerCardAbilities(card1, abilities1)
             effectSystem.registerCardAbilities(card2, abilities2)
 
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'event-4',
                 type: 'turn_start',
-                timestamp: Date.now(),
                 source: { type: 'system', id: 'game', name: 'Game' },
                 data: { gameState },
-            }
+            }, gameState)
 
             await effectSystem.processTriggeredAbilities(event)
             expect(true).toBe(true)
@@ -343,6 +361,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'cleanup-card' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-10',
                     name: 'Test',
                     description: 'Test ability',
                     trigger: { event: 'unit_summoned' },
@@ -364,6 +383,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'reset-card' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-11',
                     name: 'Test',
                     description: 'Test ability',
                     trigger: { event: 'unit_summoned' },
@@ -458,13 +478,12 @@ describe('CardEffectSystem', () => {
         })
 
         it('should handle processing abilities with no registered cards', async () => {
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'event-5',
                 type: 'unit_summoned',
-                timestamp: Date.now(),
                 source: { type: 'card', id: 'some-card', name: 'Some Card' },
                 data: { gameState },
-            }
+            }, gameState)
 
             await effectSystem.processTriggeredAbilities(event)
 
@@ -492,13 +511,12 @@ describe('CardEffectSystem', () => {
         it('should listen for turn start events', async () => {
             // The constructor sets up event listeners
             // Just verify the system can handle the event without crashing
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'turn-start-1',
                 type: 'turn_start',
-                timestamp: Date.now(),
                 source: { type: 'system', id: 'game', name: 'Game' },
                 data: { gameState },
-            }
+            }, gameState)
 
             await effectSystem.processTriggeredAbilities(event)
             expect(true).toBe(true)
@@ -508,6 +526,7 @@ describe('CardEffectSystem', () => {
             const card = createTestCard({ id: 'destroyed-card' })
             const abilities: TriggeredAbility[] = [
                 {
+                    id: 'test-ability-12',
                     name: 'Test',
                     description: 'Test',
                     trigger: { event: 'card_destroyed' },
@@ -518,13 +537,12 @@ describe('CardEffectSystem', () => {
 
             effectSystem.registerCardAbilities(card, abilities)
 
-            const event: GameEvent = {
+            const event = createTestGameEvent({
                 id: 'destroy-1',
                 type: 'card_destroyed',
-                timestamp: Date.now(),
                 source: { type: 'card', id: 'destroyed-card', name: 'Destroyed Card' },
                 data: { gameState },
-            }
+            }, gameState)
 
             await effectSystem.processTriggeredAbilities(event)
             expect(true).toBe(true)
