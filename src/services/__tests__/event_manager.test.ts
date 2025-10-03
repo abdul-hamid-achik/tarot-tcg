@@ -202,21 +202,21 @@ describe('EventManager', () => {
             const listener = vi.fn()
             eventManager.subscribe(
                 {
-                    types: ['combat_damage'],
+                    types: ['combat_damage_dealt'],
                     target: { type: 'player', id: 'player1' },
                 },
                 listener
             )
 
             await eventManager.emit(
-                'combat_damage',
+                'combat_damage_dealt',
                 gameState,
                 {},
                 undefined,
                 { type: 'player', id: 'player1' }
             )
             await eventManager.emit(
-                'combat_damage',
+                'combat_damage_dealt',
                 gameState,
                 {},
                 undefined,
@@ -232,7 +232,8 @@ describe('EventManager', () => {
                 {
                     types: ['card_played'],
                     condition: (event) => {
-                        return event.data.cost && event.data.cost >= 5
+                        const data = event.data as any
+                        return data.cost && data.cost >= 5
                     },
                 },
                 listener
@@ -250,19 +251,19 @@ describe('EventManager', () => {
         it('should execute listeners in priority order (highest first)', async () => {
             const executionOrder: number[] = []
 
-            eventManager.subscribe({ types: ['test'] }, async () => {
+            eventManager.subscribe({ types: ['card_played'] }, async () => {
                 executionOrder.push(1)
             }, { priority: 1 })
 
-            eventManager.subscribe({ types: ['test'] }, async () => {
+            eventManager.subscribe({ types: ['card_played'] }, async () => {
                 executionOrder.push(5)
             }, { priority: 5 })
 
-            eventManager.subscribe({ types: ['test'] }, async () => {
+            eventManager.subscribe({ types: ['card_played'] }, async () => {
                 executionOrder.push(3)
             }, { priority: 3 })
 
-            await eventManager.emit('test', gameState, {})
+            await eventManager.emit('card_played', gameState, {})
 
             expect(executionOrder).toEqual([5, 3, 1])
         })
@@ -270,15 +271,15 @@ describe('EventManager', () => {
         it('should default to priority 0 if not specified', async () => {
             const executionOrder: number[] = []
 
-            eventManager.subscribe({ types: ['test'] }, async () => {
+            eventManager.subscribe({ types: ['card_drawn'] }, async () => {
                 executionOrder.push(0)
             })
 
-            eventManager.subscribe({ types: ['test'] }, async () => {
+            eventManager.subscribe({ types: ['card_drawn'] }, async () => {
                 executionOrder.push(5)
             }, { priority: 5 })
 
-            await eventManager.emit('test', gameState, {})
+            await eventManager.emit('card_drawn', gameState, {})
 
             expect(executionOrder).toEqual([5, 0])
         })
@@ -336,7 +337,10 @@ describe('EventManager', () => {
             await eventManager.emit('card_played', gameState, { cost: 7 })
 
             const expensiveCards = eventManager.getHistory({
-                condition: (event) => event.data.cost && event.data.cost >= 5,
+                condition: (event) => {
+                    const data = event.data as any
+                    return data.cost && data.cost >= 5
+                },
             })
 
             expect(expensiveCards).toHaveLength(2)
@@ -360,8 +364,8 @@ describe('EventManager', () => {
             const recentCardPlayed = eventManager.getRecentEvents('card_played', 2)
 
             expect(recentCardPlayed).toHaveLength(2)
-            expect(recentCardPlayed[0].data.cardId).toBe('3')
-            expect(recentCardPlayed[1].data.cardId).toBe('4')
+            expect((recentCardPlayed[0].data as any).cardId).toBe('3')
+            expect((recentCardPlayed[1].data as any).cardId).toBe('4')
         })
 
         it('should check if event occurred recently within turns', async () => {
@@ -379,14 +383,14 @@ describe('EventManager', () => {
             const smallHistoryManager = new EventManager(5)
 
             for (let i = 0; i < 10; i++) {
-                await smallHistoryManager.emit('test', gameState, { index: i })
+                await smallHistoryManager.emit('card_drawn', gameState, { index: i })
             }
 
             const history = smallHistoryManager.getHistory()
 
             expect(history).toHaveLength(5)
-            expect(history[0].data.index).toBe(5) // First event should be index 5
-            expect(history[4].data.index).toBe(9) // Last event should be index 9
+            expect((history[0].data as any).index).toBe(5) // First event should be index 5
+            expect((history[4].data as any).index).toBe(9) // Last event should be index 9
         })
     })
 
@@ -582,12 +586,12 @@ describe('EventManager', () => {
             const listener2 = vi.fn()
             const listener3 = vi.fn()
 
-            eventManager.subscribe({ types: ['test'] }, listener1)
-            eventManager.subscribe({ types: ['test'] }, listener2)
-            eventManager.subscribe({ types: ['test'] }, listener3)
+            eventManager.subscribe({ types: ['unit_summoned'] }, listener1)
+            eventManager.subscribe({ types: ['unit_summoned'] }, listener2)
+            eventManager.subscribe({ types: ['unit_summoned'] }, listener3)
 
             // Should not throw
-            await eventManager.emit('test', gameState, {})
+            await eventManager.emit('unit_summoned', gameState, {})
 
             expect(listener1).toHaveBeenCalled()
             expect(listener2).toHaveBeenCalled()
@@ -602,9 +606,9 @@ describe('EventManager', () => {
                 throw new Error('Test error')
             })
 
-            eventManager.subscribe({ types: ['test'] }, listener)
+            eventManager.subscribe({ types: ['turn_start'] }, listener)
 
-            await eventManager.emit('test', gameState, {})
+            await eventManager.emit('turn_start', gameState, {})
 
             expect(loggerErrorSpy).toHaveBeenCalled()
             loggerErrorSpy.mockRestore()

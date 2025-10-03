@@ -452,7 +452,7 @@ describe('CardEffectSystem', () => {
             }
 
             effects.forEach(effect => {
-                const result = effect.execute(context)
+                const result = effect.execute(context) as { success: boolean; newGameState: any }
                 expect(result.success).toBe(true)
                 expect(result.newGameState).toBeDefined()
             })
