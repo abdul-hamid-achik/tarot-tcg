@@ -21,6 +21,9 @@ vi.mock('../../lib/game_logger', () => ({
         ai: vi.fn(),
         state: vi.fn(),
         error: vi.fn(),
+        warn: vi.fn(),
+        debug: vi.fn(),
+        info: vi.fn(),
     },
 }))
 
