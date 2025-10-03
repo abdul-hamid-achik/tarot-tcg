@@ -69,7 +69,7 @@ export class CardEffectSystem {
     _triggeringEvent?: GameEvent,
   ): Promise<EffectResult> {
     // TODO: Complete effect system integration for battlefield system
-    GameLogger.warn('Card effect system temporarily disabled during battlefield conversion')
+    GameLogger.debug('Card effect system temporarily disabled during battlefield conversion')
     return {
       success: true,
       newGameState: context.gameState,
@@ -200,7 +200,7 @@ export class CardEffectSystem {
    */
   updatePersistentEffects(gameState: GameState): GameState {
     // TODO: Complete persistent effects integration for battlefield system
-    GameLogger.warn('Persistent effects temporarily disabled during battlefield conversion')
+    GameLogger.debug('Persistent effects temporarily disabled during battlefield conversion')
     return gameState
   }
 
