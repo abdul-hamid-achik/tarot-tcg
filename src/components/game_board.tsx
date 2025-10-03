@@ -68,10 +68,12 @@ export default function GameBoard({
   // Use emote system
   const { currentEmote, sendEmote, clearEmote } = useEmotes()
 
-  // Initialize game state
+  // Initialize game state only once
+  const initializedRef = React.useRef(false)
   React.useEffect(() => {
-    if (initialGameState) {
+    if (initialGameState && !initializedRef.current) {
       setGameState(initialGameState)
+      initializedRef.current = true
     }
   }, [initialGameState]) // setGameState is stable, don't include in deps
 
