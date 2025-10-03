@@ -109,16 +109,15 @@ export function MainMenu({ onStartGame }: MainMenuProps) {
   const [hoveredOption, setHoveredOption] = useState<string | null>(null)
   const router = useRouter()
 
-  const handleEnterAction = () => {
-    if (selectedOption) {
-      const option = menuOptions.find(opt => opt.id === selectedOption)
-      if (option?.available) {
-        if (option.id === 'quickplay') {
-          onStartGame?.()
-        } else if (option.route) {
-          router.push(option.route)
-        }
-      }
+  const handleOptionClick = (option: MenuOption) => {
+    if (!option.available) return
+
+    setSelectedOption(option.id)
+
+    if (option.id === 'quickplay') {
+      onStartGame?.()
+    } else if (option.route) {
+      router.push(option.route)
     }
   }
 
@@ -187,7 +186,7 @@ export function MainMenu({ onStartGame }: MainMenuProps) {
               `}
               onMouseEnter={() => setHoveredOption(option.id)}
               onMouseLeave={() => setHoveredOption(null)}
-              onClick={() => option.available && setSelectedOption(option.id)}
+              onClick={() => handleOptionClick(option)}
             >
               <CardContent className="p-6 text-center space-y-4">
                 {/* Icon with mystical glow effect */}
@@ -237,20 +236,6 @@ export function MainMenu({ onStartGame }: MainMenuProps) {
           ))}
         </div>
       </div>
-
-      {/* Action Button */}
-      {selectedOption && (
-        <div className="relative z-10 text-center pb-8">
-          <Button
-            size="lg"
-            className="px-8 py-3 text-lg font-semibold bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 shadow-lg transition-colors"
-            onClick={handleEnterAction}
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Enter {menuOptions.find(opt => opt.id === selectedOption)?.title}
-          </Button>
-        </div>
-      )}
 
       {/* Mystical footer */}
       <footer className="relative z-10 text-center p-4 text-gray-800 dark:text-gray-200 text-sm transition-colors">
