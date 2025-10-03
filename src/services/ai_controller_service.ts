@@ -67,7 +67,7 @@ export class AIControllerService {
       return gameState
     }
 
-    this.turnStartTime = Date.now()
+    // this.turnStartTime = Date.now() // TODO: Add performance tracking
     this.currentPersonality = aiService.getCurrentPersonality()
     let currentState = { ...gameState }
 
@@ -188,7 +188,7 @@ export class AIControllerService {
       '🤖 AI evaluating cards:',
       player.hand.map(c => ({ name: c.name, cost: c.cost, type: c.type })),
     )
-    GameLogger.ai('🤖 AI mana:', player.mana, 'spell mana:', player.spellMana)
+    GameLogger.ai(`🤖 AI mana: ${player.mana}, spell mana: ${player.spellMana}`)
     GameLogger.ai(
       '🤖 AI battlefield slots available:',
       gameState.battlefield.enemyUnits.filter(u => u === null).length,
@@ -660,8 +660,8 @@ export class AIControllerService {
 
   // Reset AI state
   reset(): void {
-    this.decisionHistory = []
-    this.turnStartTime = 0
+    // this.decisionHistory = [] // TODO: Add decision history tracking
+    // this.turnStartTime = 0 // TODO: Add performance tracking
     GameLogger.ai('🔄 AI controller reset')
   }
 }

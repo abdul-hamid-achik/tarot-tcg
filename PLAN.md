@@ -159,8 +159,8 @@ async function acquireLock(lockKey: string): Promise<string> {
 
 ## Phase 2: Remove Legacy Code (Week 1-2)
 
-### 🟠 P1-1: Remove All Legends of Runeterra References
-**Problem**: Codebase has mixed combat systems and outdated references
+### ~~🟠 P1-1: Remove All Legends of Runeterra References~~ ✅ COMPLETED
+**Problem**: ~~Codebase has mixed combat systems and outdated references~~
 
 **Files to Update**:
 - `README.md` - Update game description
@@ -210,8 +210,8 @@ grep -r "lane-based" .
 
 ---
 
-### 🟠 P1-3: Remove Unused Schema Properties
-**Problem**: Schema has many unimplemented esoteric properties  
+### ~~🟠 P1-3: Remove Unused Schema Properties~~ ✅ COMPLETED
+**Problem**: ~~Schema has many unimplemented esoteric properties~~ (verified as implemented)  
 **Location**: `src/schemas/schema.ts:125-133`
 
 **Properties to Remove/Mark as Optional**:
@@ -256,8 +256,8 @@ mysticWard
 
 ## Phase 3: Type Safety & Code Quality (Week 2)
 
-### 🟠 P1-5: Replace All `any` Types
-**Problem**: 13+ instances of `any` type, breaking type safety  
+### ~~🟠 P1-5: Replace All `any` Types~~ ✅ COMPLETED
+**Problem**: ~~13+ instances of `any` type, breaking type safety~~  
 **Locations**: `src/lib/game_logic.ts` (lines 394, 431, 442, 466, 477, 733, 748)
 
 **Steps**:
@@ -579,8 +579,8 @@ if (totalAvailableCards < maxSize) {
 
 ---
 
-### 🟢 P3-3: Clean Up Unused Imports
-**Problem**: Many files have unused imports
+### ~~🟢 P3-3: Clean Up Unused Imports~~ ✅ COMPLETED
+**Problem**: ~~Many files have unused imports~~
 
 **Steps**:
 1. Run ESLint with unused import detection

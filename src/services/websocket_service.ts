@@ -1,4 +1,4 @@
-import { GameLogger, GameLogger } from "@/lib/game_logger"
+import { GameLogger } from "@/lib/game_logger"
 import type { Card, GameState, PlayerId } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
 

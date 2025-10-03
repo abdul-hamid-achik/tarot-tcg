@@ -494,13 +494,13 @@ describe('EventManager', () => {
 
         it('should emit combat events with proper structure', async () => {
             const listener = vi.fn()
-            eventManager.subscribe({ types: ['combat_start'] }, listener)
+            eventManager.subscribe({ types: ['combat_declared'] }, listener)
 
-            await eventManager.emitCombatEvent('combat_start', gameState, 3, { damage: 5 })
+            await eventManager.emitCombatEvent('combat_declared', gameState, 3, { damage: 5 })
 
             expect(listener).toHaveBeenCalledWith(
                 expect.objectContaining({
-                    type: 'combat_start',
+                    type: 'combat_declared',
                     data: {
                         laneId: 3,
                         damage: 5,
@@ -542,14 +542,14 @@ describe('EventManager', () => {
         it('should queue events emitted during event processing', async () => {
             const listener1 = vi.fn(async () => {
                 // Emit another event during processing
-                await eventManager.emit('secondary_event', gameState, {})
+                await eventManager.emit('card_drawn', gameState, {})
             })
             const listener2 = vi.fn()
 
-            eventManager.subscribe({ types: ['primary_event'] }, listener1)
-            eventManager.subscribe({ types: ['secondary_event'] }, listener2)
+            eventManager.subscribe({ types: ['card_played'] }, listener1)
+            eventManager.subscribe({ types: ['card_drawn'] }, listener2)
 
-            await eventManager.emit('primary_event', gameState, {})
+            await eventManager.emit('card_played', gameState, {})
 
             expect(listener1).toHaveBeenCalledTimes(1)
             expect(listener2).toHaveBeenCalledTimes(1)
@@ -560,19 +560,19 @@ describe('EventManager', () => {
 
             const listener1 = vi.fn(async () => {
                 executionOrder.push('event1-handler')
-                await eventManager.emit('event2', gameState, {})
-                await eventManager.emit('event3', gameState, {})
+                await eventManager.emit('card_played', gameState, {})
+                await eventManager.emit('card_drawn', gameState, {})
             })
 
-            eventManager.subscribe({ types: ['event1'] }, listener1)
-            eventManager.subscribe({ types: ['event2'] }, async () => {
+            eventManager.subscribe({ types: ['turn_start'] }, listener1)
+            eventManager.subscribe({ types: ['card_played'] }, async () => {
                 executionOrder.push('event2-handler')
             })
-            eventManager.subscribe({ types: ['event3'] }, async () => {
+            eventManager.subscribe({ types: ['card_drawn'] }, async () => {
                 executionOrder.push('event3-handler')
             })
 
-            await eventManager.emit('event1', gameState, {})
+            await eventManager.emit('turn_start', gameState, {})
 
             expect(executionOrder).toEqual(['event1-handler', 'event2-handler', 'event3-handler'])
         })
