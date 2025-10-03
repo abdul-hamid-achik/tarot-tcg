@@ -1,7 +1,6 @@
+'use client'
+
 import { GameLogger } from '@/lib/game_logger'
-
-;('use client')
-
 import React from 'react'
 import { useMultiplayerActions } from '@/hooks/use_multiplayer_actions'
 import { cn } from '@/lib/utils'

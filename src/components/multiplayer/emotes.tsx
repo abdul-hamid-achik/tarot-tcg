@@ -1,7 +1,6 @@
+'use client'
+
 import { GameLogger } from '@/lib/game_logger'
-
-;('use client')
-
 import React, { useState } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -253,11 +252,11 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
                       'hover:scale-105 active:scale-95',
                       'flex flex-col items-center gap-1',
                       emote.mood === 'positive' &&
-                        'bg-green-600/20 hover:bg-green-600/30 border border-green-600/30',
+                      'bg-green-600/20 hover:bg-green-600/30 border border-green-600/30',
                       emote.mood === 'negative' &&
-                        'bg-red-600/20 hover:bg-red-600/30 border border-red-600/30',
+                      'bg-red-600/20 hover:bg-red-600/30 border border-red-600/30',
                       emote.mood === 'neutral' &&
-                        'bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/30',
+                      'bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/30',
                     )}
                     title={emote.text}
                   >

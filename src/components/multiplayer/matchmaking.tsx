@@ -1,7 +1,6 @@
+'use client'
+
 import { GameLogger } from '@/lib/game_logger'
-
-;('use client')
-
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'

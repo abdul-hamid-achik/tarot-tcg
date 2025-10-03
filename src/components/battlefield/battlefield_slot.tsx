@@ -1,7 +1,6 @@
+'use client'
+
 import { GameLogger } from '@/lib/game_logger'
-
-;('use client')
-
 import type React from 'react'
 import { useCallback } from 'react'
 import TarotCard from '@/components/tarot_card'
@@ -144,8 +143,8 @@ export function BattlefieldSlot({
             onClick={
               canInteract
                 ? () => {
-                    /* Handle card click */
-                  }
+                  /* Handle card click */
+                }
                 : undefined
             }
           />

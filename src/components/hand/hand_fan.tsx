@@ -1,7 +1,6 @@
+'use client'
+
 import { GameLogger } from '@/lib/game_logger'
-
-;('use client')
-
 import Image from 'next/image'
 import type React from 'react'
 import { useRef } from 'react'
@@ -223,13 +222,11 @@ export default function HandFan({
     return (
       <div
         key={card.id}
-        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${
-          isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
-        } ${
-          isPlacementSelected
+        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
+          } ${isPlacementSelected
             ? 'ring-2 ring-blue-400 ring-opacity-80 shadow-lg shadow-blue-400/30'
             : ''
-        }`}
+          }`}
         style={{
           transform: `rotate(${cardPosition.angle}deg) translateY(${position.includes('bottom') ? '-' : ''}${cardPosition.translateY}px)`,
           zIndex: cardPosition.zIndex,

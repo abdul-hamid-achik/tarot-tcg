@@ -150,14 +150,25 @@ export function createInitialGameState(
     ...card,
     id: `p1_${card.id}_${++cardCounter}`,
     currentHealth: card.health,
-    isReversed: false, // Initialize all cards as upright
+    isReversed: false, // Will be set when drawn
   }))
 
   const player2Cards = player2Deck.map(card => ({
     ...card,
     id: `p2_${card.id}_${++cardCounter}`,
     currentHealth: card.health,
-    isReversed: false, // Initialize all cards as upright
+    isReversed: false, // Will be set when drawn
+  }))
+
+  // Set orientation for starting hand cards
+  const player1StartingHand = player1Cards.slice(0, GAME_CONFIG.STARTING_HAND_SIZE).map(card => ({
+    ...card,
+    isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
+  }))
+
+  const player2StartingHand = player2Cards.slice(0, GAME_CONFIG.STARTING_HAND_SIZE).map(card => ({
+    ...card,
+    isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
   }))
 
   const player1: Player = {
@@ -167,7 +178,7 @@ export function createInitialGameState(
     mana: 1,
     maxMana: 1,
     spellMana: 0,
-    hand: player1Cards.slice(0, GAME_CONFIG.STARTING_HAND_SIZE),
+    hand: player1StartingHand,
     deck: player1Cards.slice(GAME_CONFIG.STARTING_HAND_SIZE),
     hasAttackToken: true, // Player 1 starts with attack token
     mulliganComplete: false,
@@ -183,7 +194,7 @@ export function createInitialGameState(
     mana: 1,
     maxMana: 1,
     spellMana: 0,
-    hand: player2Cards.slice(0, GAME_CONFIG.STARTING_HAND_SIZE),
+    hand: player2StartingHand,
     deck: player2Cards.slice(GAME_CONFIG.STARTING_HAND_SIZE),
     hasAttackToken: false,
     mulliganComplete: false,
@@ -274,12 +285,22 @@ export async function playCard(
     }
   }
 
-  const newState = { ...state }
-  const newPlayer = { ...player }
+  // Deep copy state to avoid mutations
+  const newState = { 
+    ...state,
+    battlefield: {
+      ...state.battlefield,
+      playerUnits: [...state.battlefield.playerUnits],
+      enemyUnits: [...state.battlefield.enemyUnits],
+    },
+    player1: { ...state.player1, hand: [...state.player1.hand], deck: [...state.player1.deck] },
+    player2: { ...state.player2, hand: [...state.player2.hand], deck: [...state.player2.deck] },
+  }
+  const newPlayer = newState[state.activePlayer]
   const eventHelpers = createEventHelpers(newState)
 
-  // CRITICAL: Determine orientation (tarot mechanic)
-  const isReversed = Math.random() < GAME_CONFIG.ORIENTATION_CHANCE
+  // Use the card's existing isReversed property (set when drawn)
+  const isReversed = card.isReversed || false
 
   // Check zodiac buff (simplified version)
   const currentMonth = new Date().getMonth() + 1
@@ -416,8 +437,13 @@ async function applyReversedEffect(state: GameState, unit: Card): Promise<void> 
     // Reversed effect: draw a card
     const player = state[unit.owner!]
     if (player.deck.length > 0) {
-      player.hand.push(player.deck.shift()!)
-      GameLogger.action(`${unit.name} reversed effect: draw card`)
+      const drawnCard = player.deck.shift()!
+      const cardWithOrientation = {
+        ...drawnCard,
+        isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
+      }
+      player.hand.push(cardWithOrientation)
+      GameLogger.action(`${unit.name} reversed effect: draw card${cardWithOrientation.isReversed ? ' (reversed)' : ''}`)
     }
   }
 }
@@ -555,7 +581,12 @@ function executeSpellEffects(
       // Draw a card
       const player = state[castingPlayer]
       if (player.deck.length > 0) {
-        player.hand.push(player.deck.shift()!)
+        const drawnCard = player.deck.shift()!
+        const cardWithOrientation = {
+          ...drawnCard,
+          isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
+        }
+        player.hand.push(cardWithOrientation)
       }
     }
 
@@ -745,7 +776,17 @@ export function getWinConditionProgress(playerId: 'player1' | 'player2') {
 }
 
 export async function endTurn(state: GameState): Promise<GameState> {
-  const newState = { ...state }
+  // Deep copy state to avoid mutations
+  const newState = { 
+    ...state,
+    battlefield: {
+      ...state.battlefield,
+      playerUnits: [...state.battlefield.playerUnits],
+      enemyUnits: [...state.battlefield.enemyUnits],
+    },
+    player1: { ...state.player1, hand: [...state.player1.hand], deck: [...state.player1.deck] },
+    player2: { ...state.player2, hand: [...state.player2.hand], deck: [...state.player2.deck] },
+  }
   const eventHelpers = createEventHelpers(newState)
 
   // Emit turn end event
@@ -802,12 +843,20 @@ export async function endTurn(state: GameState): Promise<GameState> {
 
   // Draw a card
   if (currentPlayer.deck.length > 0) {
-    const drawnCard = currentPlayer.deck[0]
-    currentPlayer.hand.push(currentPlayer.deck.shift()!)
+    const drawnCard = currentPlayer.deck.shift()!
+    
+    // CRITICAL: Determine orientation when drawn (tarot mechanic)
+    const isReversed = Math.random() < GAME_CONFIG.ORIENTATION_CHANCE
+    const cardWithOrientation = {
+      ...drawnCard,
+      isReversed,
+    }
+    
+    currentPlayer.hand.push(cardWithOrientation)
 
     // Emit card drawn event
     await eventHelpers.cardDrawn(drawnCard.id, drawnCard.name)
-    GameLogger.action(`${nextPlayer} draws ${drawnCard.name}`)
+    GameLogger.action(`${nextPlayer} draws ${drawnCard.name}${isReversed ? ' (reversed)' : ''}`)
   }
 
   // Emit turn start event for new player
@@ -924,9 +973,12 @@ export function completeMulligan(state: GameState): GameState {
     player.deck = [...player.deck, ...cardsToShuffle]
     shuffleDeck(player)
 
-    // Draw replacement cards
+    // Draw replacement cards with orientation
     const cardsToDraw = cardsToShuffle.length
-    const newCards = player.deck.splice(0, cardsToDraw)
+    const newCards = player.deck.splice(0, cardsToDraw).map(card => ({
+      ...card,
+      isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
+    }))
     player.hand = [...keptCards, ...newCards]
 
     GameLogger.action(`${state.activePlayer} mulliganed ${cardsToDraw} cards`)
@@ -1021,9 +1073,12 @@ export function aiMulligan(
     ai.deck = [...ai.deck, ...cardsToShuffle]
     shuffleDeck(ai)
 
-    // Draw replacement cards
+    // Draw replacement cards with orientation
     const cardsToDraw = cardsToShuffle.length
-    const newCards = ai.deck.splice(0, cardsToDraw)
+    const newCards = ai.deck.splice(0, cardsToDraw).map(card => ({
+      ...card,
+      isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
+    }))
     ai.hand = [...keptCards, ...newCards]
 
     GameLogger.action(`player2 mulliganed ${cardsToDraw} cards`)
