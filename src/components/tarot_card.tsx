@@ -17,6 +17,7 @@ interface TarotCardProps {
   onDragStart?: (e: React.DragEvent) => void
   draggable?: boolean
   showReversedEffects?: boolean // Whether to show reversed description
+  rotateIfReversed?: boolean // Whether to physically rotate the card 180deg if reversed (only for battlefield)
 }
 
 export default function TarotCard({
@@ -30,6 +31,7 @@ export default function TarotCard({
   onDragStart,
   draggable = false,
   showReversedEffects = true,
+  rotateIfReversed = false,
 }: TarotCardProps) {
   const sizeClasses = {
     small: 'w-24 h-36', // Increased from w-20 h-32 for better readability
@@ -113,7 +115,7 @@ export default function TarotCard({
       draggable={draggable}
       style={{
         transformOrigin: 'center',
-        transform: card?.isReversed ? 'rotate(180deg)' : undefined,
+        transform: card?.isReversed && rotateIfReversed ? 'rotate(180deg)' : undefined,
       }}
     >
       {/* Card Image */}

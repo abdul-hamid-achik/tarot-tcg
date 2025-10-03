@@ -53,7 +53,7 @@ export function BattlefieldSlot({
     async (e: React.DragEvent) => {
       e.preventDefault()
       setHoveredSlot(null)
-      
+
       if (isValidDropZone && interaction.draggedCard && isEmpty) {
         GameLogger.debug('🎮 [Drag&Drop] Dropping card at slot:', position)
         try {
@@ -148,6 +148,7 @@ export function BattlefieldSlot({
           <TarotCard
             card={card}
             size="battlefield"
+            rotateIfReversed={true}
             onClick={
               canInteract
                 ? () => {

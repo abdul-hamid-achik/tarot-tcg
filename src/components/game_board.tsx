@@ -73,7 +73,7 @@ export default function GameBoard({
     if (initialGameState) {
       setGameState(initialGameState)
     }
-  }, [initialGameState, setGameState])
+  }, [initialGameState]) // setGameState is stable, don't include in deps
 
   // Set up interaction service callbacks
   React.useEffect(() => {
