@@ -96,10 +96,10 @@ describe('Multiplayer Load Testing', () => {
             const promises = Array(1000).fill(0).map(async (_, i) => {
                 const { playCard } = await import('@/lib/game_logic')
                 const testState = createTestGameState()
-                
+
                 // Alternate orientation to simulate draw distribution
                 const isReversed = i % 2 === 0
-                const card = createTestCard({ 
+                const card = createTestCard({
                     id: `load_card_${i}`,
                     isReversed
                 })
@@ -244,14 +244,14 @@ describe('Performance Benchmarks', () => {
         const { declareAttack } = await import('@/lib/combat_logic')
         const combatState = createTestGameState()
         // Set up units for combat
-        combatState.battlefield.playerUnits[0] = createTestCard({ 
-            id: 'attacker', 
+        combatState.battlefield.playerUnits[0] = createTestCard({
+            id: 'attacker',
             hasSummoningSickness: false,
             owner: 'player1' // Ownership validation
         })
-        combatState.battlefield.enemyUnits[0] = createTestCard({ 
+        combatState.battlefield.enemyUnits[0] = createTestCard({
             id: 'defender',
-            owner: 'player2' 
+            owner: 'player2'
         })
         combatState.player1.hasAttackToken = true // Attack token validation
 

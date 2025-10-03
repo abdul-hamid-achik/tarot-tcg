@@ -199,7 +199,7 @@ class InteractionService {
           } else if (this.dragState.sourcePosition !== 'hand') {
             // Dragging from battlefield - check if attacking or moving
             const fromPos = this.dragState.sourcePosition as BattlefieldPosition
-            
+
             // If dropping on enemy slot, it's an attack
             if (dropLane.player !== fromPos.player) {
               this.callbacks.onCardAttack?.(this.dragState.draggedCard, fromPos, dropLane)
@@ -294,7 +294,7 @@ class InteractionService {
 
     // Store the preview element
     this.dragState.dragElement.dataset.previewId = 'drag-preview'
-    
+
     // Add to document body
     document.body.appendChild(dragPreview)
 

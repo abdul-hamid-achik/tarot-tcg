@@ -32,7 +32,7 @@ export default function HandFan({
   // Position-specific styles - No-overflow Hearthstone-style
   const positionStyles = {
     'bottom-left': {
-      container: 'fixed bottom-5 left-1/2 transform -translate-x-1/2 max-h-24',
+      container: 'fixed bottom-14 left-1/2 transform -translate-x-1/2 max-h-24',
       transformOrigin: 'center bottom',
       fanDirection: 1, // Normal fan direction
     },

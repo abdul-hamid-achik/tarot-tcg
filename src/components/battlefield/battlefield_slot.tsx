@@ -40,7 +40,7 @@ export function BattlefieldSlot({
       // Allow drops on empty slots (for playing cards) or enemy slots (for attacks)
       const isEnemySlot = position.player === 'player2' && card !== null
       const isValidDrop = isValidDropZone && (isEmpty || isEnemySlot)
-      
+
       if (isValidDrop) {
         e.preventDefault()
         setHoveredSlot(position)
@@ -64,7 +64,7 @@ export function BattlefieldSlot({
       }
 
       const isEnemySlot = position.player === 'player2' && card !== null
-      
+
       // Handle different drop scenarios
       if (isEmpty && isValidDropZone) {
         // Playing a card from hand to empty battlefield slot
@@ -182,7 +182,7 @@ export function BattlefieldSlot({
           <TarotCard
             card={card}
             size="battlefield"
-            rotateIfReversed={true}
+            rotateIfReversed={false}
             onClick={
               canInteract
                 ? () => {

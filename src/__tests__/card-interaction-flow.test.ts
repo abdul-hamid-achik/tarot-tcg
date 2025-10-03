@@ -85,7 +85,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
             executeAttack: mockExecuteAttack,
             cancelAttack: mockCancelAttack,
         } as any)
-        
+
         // Mock getState method for direct store access
         vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
             gameState: mockGameState,
@@ -137,7 +137,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
             } as any)
-            
+
             vi.mocked(useGameStore).getState = vi.fn().mockReturnValue({
                 gameState: null,
                 setGameState: mockSetGameState,
