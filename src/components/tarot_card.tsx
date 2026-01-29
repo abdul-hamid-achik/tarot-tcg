@@ -118,10 +118,12 @@ export default function TarotCard({
         isSelected && 'ring-2 ring-emerald-400 shadow-lg shadow-emerald-400/30 border-emerald-500',
         // Damage state
         isDamaged && 'animate-pulse ring-1 ring-red-500/50',
-        // Reversed state
-        card?.isReversed && !isSelected && 'ring-2 ring-violet-400/60 shadow-lg shadow-violet-400/30 border-violet-500',
-        // Default border
-        !isSelected && !card?.isReversed && 'border-slate-600',
+        // Spell cards - distinctive purple glow
+        card?.type === 'spell' && !isSelected && 'border-violet-500 shadow-lg shadow-violet-500/40',
+        // Reversed state (only for units, spells handled above)
+        card?.isReversed && card?.type !== 'spell' && !isSelected && 'ring-2 ring-violet-400/60 shadow-lg shadow-violet-400/30 border-violet-500',
+        // Default border for units
+        !isSelected && card?.type !== 'spell' && !card?.isReversed && 'border-slate-600',
         // Hover
         'hover:shadow-lg',
         className,
@@ -152,11 +154,13 @@ export default function TarotCard({
         <>
           {/* Top overlay with cost */}
           <div className="absolute top-1 left-1 right-1 flex justify-between items-start z-10">
-            {/* Mana Cost - More prominent */}
+            {/* Mana Cost - Blue for units, Purple for spells */}
             <div className={cn(
               'rounded-full flex items-center justify-center shadow-md',
               isBattlefield ? 'w-6 h-6' : 'w-8 h-8',
-              'bg-gradient-to-br from-blue-600 to-blue-800 border border-blue-400',
+              card.type === 'spell'
+                ? 'bg-gradient-to-br from-violet-500 to-purple-700 border border-violet-400'
+                : 'bg-gradient-to-br from-blue-600 to-blue-800 border border-blue-400',
             )}>
               <span className={cn(
                 'text-white font-bold',
@@ -233,18 +237,20 @@ export default function TarotCard({
                 </div>
               )}
 
-              {/* Spell indicator */}
+              {/* Spell indicator - More prominent */}
               {card.type === 'spell' && (
                 <div className={cn(
-                  'flex items-center justify-center gap-1 px-2 py-0.5 rounded-md',
-                  'bg-violet-600/90',
+                  'flex items-center justify-center gap-1 px-2 py-1 rounded-md',
+                  'bg-gradient-to-r from-violet-600 to-purple-600',
+                  'border border-violet-400/50',
+                  'shadow-inner shadow-violet-400/20',
                   isBattlefield ? 'text-[10px]' : 'text-xs',
                 )}>
                   <Sparkles className={cn(
-                    isBattlefield ? 'w-2.5 h-2.5' : 'w-3 h-3',
-                    'text-violet-200',
+                    isBattlefield ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5',
+                    'text-violet-200 animate-pulse',
                   )} />
-                  <span className="font-bold text-white">Spell</span>
+                  <span className="font-bold text-white tracking-wide">SPELL</span>
                 </div>
               )}
             </div>
