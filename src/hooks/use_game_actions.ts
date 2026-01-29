@@ -1,3 +1,4 @@
+import { produce } from 'immer'
 import { useCallback } from 'react'
 import { useMultiplayerActions } from '@/hooks/use_multiplayer_actions'
 import { GameLogger } from '@/lib/game_logger'
@@ -144,11 +145,12 @@ export const useGameActions = () => {
 
         const { completeMulligan: localCompleteMulligan } = await import('@/lib/game_logic')
 
-        // Apply mulligan selections to game state
-        let newGameState = { ...currentState }
-        newGameState.player1.selectedForMulligan = selectedCardIds
+        // Apply mulligan selections to game state using produce for immutable update
+        const preparedState = produce(currentState, draft => {
+          draft.player1.selectedForMulligan = selectedCardIds
+        })
 
-        newGameState = localCompleteMulligan(newGameState)
+        const newGameState = localCompleteMulligan(preparedState)
         setGameState(newGameState)
 
         GameLogger.action(`Mulligan completed: ${selectedCardIds.length} cards replaced`)
