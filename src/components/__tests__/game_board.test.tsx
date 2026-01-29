@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest'
+import { produce } from 'immer'
 import { createInitialGameState, endTurn, playCard } from '@/lib/game_logic'
 import type { GameState, Card } from '@/schemas/schema'
 
@@ -28,14 +29,16 @@ describe('GameBoard Integration - State Management', () => {
             },
         ]
 
-        gameState = createInitialGameState({
+        const initialState = createInitialGameState({
             player1Deck: deck,
             player2Deck: deck,
         })
 
         // Skip mulligan phase and give player sufficient mana for testing
-        gameState.phase = 'action'
-        gameState.player1.mana = 10 // Ensure enough mana for testing multiple card plays
+        gameState = produce(initialState, draft => {
+            draft.phase = 'action'
+            draft.player1.mana = 10 // Ensure enough mana for testing multiple card plays
+        })
 
         testCard = gameState.player1.hand[0]
     })

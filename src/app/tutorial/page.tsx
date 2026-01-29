@@ -14,6 +14,7 @@ import {
   initializeCards,
   playCard,
 } from '@/lib/game_logic'
+import { produce } from 'immer'
 import type { Card, GameState } from '@/schemas/schema'
 
 export default function Tutorial() {
@@ -135,15 +136,15 @@ export default function Tutorial() {
     if (!gameState) return
 
     try {
-      // Set selected cards for mulligan
-      const newState = { ...gameState }
-      newState.player1.selectedForMulligan = selectedCards
+      // Set selected cards for mulligan using produce for immutable updates
+      const preparedState = produce(gameState, draft => {
+        draft.player1.selectedForMulligan = selectedCards
+        // In tutorial, automatically complete AI mulligan BEFORE calling completeMulligan
+        draft.player2.mulliganComplete = true
+        draft.player2.selectedForMulligan = []
+      })
 
-      // In tutorial, automatically complete AI mulligan BEFORE calling completeMulligan
-      newState.player2.mulliganComplete = true
-      newState.player2.selectedForMulligan = []
-
-      const mulliganedState = completeMulligan(newState)
+      let mulliganedState = completeMulligan(preparedState)
 
       console.log('Mulligan completed:', {
         player1Complete: mulliganedState.player1.mulliganComplete,
@@ -159,8 +160,10 @@ export default function Tutorial() {
         mulliganedState.phase !== 'action'
       ) {
         console.log('Forcing phase transition to action in tutorial')
-        mulliganedState.phase = 'action'
-        mulliganedState.waitingForAction = true
+        mulliganedState = produce(mulliganedState, draft => {
+          draft.phase = 'action'
+          draft.waitingForAction = true
+        })
       }
 
       setGameState(mulliganedState)

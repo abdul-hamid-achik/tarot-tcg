@@ -1,6 +1,7 @@
 import { GameLogger } from '@/lib/game_logger'
 export const runtime = 'edge' // Enable Vercel Edge Runtime for WebSockets
 
+import { produce } from 'immer'
 import type { NextRequest } from 'next/server'
 import type { GameState, PlayerId } from '@/schemas/schema'
 
@@ -281,8 +282,11 @@ async function createNewGame(gameId: string, firstPlayerId: PlayerId): Promise<G
   // Import game logic to create initial state
   const { createInitialGameState } = await import('@/lib/game_logic')
 
-  const gameState = createInitialGameState()
-  gameState.activePlayer = 'player1' // First player always starts
+  const initialState = createInitialGameState()
+  // Use produce for immutable update
+  const gameState = produce(initialState, draft => {
+    draft.activePlayer = 'player1' // First player always starts
+  })
 
   GameLogger.system(`🆕 Created new game ${gameId} with player ${firstPlayerId}`)
 
