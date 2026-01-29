@@ -36,13 +36,15 @@ export default function Tutorial() {
     initializeCards()
     const initialState = createInitialGameState()
 
-    // Boost starting mana for tutorial/sandbox experience
-    initialState.player1.mana = 3
-    initialState.player1.maxMana = 3
-    initialState.player2.mana = 3
-    initialState.player2.maxMana = 3
+    // Boost starting mana for tutorial/sandbox experience using produce
+    const tutorialState = produce(initialState, draft => {
+      draft.player1.mana = 3
+      draft.player1.maxMana = 3
+      draft.player2.mana = 3
+      draft.player2.maxMana = 3
+    })
 
-    setGameState(initialState)
+    setGameState(tutorialState)
     setMessage('🃏 Tutorial started! Complete your mulligan or click "Keep All" to begin.')
     GameLogger.state('Tutorial initialized')
   }, [])

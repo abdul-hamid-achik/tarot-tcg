@@ -146,8 +146,14 @@ export const useGameActions = () => {
         const { completeMulligan: localCompleteMulligan } = await import('@/lib/game_logic')
 
         // Apply mulligan selections to game state using produce for immutable update
+        // Also auto-complete AI mulligan in single-player mode
         const preparedState = produce(currentState, draft => {
           draft.player1.selectedForMulligan = selectedCardIds
+          // Auto-complete AI mulligan if not already done (for single-player/tutorial)
+          if (!draft.player2.mulliganComplete) {
+            draft.player2.mulliganComplete = true
+            draft.player2.selectedForMulligan = []
+          }
         })
 
         const newGameState = localCompleteMulligan(preparedState)
