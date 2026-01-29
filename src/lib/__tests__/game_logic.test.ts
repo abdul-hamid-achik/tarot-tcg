@@ -508,6 +508,40 @@ describe('Game Logic - endTurn()', () => {
         expect(newState.battlefield.playerUnits[0]?.hasAttackedThisTurn).toBe(false)
         expect(newState.battlefield.playerUnits[1]?.hasAttackedThisTurn).toBe(false)
     })
+
+    it('should clear summoning sickness for next player units at turn start', async () => {
+        const { endTurn } = await import('../../lib/game_logic')
+
+        // Add units with summoning sickness on player2's battlefield
+        const unit1 = createTestCard({ id: 'unit1', hasSummoningSickness: true, owner: 'player2' })
+        const unit2 = createTestCard({ id: 'unit2', hasSummoningSickness: true, owner: 'player2' })
+
+        gameState.battlefield.enemyUnits[0] = unit1
+        gameState.battlefield.enemyUnits[1] = unit2
+
+        // Player1 ends turn, player2 starts their turn
+        const newState = await endTurn(gameState)
+
+        // Player2's units should have summoning sickness cleared (it's now their turn)
+        expect(newState.battlefield.enemyUnits[0]?.hasSummoningSickness).toBe(false)
+        expect(newState.battlefield.enemyUnits[1]?.hasSummoningSickness).toBe(false)
+    })
+
+    it('should NOT clear summoning sickness for current player units when they end turn', async () => {
+        const { endTurn } = await import('../../lib/game_logic')
+
+        // Add units with summoning sickness on player1's battlefield (player1 is ending turn)
+        const unit1 = createTestCard({ id: 'unit1', hasSummoningSickness: true, owner: 'player1' })
+
+        gameState.battlefield.playerUnits[0] = unit1
+
+        // Player1 ends turn
+        const newState = await endTurn(gameState)
+
+        // Player1's units should still have summoning sickness (they just ended their turn)
+        // Summoning sickness is cleared when a player's turn STARTS, not when it ends
+        expect(newState.battlefield.playerUnits[0]?.hasSummoningSickness).toBe(true)
+    })
 })
 
 describe('Game Logic - checkGameOutcome()', () => {

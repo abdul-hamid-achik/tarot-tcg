@@ -827,14 +827,26 @@ export async function endTurn(state: GameState): Promise<GameState> {
 
   // Use Immer for all state mutations
   const newState = produce(updatedState, draft => {
-    // Reset attack flags for all units (Hearthstone style)
-    const units = activePlayer === 'player1'
+    // Reset attack flags for current player's units (they're ending their turn)
+    const currentPlayerUnits = activePlayer === 'player1'
       ? draft.battlefield.playerUnits
       : draft.battlefield.enemyUnits
 
-    for (const unit of units) {
+    for (const unit of currentPlayerUnits) {
       if (unit) {
         unit.hasAttackedThisTurn = false
+      }
+    }
+
+    // CRITICAL: Clear summoning sickness for the NEXT player's units
+    // This allows units to attack after their first full turn cycle
+    const nextPlayerUnits = nextPlayer === 'player1'
+      ? draft.battlefield.playerUnits
+      : draft.battlefield.enemyUnits
+
+    for (const unit of nextPlayerUnits) {
+      if (unit) {
+        unit.hasSummoningSickness = false
       }
     }
 

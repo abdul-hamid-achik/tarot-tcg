@@ -480,10 +480,19 @@ export class AIControllerService {
 
     // Add to appropriate zone
     if (card.type === 'unit') {
+      // Create the unit with proper properties for battlefield placement
+      const unitToPlace: Card = {
+        ...card,
+        owner: 'player2',
+        currentHealth: card.health,
+        hasSummoningSickness: true,
+        hasAttackedThisTurn: false,
+      }
+
       // Use battlefield service to place unit on battlefield
       const newBattlefield = battlefieldService.placeUnit(
         newState.battlefield,
-        card,
+        unitToPlace,
         'player2',
         targetSlot,
       )
