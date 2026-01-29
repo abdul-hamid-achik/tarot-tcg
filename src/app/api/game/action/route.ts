@@ -255,7 +255,7 @@ async function applyAttack(
   action: any,
   _playerId: PlayerId,
 ): Promise<GameState> {
-  const { declareAttack } = await import('@/lib/combat_logic')
+  const { declareAttack } = await import('@/services/combat_service')
 
   return await declareAttack(gameState, {
     attackerId: action.attackerId,

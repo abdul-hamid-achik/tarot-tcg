@@ -4,6 +4,7 @@ import { GameLogger } from '@/lib/game_logger'
 import type React from 'react'
 import { useCallback } from 'react'
 import { useGameActions } from '@/hooks/use_game_actions'
+import { cn } from '@/lib/utils'
 import type { Card, PlayerId } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
 import { createSlotKey, useGameStore } from '@/store/game_store'
@@ -59,12 +60,28 @@ export function BattlefieldRow({
     [interaction.draggedCard, canInteract, units, player, setHoveredSlot, endCardDrag, playCard],
   )
 
+  const isPlayerRow = player === 'player1'
+  const hasSelectedCard = interaction.selectedCard !== null || interaction.draggedCard !== null
+
   return (
     <div
-      className={`flex justify-center gap-2 min-h-[100px] p-2 rounded-lg transition-all duration-300 ${player === 'player1' ? 'bg-gray-100 hover:bg-gray-200' : 'bg-gray-200 hover:bg-gray-300'
-        }`}
+      className={cn(
+        'flex justify-center gap-3 min-h-[140px] p-4 rounded-2xl transition-all duration-300',
+        'border-2',
+        // Distinct visual zones for player vs opponent
+        isPlayerRow
+          ? [
+              'bg-gradient-to-t from-slate-100 to-white',
+              'border-slate-200',
+              hasSelectedCard && 'border-emerald-300 bg-gradient-to-t from-emerald-50 to-white',
+            ]
+          : [
+              'bg-gradient-to-b from-slate-200 to-slate-100',
+              'border-slate-300',
+            ],
+      )}
       role="list"
-      aria-label={player === 'player1' ? 'Player battlefield row' : 'Opponent battlefield row'}
+      aria-label={isPlayerRow ? 'Your battlefield' : "Opponent's battlefield"}
       onDragOver={handleRowDragOver}
       onDrop={handleRowDrop}
     >

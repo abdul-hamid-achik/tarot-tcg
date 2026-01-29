@@ -361,7 +361,8 @@ describe('EventManager', () => {
             await eventManager.emit('card_played', gameState, { cardId: '3' })
             await eventManager.emit('card_played', gameState, { cardId: '4' })
 
-            const recentCardPlayed = eventManager.getRecentEvents('card_played', 2)
+            // New API: getRecentEvents(count, type?)
+            const recentCardPlayed = eventManager.getRecentEvents(2, 'card_played')
 
             expect(recentCardPlayed).toHaveLength(2)
             expect((recentCardPlayed[0].data as any).cardId).toBe('3')

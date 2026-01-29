@@ -208,22 +208,25 @@ describe('Battlefield Persistence', () => {
 
     describe('State Immutability During Turn Transitions', () => {
         it('should not share array references between states', async () => {
+            const { produce } = await import('immer')
             const cardToPlay = gameState.player1.hand[0]
             const state1 = await playCard(gameState, cardToPlay, 0)
             const state2 = await endTurn(state1)
 
-            // Modify state2's battlefield
-            state2.battlefield.playerUnits[3] = createTestCard({
-                id: 'injected',
-                name: 'Injected Card',
-                type: 'unit',
-                attack: 1,
-                health: 1,
+            // Modify state2's battlefield using produce to work with frozen state
+            const state2Modified = produce(state2, draft => {
+                draft.battlefield.playerUnits[3] = createTestCard({
+                    id: 'injected',
+                    name: 'Injected Card',
+                    type: 'unit',
+                    attack: 1,
+                    health: 1,
+                })
             })
 
             // state1 should not be affected
             expect(state1.battlefield.playerUnits[3]).toBeNull()
-            expect(state2.battlefield.playerUnits[3]?.name).toBe('Injected Card')
+            expect(state2Modified.battlefield.playerUnits[3]?.name).toBe('Injected Card')
         })
 
         it('should create independent player hand copies', async () => {
@@ -300,11 +303,14 @@ describe('Battlefield Persistence', () => {
 
     describe('Attack Flags and Status Effects', () => {
         it('should reset hasAttackedThisTurn flag at end of turn', async () => {
+            const { produce } = await import('immer')
             const cardToPlay = gameState.player1.hand[0]
             let state = await playCard(gameState, cardToPlay, 1)
 
-            // Manually set hasAttackedThisTurn (simulating an attack)
-            state.battlefield.playerUnits[1]!.hasAttackedThisTurn = true
+            // Manually set hasAttackedThisTurn (simulating an attack) using produce
+            state = produce(state, draft => {
+                draft.battlefield.playerUnits[1]!.hasAttackedThisTurn = true
+            })
 
             expect(state.battlefield.playerUnits[1]?.hasAttackedThisTurn).toBe(true)
 
@@ -316,15 +322,18 @@ describe('Battlefield Persistence', () => {
         })
 
         it('should preserve card after hasAttackedThisTurn reset', async () => {
+            const { produce } = await import('immer')
             const card1 = gameState.player1.hand[0]
             const card2 = gameState.player1.hand[1]
 
             let state = await playCard(gameState, card1, 0)
             state = await playCard(state, card2, 5)
 
-            // Simulate attacks
-            state.battlefield.playerUnits[0]!.hasAttackedThisTurn = true
-            state.battlefield.playerUnits[5]!.hasAttackedThisTurn = true
+            // Simulate attacks using produce to modify frozen state
+            state = produce(state, draft => {
+                draft.battlefield.playerUnits[0]!.hasAttackedThisTurn = true
+                draft.battlefield.playerUnits[5]!.hasAttackedThisTurn = true
+            })
 
             // End turn
             state = await endTurn(state)
@@ -355,26 +364,29 @@ describe('Battlefield Persistence', () => {
         })
 
         it('should not share battlefield array references after Object.assign merge', async () => {
+            const { produce } = await import('immer')
             const cardToPlay = gameState.player1.hand[0]
             const state1 = await playCard(gameState, cardToPlay, 2)
             const state2 = await endTurn(state1)
 
-            // Modify state2's battlefield
-            state2.battlefield.playerUnits[6] = createTestCard({
-                id: 'modified',
-                name: 'Modified Card',
-                type: 'unit',
-                attack: 1,
-                health: 1,
+            // Modify state2's battlefield using produce to work with frozen state
+            const state2Modified = produce(state2, draft => {
+                draft.battlefield.playerUnits[6] = createTestCard({
+                    id: 'modified',
+                    name: 'Modified Card',
+                    type: 'unit',
+                    attack: 1,
+                    health: 1,
+                })
             })
 
             // state1 should not be affected
             expect(state1.battlefield.playerUnits[6]).toBeNull()
-            expect(state2.battlefield.playerUnits[6]?.name).toBe('Modified Card')
+            expect(state2Modified.battlefield.playerUnits[6]?.name).toBe('Modified Card')
 
             // Original card should still be in both
             expect(state1.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
-            expect(state2.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
+            expect(state2Modified.battlefield.playerUnits[2]?.name).toBe('Page of Wands')
         })
     })
 

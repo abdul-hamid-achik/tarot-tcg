@@ -81,6 +81,7 @@ describe('useGameActions Hook', () => {
             setGameState: mockSetGameState,
             clearSelection: mockClearSelection,
             setAnimationState: mockSetAnimationState,
+            showError: vi.fn(),
         })
 
         // Setup multiplayer mock
@@ -263,6 +264,7 @@ describe('useGameActions Hook', () => {
                 setGameState: mockSetGameState,
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
+                showError: vi.fn(),
             })
 
             const { result } = renderHook(() => useGameActions())

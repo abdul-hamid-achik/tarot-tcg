@@ -405,7 +405,7 @@ describe('CardEffectSystem', () => {
         it('should create dealDamage effect', () => {
             const effect = createEffect.dealDamage(5)
 
-            expect(effect.id).toBe('deal_damage_5')
+            expect(effect.id).toBe('deal_damage_5_player')
             expect(effect.name).toBe('Deal 5 Damage')
             expect(effect.type).toBe('instant')
             expect(typeof effect.execute).toBe('function')

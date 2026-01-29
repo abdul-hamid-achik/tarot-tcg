@@ -653,8 +653,8 @@ describe('EffectStackService', () => {
 
             const state = stackService.getStackState()
             expect(state.items).toHaveLength(2)
-            // With same priority, timestamp breaks ties
-            expect(state.items[0].timestamp).toBeLessThanOrEqual(state.items[1].timestamp)
+            // With same priority, timestamp breaks ties (descending - newer resolves first, like LIFO)
+            expect(state.items[0].timestamp).toBeGreaterThanOrEqual(state.items[1].timestamp)
         })
     })
 })

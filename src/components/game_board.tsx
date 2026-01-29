@@ -80,14 +80,28 @@ export default function GameBoard({
   // Set up interaction service callbacks
   React.useEffect(() => {
     const callbacks = {
+      canDragCard: (card: GameCard, from: BattlefieldPosition | 'hand'): boolean => {
+        // Get fresh state to avoid stale closures
+        const currentState = useGameStore.getState().gameState
+        if (!currentState) return false
+        if (currentState.activePlayer !== 'player1') return false
+        if (currentState.phase !== 'action') return false
+
+        if (from === 'hand') {
+          const totalMana = currentState.player1.mana + currentState.player1.spellMana
+          return card.cost <= totalMana
+        }
+        return true
+      },
       getValidDropZones: (
         card: GameCard,
         from: BattlefieldPosition | 'hand',
       ): BattlefieldPosition[] => {
+        // Get fresh state to avoid stale closures
+        const battlefield = useGameStore.getState().gameState?.battlefield
         if (from === 'hand' && card.type === 'unit') {
           // Find all empty slots on player's battlefield
           const validSlots: BattlefieldPosition[] = []
-          const battlefield = gameState?.battlefield
           if (battlefield) {
             battlefield.playerUnits.forEach((unit, index) => {
               if (unit === null) {
@@ -104,8 +118,9 @@ export default function GameBoard({
         _card: GameCard,
         from: BattlefieldPosition | 'hand',
       ): boolean => {
+        // Get fresh state to avoid stale closures
+        const battlefield = useGameStore.getState().gameState?.battlefield
         if (from === 'hand' && position.player === 'player1') {
-          const battlefield = gameState?.battlefield
           if (battlefield) {
             return battlefield.playerUnits[position.slot] === null
           }
@@ -118,6 +133,7 @@ export default function GameBoard({
         to: BattlefieldPosition,
       ) => {
         if (from === 'hand') {
+          // Use the current playCard from hook - it already uses getState() internally
           await playCard(card, to)
         }
       },
@@ -152,7 +168,8 @@ export default function GameBoard({
       document.removeEventListener('pointermove', handlePointerMove)
       document.removeEventListener('pointerup', handlePointerUp)
     }
-  }, [gameState, playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones])
+    // Only stable store actions in deps - callbacks use getState() for fresh state
+  }, [playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones])
 
 
   // Handle action bar events (simplified for direct attack system)
@@ -249,12 +266,12 @@ export default function GameBoard({
         ) : null
       })()}
 
-      {/* Action Bar - Positioned next to player profile in bottom-right */}
+      {/* Action Bar - Positioned on the right side */}
       <ActionBar
         onAttack={handleAttack}
         onPass={handlePass}
         onEndTurn={handleEndTurn}
-        className="fixed bottom-4 right-4 z-40"
+        className="fixed bottom-1/2 translate-y-1/2 right-4 z-40"
       />
 
       {/* Main Game Area */}
@@ -304,6 +321,13 @@ export default function GameBoard({
             : false
         }
       />
+
+      {/* Error Message Toast */}
+      {ui.errorMessage && (
+        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-lg z-50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
+          {ui.errorMessage}
+        </div>
+      )}
     </GameLayout>
   )
 }

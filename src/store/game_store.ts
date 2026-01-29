@@ -1,8 +1,10 @@
 import { create } from 'zustand'
 import { devtools } from 'zustand/middleware'
+import { immer } from 'zustand/middleware/immer'
 import { GameLogger } from '@/lib/game_logger'
 import { type Card as GameCard, type GameState, GameStateSchema } from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
+import { declareAttack } from '@/services/combat_service'
 
 export interface InteractionState {
   mode: 'click' | 'drag' | 'hybrid'
@@ -20,6 +22,7 @@ export interface UIState {
   activeOverlay: 'none' | 'cardDetail' | 'mulligan' | 'gameOutcome'
   isAnimating: boolean
   performanceMode: 'high' | 'medium' | 'low'
+  errorMessage: string | null
 }
 
 // Multiplayer state for future PVP implementation
@@ -48,6 +51,7 @@ export interface GameStore {
   // Core actions
   setGameState: (gameState: GameState) => void
   updateBattlefield: (battlefield: Battlefield) => void
+  updateMultiplayerState: (update: Partial<MultiplayerState>) => void
 
   // Interaction actions
   selectCard: (card: GameCard) => void
@@ -58,7 +62,7 @@ export interface GameStore {
 
   // Direct attack actions
   startAttack: (unitId: string) => void
-  executeAttack: (targetId: string, targetType: 'unit' | 'player') => void
+  executeAttack: (targetId: string, targetType: 'unit' | 'player') => Promise<void>
   cancelAttack: () => void
 
   // Visual feedback
@@ -71,37 +75,59 @@ export interface GameStore {
   showCardDetail: (card: GameCard) => void
   hideCardDetail: () => void
   setAnimationState: (isAnimating: boolean) => void
+  showError: (message: string) => void
+  clearError: () => void
 }
 
 // Helper to create slot key
 export const createSlotKey = (position: BattlefieldPosition): string =>
   `${position.player}-${position.slot}`
 
-// Helper to calculate valid attack targets
+// Helper to calculate valid attack targets with taunt awareness
 function calculateValidTargets(gameState: GameState, _attackerId: string): Set<string> {
-  // Simple implementation - would be expanded for real game logic
   const validTargets = new Set<string>()
 
-  // Add enemy units as valid targets
+  // Determine opponent
   const opponent = gameState.activePlayer === 'player1' ? 'player2' : 'player1'
   const enemyUnits =
     opponent === 'player1' ? gameState.battlefield.playerUnits : gameState.battlefield.enemyUnits
 
-  enemyUnits.forEach(unit => {
-    if (unit) {
-      validTargets.add(unit.id)
-    }
-  })
+  // Check for taunt units
+  const tauntUnits = enemyUnits.filter(
+    unit => unit?.keywords?.includes('taunt') || unit?.keywords?.includes('Taunt'),
+  )
 
-  // Add player as valid target (unless taunt units present)
-  validTargets.add(opponent)
+  if (tauntUnits.length > 0) {
+    // Only taunt units can be targeted
+    tauntUnits.forEach(unit => {
+      if (unit) validTargets.add(unit.id)
+    })
+  } else {
+    // All enemy units and player can be targeted
+    enemyUnits.forEach(unit => {
+      if (unit) validTargets.add(unit.id)
+    })
+    validTargets.add(opponent)
+  }
 
   return validTargets
 }
 
+// Validate GameState before setting it
+function validateAndLogState(gameState: GameState, action: string): boolean {
+  const result = GameStateSchema.safeParse(gameState)
+  if (!result.success) {
+    GameLogger.error(`Invalid GameState in ${action}:`, {
+      errors: result.error.issues.map(e => `${e.path.join('.')}: ${e.message}`),
+    })
+    return false
+  }
+  return true
+}
+
 export const useGameStore = create<GameStore>()(
   devtools(
-    (set, get) => ({
+    immer((set, get) => ({
       // Initial state
       gameState: GameStateSchema.parse({
         round: 1,
@@ -165,6 +191,7 @@ export const useGameStore = create<GameStore>()(
         activeOverlay: 'none',
         isAnimating: false,
         performanceMode: 'high',
+        errorMessage: null,
       },
 
       multiplayer: {
@@ -179,6 +206,11 @@ export const useGameStore = create<GameStore>()(
 
       // Actions
       setGameState: gameState => {
+        // Validate before setting
+        if (!validateAndLogState(gameState, 'setGameState')) {
+          return
+        }
+
         GameLogger.debug(`🏪 [GameStore] setGameState called`)
         GameLogger.debug(
           `🏪 [GameStore] Player units:`,
@@ -188,7 +220,9 @@ export const useGameStore = create<GameStore>()(
           `🏪 [GameStore] Enemy units:`,
           gameState.battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name),
         )
-        set({ gameState })
+        set(state => {
+          state.gameState = gameState
+        })
       },
 
       updateBattlefield: battlefield => {
@@ -201,135 +235,151 @@ export const useGameStore = create<GameStore>()(
           `🏪 [GameStore] Enemy units:`,
           battlefield.enemyUnits.filter(u => u !== null).map(u => u?.name),
         )
-        set(state => ({
-          gameState: { ...state.gameState, battlefield },
-        }))
+        set(state => {
+          state.gameState.battlefield = battlefield
+        })
+      },
+
+      updateMultiplayerState: update => {
+        set(state => {
+          Object.assign(state.multiplayer, update)
+        })
       },
 
       selectCard: card =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            selectedCard: card,
-          },
-        })),
+        set(state => {
+          state.interaction.selectedCard = card
+        }),
 
       clearSelection: () =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            selectedCard: null,
-            draggedCard: null,
-            dragStartPosition: null,
-            attackSource: null,
-            targetingMode: 'none',
-            validAttackTargets: new Set(),
-          },
-        })),
+        set(state => {
+          state.interaction.selectedCard = null
+          state.interaction.draggedCard = null
+          state.interaction.dragStartPosition = null
+          state.interaction.attackSource = null
+          state.interaction.targetingMode = 'none'
+          state.interaction.validAttackTargets = new Set()
+        }),
 
       startCardDrag: (card, position) =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            draggedCard: card,
-            dragStartPosition: position,
-          },
-        })),
+        set(state => {
+          state.interaction.draggedCard = card
+          state.interaction.dragStartPosition = position
+        }),
 
       endCardDrag: () =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            draggedCard: null,
-            dragStartPosition: null,
-          },
-        })),
+        set(state => {
+          state.interaction.draggedCard = null
+          state.interaction.dragStartPosition = null
+        }),
 
       setHoveredSlot: position =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            hoveredSlot: position,
-          },
-        })),
+        set(state => {
+          state.interaction.hoveredSlot = position
+        }),
 
       // Direct attack actions
       startAttack: (unitId: string) =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            attackSource: unitId,
-            targetingMode: 'attack',
-            validAttackTargets: calculateValidTargets(state.gameState, unitId),
-          },
-        })),
+        set(state => {
+          state.interaction.attackSource = unitId
+          state.interaction.targetingMode = 'attack'
+          state.interaction.validAttackTargets = calculateValidTargets(state.gameState, unitId)
+        }),
 
-      executeAttack: async (_targetId: string, _targetType: 'unit' | 'player') => {
+      executeAttack: async (targetId: string, targetType: 'unit' | 'player') => {
         const { gameState, interaction } = get()
         if (!interaction.attackSource) return
 
-        // This would integrate with the game logic
-        // const newState = await declareAttack(gameState, {
-        //   attackerId: interaction.attackSource,
-        //   targetType,
-        //   targetId
-        // })
+        try {
+          // Call the combat logic to process the attack
+          const newState = await declareAttack(gameState, {
+            attackerId: interaction.attackSource,
+            targetType,
+            targetId: targetType === 'unit' ? targetId : undefined,
+          })
 
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            attackSource: null,
-            targetingMode: 'none',
-            validAttackTargets: new Set(),
-          },
-        }))
+          // Update both game state and clear interaction state
+          set(state => {
+            state.gameState = newState
+            state.interaction.attackSource = null
+            state.interaction.targetingMode = 'none'
+            state.interaction.validAttackTargets = new Set()
+          })
+        } catch (error) {
+          GameLogger.error('Attack failed:', error)
+          // Show error to user
+          get().showError(error instanceof Error ? error.message : 'Attack failed')
+
+          // Clear attack state even on error
+          set(state => {
+            state.interaction.attackSource = null
+            state.interaction.targetingMode = 'none'
+            state.interaction.validAttackTargets = new Set()
+          })
+        }
       },
 
       cancelAttack: () =>
-        set(state => ({
-          interaction: {
-            ...state.interaction,
-            attackSource: null,
-            targetingMode: 'none',
-            validAttackTargets: new Set(),
-          },
-        })),
+        set(state => {
+          state.interaction.attackSource = null
+          state.interaction.targetingMode = 'none'
+          state.interaction.validAttackTargets = new Set()
+        }),
 
       highlightSlots: positions =>
-        set({
-          highlightedSlots: new Set(positions.map(createSlotKey)),
+        set(state => {
+          state.highlightedSlots = new Set(positions.map(createSlotKey))
         }),
 
       clearHighlights: () =>
-        set({
-          highlightedSlots: new Set(),
+        set(state => {
+          state.highlightedSlots = new Set()
         }),
 
       setValidDropZones: positions =>
-        set({
-          validDropZones: new Set(positions.map(createSlotKey)),
+        set(state => {
+          state.validDropZones = new Set(positions.map(createSlotKey))
         }),
 
       clearValidDropZones: () =>
-        set({
-          validDropZones: new Set(),
+        set(state => {
+          state.validDropZones = new Set()
         }),
 
       showCardDetail: card =>
-        set(state => ({
-          ui: { ...state.ui, cardDetailOverlay: card, activeOverlay: 'cardDetail' },
-        })),
+        set(state => {
+          state.ui.cardDetailOverlay = card
+          state.ui.activeOverlay = 'cardDetail'
+        }),
 
       hideCardDetail: () =>
-        set(state => ({
-          ui: { ...state.ui, cardDetailOverlay: null, activeOverlay: 'none' },
-        })),
+        set(state => {
+          state.ui.cardDetailOverlay = null
+          state.ui.activeOverlay = 'none'
+        }),
 
       setAnimationState: isAnimating =>
-        set(state => ({
-          ui: { ...state.ui, isAnimating },
-        })),
-    }),
+        set(state => {
+          state.ui.isAnimating = isAnimating
+        }),
+
+      showError: message => {
+        set(state => {
+          state.ui.errorMessage = message
+        })
+        // Auto-clear error after 3 seconds
+        setTimeout(() => {
+          set(state => {
+            state.ui.errorMessage = null
+          })
+        }, 3000)
+      },
+
+      clearError: () =>
+        set(state => {
+          state.ui.errorMessage = null
+        }),
+    })),
     {
       name: 'tarot-tcg-store',
     },

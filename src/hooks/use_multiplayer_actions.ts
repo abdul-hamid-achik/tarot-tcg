@@ -150,7 +150,7 @@ export function useMultiplayerActions() {
 
       if (!FEATURE_FLAGS.ENABLE_MULTIPLAYER_SYNC || !webSocketService.isConnected) {
         // Fallback to local game logic
-        const { declareAttack: localDeclareAttack } = await import('@/lib/combat_logic')
+        const { declareAttack: localDeclareAttack } = await import('@/services/combat_service')
         const newState = await localDeclareAttack(gameState, {
           attackerId,
           targetType,

@@ -1,3 +1,4 @@
+import { produce } from 'immer'
 import { GameLogger } from '@/lib/game_logger'
 import type {
   Card,
@@ -7,10 +8,274 @@ import type {
   GameEvent,
   GameState,
   TriggeredAbility,
+  PlayerId,
 } from '@/schemas/schema'
 import { effectStackService } from '@/services/effect_stack_service'
 import { eventManager } from '@/services/event_manager'
 import { useGameStore } from '@/store/game_store'
+
+// ================================
+// ABILITY PRIORITY LEVELS
+// ================================
+export const ABILITY_PRIORITIES = {
+  REPLACEMENT_EFFECT: 1000,  // Effects that replace other effects
+  TRIGGERED_ABILITY: 500,    // Standard triggered abilities
+  STATE_BASED_ACTION: 250,   // Automatic game state checks
+  PERSISTENT_EFFECT: 100,    // Ongoing stat modifications
+  UI_UPDATE: 0,              // Lowest priority - UI updates
+} as const
+
+// ================================
+// EFFECT EXECUTOR TYPES
+// ================================
+export type EffectExecutor = (
+  effect: CardEffect,
+  context: EffectContext,
+  params: EffectParams
+) => EffectResult
+
+export interface EffectParams {
+  amount?: number
+  targetType?: 'player' | 'unit' | 'all_units' | 'all_enemies' | 'all_allies'
+  targetId?: string
+  duration?: number
+  statModifiers?: { attack?: number; health?: number }
+}
+
+// ================================
+// EFFECT EXECUTORS REGISTRY
+// ================================
+const effectExecutors: Record<string, EffectExecutor> = {
+  dealDamage: (effect, context, params) => {
+    const { amount = 1, targetType = 'player', targetId } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      if (targetType === 'player') {
+        const targetPlayer = sourceOwner === 'player1' ? 'player2' : 'player1'
+        draft[targetPlayer].health -= amount
+        GameLogger.action(`${effect.name}: Dealt ${amount} damage to ${targetPlayer}`)
+      } else if (targetType === 'unit' && targetId) {
+        // Find and damage the unit
+        const allUnits = [...draft.battlefield.playerUnits, ...draft.battlefield.enemyUnits]
+        for (let i = 0; i < 7; i++) {
+          if (draft.battlefield.playerUnits[i]?.id === targetId) {
+            const unit = draft.battlefield.playerUnits[i]!
+            unit.currentHealth = (unit.currentHealth || unit.health) - amount
+            if (unit.currentHealth <= 0) {
+              draft.battlefield.playerUnits[i] = null
+            }
+            GameLogger.action(`${effect.name}: Dealt ${amount} damage to ${unit.name}`)
+            break
+          }
+          if (draft.battlefield.enemyUnits[i]?.id === targetId) {
+            const unit = draft.battlefield.enemyUnits[i]!
+            unit.currentHealth = (unit.currentHealth || unit.health) - amount
+            if (unit.currentHealth <= 0) {
+              draft.battlefield.enemyUnits[i] = null
+            }
+            GameLogger.action(`${effect.name}: Dealt ${amount} damage to ${unit.name}`)
+            break
+          }
+        }
+      } else if (targetType === 'all_enemies') {
+        const enemyUnits = sourceOwner === 'player1' ? draft.battlefield.enemyUnits : draft.battlefield.playerUnits
+        for (let i = 0; i < enemyUnits.length; i++) {
+          const unit = enemyUnits[i]
+          if (unit) {
+            unit.currentHealth = (unit.currentHealth || unit.health) - amount
+            if (unit.currentHealth <= 0) {
+              enemyUnits[i] = null
+            }
+          }
+        }
+        GameLogger.action(`${effect.name}: Dealt ${amount} damage to all enemy units`)
+      }
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  gainHealth: (effect, context, params) => {
+    const { amount = 1, targetType = 'player' } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      if (targetType === 'player') {
+        draft[sourceOwner].health += amount
+        GameLogger.action(`${effect.name}: ${sourceOwner} gained ${amount} health`)
+      } else if (targetType === 'unit') {
+        // Heal the source unit
+        const units = sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+        for (const unit of units) {
+          if (unit?.id === context.source.id) {
+            unit.currentHealth = Math.min(
+              (unit.currentHealth || unit.health) + amount,
+              unit.health
+            )
+            GameLogger.action(`${effect.name}: ${unit.name} healed for ${amount}`)
+            break
+          }
+        }
+      }
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  drawCards: (effect, context, params) => {
+    const { amount = 1 } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      const player = draft[sourceOwner]
+      const cardsToDraw = Math.min(amount, player.deck.length)
+
+      for (let i = 0; i < cardsToDraw; i++) {
+        const drawnCard = player.deck.shift()
+        if (drawnCard) {
+          // Set random orientation
+          drawnCard.isReversed = Math.random() < 0.5
+          player.hand.push(drawnCard)
+        }
+      }
+
+      GameLogger.action(`${effect.name}: ${sourceOwner} drew ${cardsToDraw} card(s)`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  statBuff: (effect, context, params) => {
+    const { statModifiers = {}, targetId } = params
+    const { attack = 0, health = 0 } = statModifiers
+    const gameState = context.gameState
+
+    const newState = produce(gameState, draft => {
+      const targetCardId = targetId || context.source.id
+
+      // Find and buff the unit
+      for (let i = 0; i < 7; i++) {
+        if (draft.battlefield.playerUnits[i]?.id === targetCardId) {
+          const unit = draft.battlefield.playerUnits[i]!
+          unit.attack += attack
+          unit.health += health
+          unit.currentHealth = (unit.currentHealth || unit.health) + health
+          GameLogger.action(`${effect.name}: ${unit.name} gained +${attack}/+${health}`)
+          break
+        }
+        if (draft.battlefield.enemyUnits[i]?.id === targetCardId) {
+          const unit = draft.battlefield.enemyUnits[i]!
+          unit.attack += attack
+          unit.health += health
+          unit.currentHealth = (unit.currentHealth || unit.health) + health
+          GameLogger.action(`${effect.name}: ${unit.name} gained +${attack}/+${health}`)
+          break
+        }
+      }
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  discardCards: (effect, context, params) => {
+    const { amount = 1 } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      const player = draft[sourceOwner]
+      const cardsToDiscard = Math.min(amount, player.hand.length)
+
+      // Discard from end of hand (random selection would need UI)
+      for (let i = 0; i < cardsToDiscard; i++) {
+        player.hand.pop()
+      }
+
+      GameLogger.action(`${effect.name}: ${sourceOwner} discarded ${cardsToDiscard} card(s)`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  summonUnit: (effect, context, params) => {
+    // Summon a token unit - simplified implementation
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      const units = sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+
+      // Find empty slot
+      const emptySlot = units.findIndex(u => u === null)
+      if (emptySlot !== -1) {
+        // Create a basic token
+        units[emptySlot] = {
+          id: `token_${Date.now()}`,
+          name: 'Token',
+          cost: 0,
+          attack: params.statModifiers?.attack || 1,
+          health: params.statModifiers?.health || 1,
+          currentHealth: params.statModifiers?.health || 1,
+          type: 'unit',
+          zodiacClass: 'aries',
+          element: 'fire',
+          rarity: 'common',
+          owner: sourceOwner,
+          hasSummoningSickness: true,
+          hasAttackedThisTurn: false,
+        }
+        GameLogger.action(`${effect.name}: Summoned a token`)
+      }
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  destroyUnit: (effect, context, params) => {
+    const { targetId } = params
+    const gameState = context.gameState
+
+    if (!targetId) {
+      return { success: false, error: 'No target specified' }
+    }
+
+    const newState = produce(gameState, draft => {
+      for (let i = 0; i < 7; i++) {
+        if (draft.battlefield.playerUnits[i]?.id === targetId) {
+          const unit = draft.battlefield.playerUnits[i]!
+          GameLogger.action(`${effect.name}: Destroyed ${unit.name}`)
+          draft.battlefield.playerUnits[i] = null
+          break
+        }
+        if (draft.battlefield.enemyUnits[i]?.id === targetId) {
+          const unit = draft.battlefield.enemyUnits[i]!
+          GameLogger.action(`${effect.name}: Destroyed ${unit.name}`)
+          draft.battlefield.enemyUnits[i] = null
+          break
+        }
+      }
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  gainMana: (effect, context, params) => {
+    const { amount = 1 } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      draft[sourceOwner].mana += amount
+      GameLogger.action(`${effect.name}: ${sourceOwner} gained ${amount} mana`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+}
 
 export interface ActiveEffect {
   id: string
@@ -64,16 +329,135 @@ export class CardEffectSystem {
    * Execute a card effect immediately
    */
   async executeEffect(
-    _effect: CardEffect,
+    effect: CardEffect,
     context: EffectContext,
-    _triggeringEvent?: GameEvent,
+    triggeringEvent?: GameEvent,
   ): Promise<EffectResult> {
-    // TODO: Complete effect system integration for battlefield system
-    GameLogger.debug('Card effect system temporarily disabled during battlefield conversion')
-    return {
-      success: true,
-      newGameState: context.gameState,
+    try {
+      // Check if effect can execute
+      if (effect.canExecute) {
+        // Cast to function type since schema allows any function
+        const canExecuteFn = effect.canExecute as (ctx: EffectContext) => boolean
+        const canExecuteResult = canExecuteFn(context)
+        if (!canExecuteResult) {
+          return { success: false, error: 'Effect cannot execute - condition not met' }
+        }
+      }
+
+      // Try to use the effect's own execute function first
+      if (effect.execute) {
+        // Cast to function type since schema allows any function
+        const executeFn = effect.execute as (ctx: EffectContext) => EffectResult
+        const result = executeFn(context)
+        if (result.success) {
+          // Emit effect triggered event
+          eventManager.emitSystemEvent('effect_triggered', result.newGameState || context.gameState, {
+            effectId: effect.id,
+            effectName: effect.name,
+            sourceCardId: context.source.id,
+          })
+          return result
+        }
+      }
+
+      // Try to match to a registered executor by parsing the effect name/id
+      const executorKey = this.matchEffectToExecutor(effect)
+      if (executorKey && effectExecutors[executorKey]) {
+        const params = this.extractEffectParams(effect)
+        const result = effectExecutors[executorKey](effect, context, params)
+
+        // Emit effect triggered event
+        if (result.success) {
+          eventManager.emitSystemEvent('effect_triggered', result.newGameState || context.gameState, {
+            effectId: effect.id,
+            effectName: effect.name,
+            sourceCardId: context.source.id,
+          })
+        }
+
+        return result
+      }
+
+      // Fallback: effect executes but does nothing
+      GameLogger.debug(`Effect ${effect.name} has no implementation, treating as success`)
+      return { success: true, newGameState: context.gameState }
+    } catch (error) {
+      GameLogger.error(`Error executing effect ${effect.name}:`, error)
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+      }
     }
+  }
+
+  /**
+   * Match an effect to an executor based on name/description
+   */
+  private matchEffectToExecutor(effect: CardEffect): string | null {
+    const name = effect.name.toLowerCase()
+    const description = effect.description?.toLowerCase() || ''
+
+    if (name.includes('damage') || description.includes('deal') && description.includes('damage')) {
+      return 'dealDamage'
+    }
+    if (name.includes('heal') || description.includes('gain') && description.includes('health')) {
+      return 'gainHealth'
+    }
+    if (name.includes('draw') || description.includes('draw')) {
+      return 'drawCards'
+    }
+    if (name.includes('buff') || description.includes('+') && (description.includes('attack') || description.includes('health'))) {
+      return 'statBuff'
+    }
+    if (name.includes('discard') || description.includes('discard')) {
+      return 'discardCards'
+    }
+    if (name.includes('summon') || description.includes('summon')) {
+      return 'summonUnit'
+    }
+    if (name.includes('destroy') || description.includes('destroy')) {
+      return 'destroyUnit'
+    }
+    if (name.includes('mana') || description.includes('gain') && description.includes('mana')) {
+      return 'gainMana'
+    }
+
+    return null
+  }
+
+  /**
+   * Extract effect parameters from effect definition
+   */
+  private extractEffectParams(effect: CardEffect): EffectParams {
+    const params: EffectParams = {}
+    const description = effect.description?.toLowerCase() || ''
+
+    // Extract number for amount
+    const numberMatch = description.match(/(\d+)/)
+    if (numberMatch) {
+      params.amount = parseInt(numberMatch[1], 10)
+    }
+
+    // Extract target type
+    if (description.includes('enemy') || description.includes('opponent')) {
+      params.targetType = description.includes('all') ? 'all_enemies' : 'unit'
+    } else if (description.includes('ally') || description.includes('friendly')) {
+      params.targetType = description.includes('all') ? 'all_allies' : 'unit'
+    } else if (description.includes('player') || description.includes('face')) {
+      params.targetType = 'player'
+    }
+
+    // Extract stat modifiers for buffs
+    const attackMatch = description.match(/\+(\d+)\s*attack|\+(\d+)\//)
+    const healthMatch = description.match(/\+(\d+)\s*health|\/\+(\d+)/)
+    if (attackMatch || healthMatch) {
+      params.statModifiers = {
+        attack: attackMatch ? parseInt(attackMatch[1] || attackMatch[2], 10) : 0,
+        health: healthMatch ? parseInt(healthMatch[1] || healthMatch[2], 10) : 0,
+      }
+    }
+
+    return params
   }
 
   /**
@@ -199,9 +583,100 @@ export class CardEffectSystem {
    * Update persistent effects (called each turn/phase)
    */
   updatePersistentEffects(gameState: GameState): GameState {
-    // TODO: Complete persistent effects integration for battlefield system
-    GameLogger.debug('Persistent effects temporarily disabled during battlefield conversion')
-    return gameState
+    const expiredEffects: string[] = []
+
+    // Check each active effect
+    for (const [effectId, activeEffect] of this.activeEffects.entries()) {
+      // Decrement duration counters
+      if (activeEffect.remainingDuration !== undefined) {
+        activeEffect.remainingDuration--
+        if (activeEffect.remainingDuration <= 0) {
+          expiredEffects.push(effectId)
+          continue
+        }
+      }
+
+      // Check end conditions
+      if (activeEffect.endCondition && activeEffect.endCondition(gameState)) {
+        expiredEffects.push(effectId)
+        continue
+      }
+
+      // Check effect duration type
+      const effect = activeEffect.effect
+      if (effect.duration === 'end_of_turn') {
+        expiredEffects.push(effectId)
+      } else if (effect.duration === 'until_leaves_battlefield') {
+        // Check if source card is still on battlefield
+        const sourceOnField = this.isCardOnBattlefield(activeEffect.sourceCardId, gameState)
+        if (!sourceOnField) {
+          expiredEffects.push(effectId)
+        }
+      }
+    }
+
+    // Remove expired effects
+    for (const effectId of expiredEffects) {
+      const effect = this.activeEffects.get(effectId)
+      if (effect) {
+        GameLogger.action(`Persistent effect expired: ${effect.effect.name}`)
+        this.activeEffects.delete(effectId)
+      }
+    }
+
+    // Apply ongoing stat modifications from persistent effects
+    return produce(gameState, draft => {
+      for (const activeEffect of this.activeEffects.values()) {
+        if (activeEffect.effect.type === 'persistent') {
+          // Re-apply persistent stat buffs (this ensures they stay applied)
+          // The actual stat application would be done when calculating combat
+        }
+      }
+    })
+  }
+
+  /**
+   * Check if a card is on the battlefield
+   */
+  private isCardOnBattlefield(cardId: string, gameState: GameState): boolean {
+    const allUnits = [
+      ...gameState.battlefield.playerUnits,
+      ...gameState.battlefield.enemyUnits,
+    ].filter(Boolean) as Card[]
+
+    return allUnits.some(unit => unit.id === cardId)
+  }
+
+  /**
+   * Add a persistent effect
+   */
+  addPersistentEffect(
+    sourceCardId: string,
+    effect: CardEffect,
+    context: EffectContext,
+    duration?: number
+  ): string {
+    const effectId = `persistent_${this.nextEffectId++}`
+
+    this.activeEffects.set(effectId, {
+      id: effectId,
+      sourceCardId,
+      effect,
+      context,
+      remainingDuration: duration,
+    })
+
+    GameLogger.action(`Added persistent effect: ${effect.name} (${effectId})`)
+    return effectId
+  }
+
+  /**
+   * Remove a persistent effect by ID
+   */
+  removePersistentEffect(effectId: string): boolean {
+    const hadEffect = this.activeEffects.has(effectId)
+    this.activeEffects.delete(effectId)
+    return hadEffect
   }
 
   /**
@@ -392,25 +867,31 @@ export const cardEffectSystem = new CardEffectSystem()
 
 // Helper functions for creating common effects
 export const createEffect = {
-  dealDamage: (amount: number, target: 'player' | 'unit' = 'player'): CardEffect => ({
-    id: `deal_damage_${amount}`,
+  dealDamage: (amount: number, targetType: 'player' | 'unit' | 'all_enemies' = 'player'): CardEffect => ({
+    id: `deal_damage_${amount}_${targetType}`,
     name: `Deal ${amount} Damage`,
-    description: `Deal ${amount} damage to target ${target}`,
+    description: `Deal ${amount} damage to ${targetType === 'all_enemies' ? 'all enemy units' : `target ${targetType}`}`,
     type: 'instant',
     execute: (context: EffectContext) => {
-      // Implementation would go here
-      return { success: true, newGameState: context.gameState }
+      return effectExecutors.dealDamage(
+        { id: `deal_damage_${amount}`, name: `Deal ${amount} Damage`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { amount, targetType }
+      )
     },
   }),
 
-  gainHealth: (amount: number): CardEffect => ({
+  gainHealth: (amount: number, targetType: 'player' | 'unit' = 'player'): CardEffect => ({
     id: `gain_health_${amount}`,
     name: `Gain ${amount} Health`,
     description: `Gain ${amount} health`,
     type: 'instant',
     execute: (context: EffectContext) => {
-      // Implementation would go here
-      return { success: true, newGameState: context.gameState }
+      return effectExecutors.gainHealth(
+        { id: `gain_health_${amount}`, name: `Gain ${amount} Health`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { amount, targetType }
+      )
     },
   }),
 
@@ -420,8 +901,11 @@ export const createEffect = {
     description: `Draw ${amount} card${amount > 1 ? 's' : ''}`,
     type: 'instant',
     execute: (context: EffectContext) => {
-      // Implementation would go here
-      return { success: true, newGameState: context.gameState }
+      return effectExecutors.drawCards(
+        { id: `draw_${amount}`, name: `Draw Cards`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { amount }
+      )
     },
   }),
 
@@ -432,12 +916,71 @@ export const createEffect = {
   ): CardEffect => ({
     id: `buff_${attack}_${health}`,
     name: `+${attack}/+${health}`,
-    description: `Give +${attack}/+${health}`,
+    description: `Give +${attack} attack and +${health} health`,
     type: 'persistent',
     duration,
     execute: (context: EffectContext) => {
-      // Implementation would go here
-      return { success: true, newGameState: context.gameState }
+      return effectExecutors.statBuff(
+        { id: `buff_${attack}_${health}`, name: `+${attack}/+${health}`, description: '', type: 'persistent', execute: () => ({ success: true }) },
+        context,
+        { statModifiers: { attack, health } }
+      )
+    },
+  }),
+
+  discardCards: (amount: number): CardEffect => ({
+    id: `discard_${amount}`,
+    name: `Discard ${amount} Cards`,
+    description: `Discard ${amount} card${amount > 1 ? 's' : ''}`,
+    type: 'instant',
+    execute: (context: EffectContext) => {
+      return effectExecutors.discardCards(
+        { id: `discard_${amount}`, name: `Discard Cards`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { amount }
+      )
+    },
+  }),
+
+  summonToken: (attack: number, health: number): CardEffect => ({
+    id: `summon_${attack}_${health}`,
+    name: `Summon ${attack}/${health} Token`,
+    description: `Summon a ${attack}/${health} token`,
+    type: 'instant',
+    execute: (context: EffectContext) => {
+      return effectExecutors.summonUnit(
+        { id: `summon_${attack}_${health}`, name: `Summon Token`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { statModifiers: { attack, health } }
+      )
+    },
+  }),
+
+  destroyUnit: (targetId?: string): CardEffect => ({
+    id: `destroy_unit`,
+    name: 'Destroy Unit',
+    description: 'Destroy target unit',
+    type: 'instant',
+    execute: (context: EffectContext) => {
+      return effectExecutors.destroyUnit(
+        { id: 'destroy_unit', name: 'Destroy Unit', description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { targetId }
+      )
+    },
+  }),
+
+  gainMana: (amount: number): CardEffect => ({
+    id: `gain_mana_${amount}`,
+    name: `Gain ${amount} Mana`,
+    description: `Gain ${amount} mana`,
+    type: 'instant',
+    execute: (context: EffectContext) => {
+      return effectExecutors.gainMana(
+        { id: `gain_mana_${amount}`, name: `Gain Mana`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        context,
+        { amount }
+      )
     },
   }),
 }

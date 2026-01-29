@@ -5,16 +5,19 @@ import { BattlefieldSlot } from '../battlefield/battlefield_slot'
 import type { Card } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
 
+// Mock state that can be modified per test
+let mockInteractionState = {
+    selectedCard: null as Card | null,
+    draggedCard: null,
+    attackSource: null,
+    targetingMode: 'none' as string,
+    validAttackTargets: new Set<string>(),
+}
+
 // Mock dependencies
 vi.mock('@/store/game_store', () => ({
     useGameStore: () => ({
-        interaction: {
-            selectedCard: null,
-            draggedCard: null,
-            attackSource: null,
-            targetingMode: 'none',
-            validAttackTargets: new Set(),
-        },
+        interaction: mockInteractionState,
         setHoveredSlot: vi.fn(),
         endCardDrag: vi.fn(),
     }),
@@ -42,6 +45,15 @@ describe('BattlefieldSlot - Drag and Drop', () => {
     let mockEnemyCard: Card
 
     beforeEach(() => {
+        // Reset mock interaction state
+        mockInteractionState = {
+            selectedCard: null,
+            draggedCard: null,
+            attackSource: null,
+            targetingMode: 'none',
+            validAttackTargets: new Set(),
+        }
+
         mockPosition = { player: 'player1', slot: 0 }
 
         mockCard = {
@@ -236,7 +248,10 @@ describe('BattlefieldSlot - Drag and Drop', () => {
             expect(slot.className).toContain('ring-2')
         })
 
-        it('should apply valid drop zone class when valid', () => {
+        it('should apply valid drop zone class when valid and card is selected', () => {
+            // Set a selected card to trigger the valid drop zone styling
+            mockInteractionState.selectedCard = mockCard
+
             const { container } = render(
                 <BattlefieldSlot
                     position={mockPosition}
@@ -267,7 +282,8 @@ describe('BattlefieldSlot - Drag and Drop', () => {
             )
 
             const slot = container.firstChild as HTMLElement
-            expect(slot.className).toContain('scale-105')
+            // Hovered state uses scale-110
+            expect(slot.className).toContain('scale-110')
         })
 
         it('should show different styling for player1 vs player2 slots', () => {

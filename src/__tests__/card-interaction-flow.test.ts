@@ -14,7 +14,7 @@ import type { GameState } from '@/schemas/schema'
 vi.mock('@/store/game_store')
 vi.mock('@/hooks/use_multiplayer_actions')
 vi.mock('@/lib/game_logger')
-vi.mock('@/lib/combat_logic')
+vi.mock('@/services/combat_service')
 
 describe('Card Interaction Flow - Integration Tests', () => {
     let mockGameState: GameState
@@ -93,6 +93,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
             setGameState: mockSetGameState,
             clearSelection: mockClearSelection,
             setAnimationState: mockSetAnimationState,
+            showError: vi.fn(),
         })
 
         // Setup multiplayer mock (not multiplayer by default)
@@ -107,7 +108,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
         } as any)
 
         // Setup combat logic mock
-        const { canAttack, declareAttack } = await import('@/lib/combat_logic')
+        const { canAttack, declareAttack } = await import('@/services/combat_service')
         vi.mocked(canAttack).mockReturnValue(true)
         vi.mocked(declareAttack).mockImplementation(async (state) => {
             // Return modified state after attack
@@ -143,6 +144,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
                 setGameState: mockSetGameState,
                 clearSelection: mockClearSelection,
                 setAnimationState: mockSetAnimationState,
+                showError: vi.fn(),
             })
 
             const { result } = renderHook(() => useGameActions())
@@ -189,7 +191,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
 
     describe('Attack Flow (Hearthstone-style: Click Attacker, Then Click Target)', () => {
         it('should start attack targeting when clicking an attacker unit', async () => {
-            const { canAttack } = await import('@/lib/combat_logic')
+            const { canAttack } = await import('@/services/combat_service')
             vi.mocked(canAttack).mockReturnValue(true)
 
             const { result } = renderHook(() => useCombatActions())
@@ -208,7 +210,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
             mockInteraction.targetingMode = 'attack'
             mockInteraction.validAttackTargets = new Set(['p2-unit-1', 'p2-unit-2'])
 
-            const { declareAttack } = await import('@/lib/combat_logic')
+            const { declareAttack } = await import('@/services/combat_service')
             vi.mocked(declareAttack).mockResolvedValue(mockGameState)
 
             const { result } = renderHook(() => useCombatActions())
@@ -241,7 +243,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
         it('should clear attack state after successful attack', async () => {
             mockInteraction.attackSource = 'p1-unit-1'
 
-            const { declareAttack } = await import('@/lib/combat_logic')
+            const { declareAttack } = await import('@/services/combat_service')
             vi.mocked(declareAttack).mockResolvedValue(mockGameState)
 
             const { result } = renderHook(() => useCombatActions())
@@ -257,7 +259,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
         it('should cancel attack on error', async () => {
             mockInteraction.attackSource = 'p1-unit-1'
 
-            const { declareAttack } = await import('@/lib/combat_logic')
+            const { declareAttack } = await import('@/services/combat_service')
             vi.mocked(declareAttack).mockRejectedValue(new Error('Attack failed'))
 
             const { result } = renderHook(() => useCombatActions())
@@ -289,7 +291,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
 
             // Step 2: Try to attack with the newly played unit (would normally fail due to summoning sickness)
             // But if we mock the unit as ready, it should work
-            const { canAttack } = await import('@/lib/combat_logic')
+            const { canAttack } = await import('@/services/combat_service')
             vi.mocked(canAttack).mockReturnValue(false) // Summoning sickness
 
             const playedUnit = createTestCard({
@@ -311,7 +313,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
 
             mockInteraction.selectedCard = mockGameState.player1.hand[0]
 
-            const { canAttack } = await import('@/lib/combat_logic')
+            const { canAttack } = await import('@/services/combat_service')
             vi.mocked(canAttack).mockReturnValue(true)
 
             const { result: combatActions } = renderHook(() => useCombatActions())
@@ -363,7 +365,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
         })
 
         it('should prevent attacking with opponent units', async () => {
-            const { canAttack } = await import('@/lib/combat_logic')
+            const { canAttack } = await import('@/services/combat_service')
             vi.mocked(canAttack).mockReturnValue(true)
 
             const { result } = renderHook(() => useCombatActions())
@@ -387,7 +389,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
             })
 
             // Should do nothing without an attack source
-            const { declareAttack } = await import('@/lib/combat_logic')
+            const { declareAttack } = await import('@/services/combat_service')
             expect(declareAttack).not.toHaveBeenCalled()
         })
     })

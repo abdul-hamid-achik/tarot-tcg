@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { playCard } from '@/lib/game_logic'
-import { declareAttack } from '@/lib/combat_logic'
+import { declareAttack } from '@/services/combat_service'
 import { createTestGameState, createTestCard, placeUnitsOnBattlefield } from '@/test_utils'
 import type { GameState } from '@/schemas/schema'
 

@@ -13,6 +13,7 @@ export interface DragState {
   currentPosition: { x: number; y: number } | null
   dragElement: HTMLElement | null
   sourcePosition: BattlefieldPosition | 'hand' | null
+  capturedPointerId: number | null
 }
 
 export interface ClickState {
@@ -99,6 +100,7 @@ class InteractionService {
       currentPosition: { x: clientX, y: clientY },
       dragElement: element,
       sourcePosition: position,
+      capturedPointerId: event.pointerId,
     }
 
     // Start long press timer for touch devices
@@ -162,6 +164,15 @@ class InteractionService {
     if (this.longPressTimeout) {
       clearTimeout(this.longPressTimeout)
       this.longPressTimeout = null
+    }
+
+    // Release pointer capture
+    if (this.dragState.dragElement && this.dragState.capturedPointerId !== null) {
+      try {
+        this.dragState.dragElement.releasePointerCapture(this.dragState.capturedPointerId)
+      } catch {
+        // Ignore if already released
+      }
     }
 
     if (!this.dragState.draggedCard) return
@@ -390,6 +401,7 @@ class InteractionService {
       currentPosition: null,
       dragElement: null,
       sourcePosition: null,
+      capturedPointerId: null,
     }
   }
 

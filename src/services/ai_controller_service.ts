@@ -12,7 +12,7 @@ function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): 
   return units.filter(u => u !== null) as Card[]
 }
 
-import { declareAttack } from '@/lib/combat_logic'
+import { declareAttack } from '@/services/combat_service'
 
 // AI Decision weights for different strategies
 interface DecisionWeights {

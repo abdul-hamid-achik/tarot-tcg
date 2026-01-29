@@ -5,6 +5,7 @@ import Image from 'next/image'
 import type React from 'react'
 import { useRef } from 'react'
 import TarotCard from '@/components/tarot_card'
+import { cn } from '@/lib/utils'
 import type { Card as GameCard } from '@/schemas/schema'
 import { interactionService } from '@/services/interaction_service'
 import { useGameStore } from '@/store/game_store'
@@ -29,15 +30,20 @@ export default function HandFan({
   const fanRef = useRef<HTMLDivElement>(null)
   const { interaction, showCardDetail, gameState } = useGameStore()
 
-  // Position-specific styles - No-overflow Hearthstone-style
+  // Check if we can play cards
+  const isOurTurn = gameState?.activePlayer === 'player1'
+  const isActionPhase = gameState?.phase === 'action'
+  const totalMana = (gameState?.player1?.mana || 0) + (gameState?.player1?.spellMana || 0)
+
+  // Position-specific styles - Improved Hearthstone-style
   const positionStyles = {
     'bottom-left': {
-      container: 'fixed bottom-14 left-1/2 transform -translate-x-1/2 max-h-24',
+      container: 'fixed bottom-8 left-1/2 transform -translate-x-1/2',
       transformOrigin: 'center bottom',
       fanDirection: 1, // Normal fan direction
     },
     'top-right': {
-      container: 'absolute top-2 right-10 max-h-16',
+      container: 'absolute top-4 right-12',
       transformOrigin: 'center top',
       fanDirection: -1, // Reverse fan direction for enemy
     },
@@ -219,18 +225,32 @@ export default function HandFan({
     const cardPosition = calculateCardPosition(index, totalCards)
     const isMulliganSelected = isSelectedForMulligan()
     const isPlacementSelected = isSelectedForPlacement(card.id)
+    const canAfford = card.cost <= totalMana
+    const canPlay = isCurrentPlayer && isOurTurn && isActionPhase && canAfford
+    const isDragging = interaction.draggedCard?.id === card.id
 
     return (
       <div
         key={card.id}
-        className={`flex-shrink-0 cursor-pointer transition-all duration-300 origin-${position.includes('bottom') ? 'bottom' : 'top'} ${isMulliganSelected ? 'ring-2 ring-red-400 ring-opacity-60' : ''
-          } ${isPlacementSelected
-            ? 'ring-2 ring-blue-400 ring-opacity-80 shadow-lg shadow-blue-400/30'
-            : ''
-          }`}
+        className={cn(
+          'flex-shrink-0 cursor-pointer transition-all duration-300 relative',
+          position.includes('bottom') ? 'origin-bottom' : 'origin-top',
+          // Mulligan selection
+          isMulliganSelected && 'ring-2 ring-red-400 ring-opacity-60',
+          // Placement selection - prominent highlight
+          isPlacementSelected && [
+            'ring-4 ring-emerald-400',
+            'shadow-xl shadow-emerald-400/40',
+            'scale-110',
+          ],
+          // Playable card indicator
+          canPlay && !isPlacementSelected && 'ring-2 ring-emerald-300/50',
+          // Can't afford indicator
+          !canAfford && isCurrentPlayer && 'opacity-60',
+        )}
         style={{
           transform: `rotate(${cardPosition.angle}deg) translateY(${position.includes('bottom') ? '-' : ''}${cardPosition.translateY}px)`,
-          zIndex: cardPosition.zIndex,
+          zIndex: isPlacementSelected ? 100 : cardPosition.zIndex,
           marginLeft: cardPosition.marginLeft,
         }}
         onClick={() => handleCardClick(card)}
@@ -261,6 +281,20 @@ export default function HandFan({
           handleCardMouseLeave(cardElement, cardPosition)
         }}
       >
+        {/* Selection indicator badge */}
+        {isPlacementSelected && (
+          <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-50 bg-emerald-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold whitespace-nowrap animate-pulse">
+            Click slot to play
+          </div>
+        )}
+
+        {/* Can't afford indicator */}
+        {!canAfford && isCurrentPlayer && (
+          <div className="absolute -top-2 right-0 z-50 bg-red-500 text-white text-xs px-1.5 py-0.5 rounded-full font-bold">
+            {card.cost - totalMana}+
+          </div>
+        )}
+
         {/* Card Content */}
         {isCurrentPlayer ? (
           <TarotCard
@@ -268,7 +302,10 @@ export default function HandFan({
             size="small"
             isSelected={isPlacementSelected}
             draggable={false} // We handle drag through PointerEvents
-            className={`transition-all duration-200 ${interaction.draggedCard?.id === card.id ? 'opacity-50' : ''}`}
+            className={cn(
+              'transition-all duration-200',
+              isDragging && 'opacity-40 scale-95',
+            )}
           />
         ) : (
           /* Enemy card back */
@@ -295,16 +332,35 @@ export default function HandFan({
   }
 
   return (
-    <div ref={fanRef} className={`${positionConfig.container} z-20 ${className}`}>
-      <div className="flex gap-1" style={{ transformOrigin: positionConfig.transformOrigin }}>
-        {cards.map((card, index) => renderCard(card, index))}
+    <div ref={fanRef} className={cn(positionConfig.container, 'z-20', className)}>
+      {/* Hand container with subtle background */}
+      <div className={cn(
+        'relative flex items-end',
+        isCurrentPlayer && 'pb-2',
+      )}>
+        {/* Card fan */}
+        <div
+          className="flex"
+          style={{ transformOrigin: positionConfig.transformOrigin }}
+        >
+          {cards.map((card, index) => renderCard(card, index))}
+        </div>
       </div>
+
+      {/* Helper text for current player */}
+      {isCurrentPlayer && isOurTurn && isActionPhase && !interaction.selectedCard && cards.length > 0 && (
+        <div className="text-center mt-2 text-xs text-slate-500 font-medium">
+          Click a card to select, then click a slot to play
+        </div>
+      )}
 
       {/* Drag preview placeholder */}
       {interaction.draggedCard && isCurrentPlayer && (
-        <div className="absolute inset-0 pointer-events-none">
-          <div className="w-20 h-32 border-2 border-dashed border-blue-400 rounded-lg bg-blue-900/10 flex items-center justify-center">
-            <span className="text-blue-400 text-xs">Dragging...</span>
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-50">
+          <div className="bg-emerald-100 border-2 border-emerald-400 rounded-lg px-4 py-2 shadow-lg">
+            <span className="text-emerald-700 text-sm font-medium">
+              Drop on a slot to play
+            </span>
           </div>
         </div>
       )}

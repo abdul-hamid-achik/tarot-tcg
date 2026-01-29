@@ -1,7 +1,13 @@
 vi.unmock("@/lib/game_logger")
+import { produce } from 'immer'
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { createTestPlayer, createTestGameState, createTestCard } from '../../test_utils'
 import type { Player, GameState } from '../../schemas/schema'
+
+// Helper to create mutable copy for test setup
+const withMutation = <T>(state: T, mutate: (draft: T) => void): T => {
+  return produce(state, (draft: T) => mutate(draft as T))
+}
 
 // Mock GameLogger to avoid console spam in tests
 vi.mock('../../lib/game_logger', () => ({
@@ -376,13 +382,13 @@ describe('Game Logic - endTurn()', () => {
         const { endTurn } = await import('../../lib/game_logic')
 
         // Turn 3 -> 4 (no round change)
-        gameState.turn = 3
-        let newState = await endTurn(gameState)
+        const stateAtTurn3 = withMutation(gameState, draft => { draft.turn = 3 })
+        let newState = await endTurn(stateAtTurn3)
         expect(newState.round).toBe(2) // Still round 2
 
         // Turn 4 -> 5 (round change)
-        newState.turn = 4
-        newState = await endTurn(newState)
+        const stateAtTurn4 = withMutation(newState, draft => { draft.turn = 4 })
+        newState = await endTurn(stateAtTurn4)
         expect(newState.round).toBe(3) // Now round 3
     })
 
@@ -1247,28 +1253,27 @@ describe('Game Logic - State Immutability', () => {
         const cardToPlay = gameState.player1.hand[0]
         const newState = await playCard(gameState, cardToPlay, 0)
 
-        // Modify new state's hand
-        newState.player1.hand.push(createTestCard({ id: 'new-card', name: 'New Card' }))
+        // With Immer, returned state is frozen - verify original is unchanged
+        // by checking that the new state's hand is different from original
+        expect(newState.player1.hand).not.toBe(gameState.player1.hand)
 
-        // Original hand should not be affected
+        // Original hand should not be affected (card was removed from new state)
         expect(gameState.player1.hand.length).toBe(1)
-        expect(gameState.player1.hand.find(c => c.id === 'new-card')).toBeUndefined()
+        // The new state should have one less card
+        expect(newState.player1.hand.length).toBe(0)
     })
 
     it('should create independent copies of battlefield arrays', async () => {
         const cardToPlay = gameState.player1.hand[0]
         const newState = await playCard(gameState, cardToPlay, 0)
 
-        // Modify new state's battlefield
-        newState.battlefield.playerUnits[3] = createTestCard({
-            id: 'injected',
-            name: 'Injected Card',
-            type: 'unit',
-            attack: 1,
-            health: 1,
-        })
+        // With Immer, returned state is frozen - verify original is unchanged
+        // by checking that the arrays are different objects
+        expect(newState.battlefield.playerUnits).not.toBe(gameState.battlefield.playerUnits)
 
         // Original battlefield should not be affected
-        expect(gameState.battlefield.playerUnits[3]).toBeNull()
+        expect(gameState.battlefield.playerUnits[0]).toBeNull()
+        // New state should have the card placed
+        expect(newState.battlefield.playerUnits[0]).not.toBeNull()
     })
 })

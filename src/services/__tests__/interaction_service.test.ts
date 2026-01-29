@@ -376,5 +376,174 @@ describe('InteractionService - Drag and Drop', () => {
             expect(mockElement.style.opacity).toBe('')
         })
     })
+
+    describe('Pointer Capture', () => {
+        it('should call setPointerCapture on pointer down', () => {
+            const pointerId = 123
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+                clientX: 100,
+                clientY: 100,
+                pointerId,
+                bubbles: true,
+            })
+
+            interactionService.handlePointerDown(
+                pointerDownEvent,
+                mockCard,
+                'hand',
+                mockElement,
+            )
+
+            expect(mockElement.setPointerCapture).toHaveBeenCalledWith(pointerId)
+        })
+
+        it('should call releasePointerCapture on pointer up', () => {
+            const pointerId = 456
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+                clientX: 100,
+                clientY: 100,
+                pointerId,
+                bubbles: true,
+            })
+
+            interactionService.handlePointerDown(
+                pointerDownEvent,
+                mockCard,
+                'hand',
+                mockElement,
+            )
+
+            // Start drag
+            interactionService.handlePointerMove(
+                new PointerEvent('pointermove', { clientX: 110, clientY: 110 }),
+            )
+
+            // End drag
+            interactionService.handlePointerUp(
+                new PointerEvent('pointerup', { clientX: 110, clientY: 110 }),
+            )
+
+            expect(mockElement.releasePointerCapture).toHaveBeenCalledWith(pointerId)
+        })
+
+        it('should store capturedPointerId for later release', () => {
+            const pointerId = 789
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+                clientX: 100,
+                clientY: 100,
+                pointerId,
+                bubbles: true,
+            })
+
+            interactionService.handlePointerDown(
+                pointerDownEvent,
+                mockCard,
+                'hand',
+                mockElement,
+            )
+
+            // The pointer ID should be stored (verified by correct release call)
+            interactionService.handlePointerUp(
+                new PointerEvent('pointerup', { clientX: 100, clientY: 100 }),
+            )
+
+            expect(mockElement.releasePointerCapture).toHaveBeenCalledWith(pointerId)
+        })
+
+        it('should handle releasePointerCapture gracefully when already released', () => {
+            const pointerId = 111
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+                clientX: 100,
+                clientY: 100,
+                pointerId,
+                bubbles: true,
+            })
+
+            // Mock releasePointerCapture to throw (simulating already released)
+            mockElement.releasePointerCapture = vi.fn().mockImplementation(() => {
+                throw new Error('Pointer not captured')
+            })
+
+            interactionService.handlePointerDown(
+                pointerDownEvent,
+                mockCard,
+                'hand',
+                mockElement,
+            )
+
+            // Start drag
+            interactionService.handlePointerMove(
+                new PointerEvent('pointermove', { clientX: 110, clientY: 110 }),
+            )
+
+            // Should not throw when pointer up happens
+            expect(() => {
+                interactionService.handlePointerUp(
+                    new PointerEvent('pointerup', { clientX: 110, clientY: 110 }),
+                )
+            }).not.toThrow()
+        })
+
+        it('should release pointer capture on interaction cancellation', () => {
+            const pointerId = 222
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+                clientX: 100,
+                clientY: 100,
+                pointerId,
+                bubbles: true,
+            })
+
+            interactionService.handlePointerDown(
+                pointerDownEvent,
+                mockCard,
+                'hand',
+                mockElement,
+            )
+
+            // Start drag
+            interactionService.handlePointerMove(
+                new PointerEvent('pointermove', { clientX: 110, clientY: 110 }),
+            )
+
+            // Cancel interaction (this should clean up)
+            interactionService.cancelInteraction()
+
+            // Element should be restored (opacity cleared)
+            expect(mockElement.style.opacity).toBe('')
+        })
+
+        it('should not call releasePointerCapture if no pointer was captured', () => {
+            // Reset mock to clear any previous calls
+            mockElement.releasePointerCapture = vi.fn()
+
+            // Try to end a drag without starting one
+            interactionService.handlePointerUp(
+                new PointerEvent('pointerup', { clientX: 100, clientY: 100 }),
+            )
+
+            expect(mockElement.releasePointerCapture).not.toHaveBeenCalled()
+        })
+
+        it('should capture pointer with correct ID from event', () => {
+            const testPointerId = 42
+            const pointerDownEvent = new PointerEvent('pointerdown', {
+                clientX: 50,
+                clientY: 50,
+                pointerId: testPointerId,
+                bubbles: true,
+            })
+
+            interactionService.handlePointerDown(
+                pointerDownEvent,
+                mockCard,
+                'hand',
+                mockElement,
+            )
+
+            // Verify the exact pointerId from the event was used
+            expect(mockElement.setPointerCapture).toHaveBeenCalledTimes(1)
+            expect(mockElement.setPointerCapture).toHaveBeenCalledWith(testPointerId)
+        })
+    })
 })
 

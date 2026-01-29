@@ -1,8 +1,9 @@
 'use client'
 
-import { Clock } from 'lucide-react'
+import { Clock, Swords, SkipForward } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { isActionPhase } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
 
@@ -26,8 +27,9 @@ export default function ActionBar({
   // Early return if gameState is not available
   if (!gameState) {
     return (
-      <div className={`flex items-center justify-center gap-3 ${className}`}>
-        <Badge className="bg-gray-200 px-6 py-3 text-black font-semibold text-sm border border-gray-300 dark:border-gray-600 min-h-[44px] flex items-center justify-center">
+      <div className={cn('flex items-center justify-center', className)}>
+        <Badge className="bg-slate-100 px-6 py-3 text-slate-600 font-medium text-sm border border-slate-200 min-h-[44px] flex items-center justify-center">
+          <Clock className="w-4 h-4 animate-spin mr-2" />
           Loading...
         </Badge>
       </div>
@@ -84,7 +86,7 @@ export default function ActionBar({
     return { enabled: hasValidTargets, tooltip: 'Choose attack targets' }
   }
 
-  const _attackState = getAttackButtonState()
+  const attackState = getAttackButtonState()
 
   // Get defend button state and tooltip
   const getDefendButtonState = () => {
@@ -111,56 +113,54 @@ export default function ActionBar({
   const defendState = getDefendButtonState()
 
   return (
-    <div className={`flex flex-col gap-3 ${className}`}>
+    <div className={cn(
+      'bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 p-3',
+      'transition-all duration-300',
+      className,
+    )}>
       {/* Action Buttons Container */}
-      <div className="flex flex-col gap-3">
+      <div className="flex flex-col gap-2 min-w-[140px]">
         {/* Defend Button - During Defender Declaration Phase */}
         {isPlayerTurn && isDefendPhase && (
           <Button
             onClick={onDefend}
             disabled={!defendState.enabled}
-            className={`
-                w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95
-                ${
-                  defendState.enabled
-                    ? 'bg-green-600 hover:bg-green-700 text-white shadow-lg border border-green-400'
-                    : 'bg-gray-400 cursor-not-allowed opacity-50 text-gray-600 border border-gray-300'
-                }
-              `}
+            className={cn(
+              'w-full justify-center text-sm px-4 py-2.5 font-semibold uppercase tracking-wide',
+              'transition-all duration-200 rounded-xl',
+              defendState.enabled
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
+                : 'bg-slate-200 cursor-not-allowed text-slate-400',
+            )}
             title={defendState.tooltip}
           >
-            {'NO DEFENSE NEEDED'}
-            {false && <span className="ml-2 bg-green-800 px-2 py-1 rounded-full text-xs">🛡️</span>}
+            Skip Block
           </Button>
         )}
 
         {/* Combat Resolution */}
         {isInCombat && (
-          <Button
-            disabled
-            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide bg-red-700 text-white border border-red-500 opacity-90"
-          >
-            RESOLVING...
-          </Button>
+          <div className="flex items-center justify-center gap-2 text-amber-700 text-sm px-4 py-2.5 bg-amber-50 rounded-xl border border-amber-200">
+            <Swords className="w-4 h-4 animate-pulse" />
+            <span className="font-semibold">Combat...</span>
+          </div>
         )}
 
         {/* Opponent Turn Indicator */}
         {!isPlayerTurn && gameState?.phase === 'action' && (
-          <Button
-            disabled
-            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide bg-gray-600 text-white border border-gray-400 opacity-75"
-          >
-            OPPONENT TURN
-          </Button>
+          <div className="flex items-center justify-center gap-2 text-slate-500 text-sm px-4 py-2.5 bg-slate-100 rounded-xl border border-slate-200">
+            <Clock className="w-4 h-4 animate-spin" />
+            <span className="font-medium">Opponent</span>
+          </div>
         )}
 
         {/* End Round Button */}
         {gameState?.phase === 'end_round' && isPlayerTurn && (
           <Button
             onClick={onEndTurn}
-            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide bg-purple-600 hover:bg-purple-700 text-white shadow-lg border border-purple-400"
+            className="w-full justify-center text-sm px-4 py-2.5 font-semibold uppercase tracking-wide bg-violet-600 hover:bg-violet-700 text-white shadow-md rounded-xl transition-all duration-200"
           >
-            CONTINUE
+            Continue
           </Button>
         )}
 
@@ -168,20 +168,25 @@ export default function ActionBar({
         {!['action', 'defense_declaration', 'combat_resolution', 'end_round', 'mulligan'].includes(
           gameState?.phase || '',
         ) && (
-          <div className="flex items-center justify-center gap-2 text-gray-600 text-sm px-6 py-3 bg-gray-100/80 rounded border border-gray-300 min-h-[44px]">
+          <div className="flex items-center justify-center gap-2 text-slate-500 text-sm px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
             <Clock className="w-4 h-4 animate-pulse" />
             <span>Waiting...</span>
           </div>
         )}
 
-        {/* Show End Turn button when it's player's turn in action phase - Always visible in tutorial/sandbox */}
+        {/* Show End Turn button when it's player's turn in action phase */}
         {isPlayerTurn && gameState?.phase === 'action' && (
           <Button
             onClick={onPass}
-            className="w-full justify-center text-sm px-6 py-3 min-h-[44px] font-semibold uppercase tracking-wide touch-manipulation transition-all duration-300 transform hover:scale-105 active:scale-95 bg-black hover:bg-gray-800 text-white shadow-lg border border-gray-600 hover:shadow-xl"
+            className={cn(
+              'w-full justify-center text-sm px-4 py-3 font-bold uppercase tracking-wider',
+              'bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md',
+              'transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]',
+            )}
             title="End your turn"
           >
-            END TURN
+            <SkipForward className="w-4 h-4 mr-2" />
+            End Turn
           </Button>
         )}
       </div>

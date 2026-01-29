@@ -83,7 +83,7 @@ vi.mock('../ai_service', () => ({
     },
 }))
 
-vi.mock('@/lib/combat_logic', () => ({
+vi.mock('@/services/combat_service', () => ({
     declareAttack: vi.fn((state) => state),
 }))
 

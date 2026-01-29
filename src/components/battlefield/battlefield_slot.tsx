@@ -149,25 +149,47 @@ export function BattlefieldSlot({
     playCard,
   ])
 
+  // Determine if this is the player's zone or opponent's zone
+  const isPlayerZone = position.player === 'player1'
+  const hasSelectedCard = interaction.selectedCard !== null
+
   return (
     <div
       className={cn(
-        'relative w-20 h-28 rounded-lg border-2 transition-all duration-200 cursor-pointer',
+        'relative w-24 h-32 rounded-xl border-2 transition-all duration-300 cursor-pointer',
         'flex items-center justify-center group',
-        // Base styling by player
-        position.player === 'player1'
+        // Base styling - distinct zones with clear ownership
+        isPlayerZone
           ? isEmpty
-            ? 'border-dashed border-gray-400 hover:border-gray-600 bg-white'
-            : 'border-solid border-gray-600 bg-gray-100'
+            ? 'border-dashed border-slate-300 bg-slate-50/80 hover:border-slate-400 hover:bg-slate-100'
+            : 'border-solid border-slate-400 bg-white shadow-sm'
           : isEmpty
-            ? 'border-dashed border-gray-500 hover:border-gray-700 bg-gray-50'
-            : 'border-solid border-gray-700 bg-gray-200',
-        // Special states
-        isHighlighted && 'ring-2 ring-black shadow-black/30',
-        isValidDropZone && 'border-black bg-gray-300 scale-105 ring-1 ring-black/40',
-        isHovered && 'scale-105 shadow-lg',
-        card && isValidTarget(card.id) && 'border-black bg-gray-300 scale-105 animate-pulse',
-        card && isAttacking(card.id) && 'border-black bg-gray-400 scale-105',
+            ? 'border-dashed border-slate-400 bg-slate-100/80 hover:border-slate-500 hover:bg-slate-200'
+            : 'border-solid border-slate-500 bg-slate-50 shadow-sm',
+        // Valid drop zone - glowing effect when a card is selected for placement
+        isValidDropZone && hasSelectedCard && [
+          'border-emerald-500 border-solid bg-emerald-50',
+          'ring-2 ring-emerald-400/50 ring-offset-2',
+          'scale-105 shadow-lg shadow-emerald-500/20',
+        ],
+        // Hover state during drag
+        isHovered && 'scale-110 shadow-xl border-emerald-600 bg-emerald-100',
+        // Highlighted slot
+        isHighlighted && 'ring-2 ring-amber-400 shadow-amber-400/30',
+        // Attack targeting states
+        card && isValidTarget(card.id) && [
+          'border-red-500 border-solid bg-red-50',
+          'ring-2 ring-red-400/60 ring-offset-1',
+          'scale-105 shadow-lg shadow-red-500/30',
+          'animate-pulse',
+        ],
+        card && isAttacking(card.id) && [
+          'border-amber-500 border-solid bg-amber-50',
+          'ring-2 ring-amber-400 ring-offset-1',
+          'scale-105 shadow-xl shadow-amber-500/40',
+        ],
+        // Interaction affordance
+        canInteract && !isEmpty && !isAttacking(card?.id || '') && 'hover:scale-105 hover:shadow-md',
       )}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -178,7 +200,7 @@ export function BattlefieldSlot({
     >
       {/* Card or Empty State */}
       {card ? (
-        <div className="w-full h-full">
+        <div className="w-full h-full relative">
           <TarotCard
             card={card}
             size="battlefield"
@@ -191,13 +213,34 @@ export function BattlefieldSlot({
                 : undefined
             }
           />
+          {/* Attack ready indicator */}
+          {isAttacking(card.id) && (
+            <div className="absolute -top-2 left-1/2 -translate-x-1/2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded-full font-semibold animate-bounce">
+              Attacking
+            </div>
+          )}
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-1 opacity-40">
-          <div className="w-8 h-8 rounded-full border-2 border-dashed border-current flex items-center justify-center">
-            <span className="text-lg">✦</span>
+        <div className={cn(
+          'flex flex-col items-center gap-2 transition-all duration-300',
+          isValidDropZone && hasSelectedCard ? 'opacity-100 scale-110' : 'opacity-30 group-hover:opacity-50',
+        )}>
+          {/* Tarot-themed empty slot indicator */}
+          <div className={cn(
+            'w-10 h-10 rounded-full border-2 border-dashed flex items-center justify-center',
+            'transition-all duration-300',
+            isValidDropZone && hasSelectedCard
+              ? 'border-emerald-500 bg-emerald-100 text-emerald-600'
+              : 'border-current',
+          )}>
+            <span className="text-xl">{isValidDropZone && hasSelectedCard ? '↓' : '☆'}</span>
           </div>
-          <span className="text-xs text-center">Empty</span>
+          <span className={cn(
+            'text-xs font-medium',
+            isValidDropZone && hasSelectedCard ? 'text-emerald-600' : 'text-slate-400',
+          )}>
+            {isValidDropZone && hasSelectedCard ? 'Drop here' : `Slot ${position.slot + 1}`}
+          </span>
         </div>
       )}
 

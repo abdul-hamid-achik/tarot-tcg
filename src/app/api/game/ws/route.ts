@@ -316,7 +316,7 @@ async function handleDeclareAttack(
   message: any,
   _playerId: PlayerId,
 ): Promise<GameState> {
-  const { declareAttack } = await import('@/lib/combat_logic')
+  const { declareAttack } = await import('@/services/combat_service')
 
   return await declareAttack(gameState, {
     attackerId: message.attackerId,

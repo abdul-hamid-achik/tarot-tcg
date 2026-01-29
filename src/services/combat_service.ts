@@ -1,7 +1,8 @@
 'use client'
 
+import { produce } from 'immer'
 import { GameLogger } from '@/lib/game_logger'
-import type { Card as GameCard, GameState } from '@/schemas/schema'
+import type { Card as GameCard, GameState, DirectAttack, Battlefield as SchemaBattlefield, PlayerId } from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 import { battlefieldService } from '@/services/battlefield_service'
 import { animationService } from './animation_service'
@@ -497,6 +498,297 @@ class CombatService {
     toRemove.forEach(id => this.removePersistentEffect(id))
     GameLogger.action('Reset combat effects')
   }
+
+  /**
+   * Compatibility layer: Hearthstone-style direct attack
+   * This wraps processAttack() to provide the same interface as combat_logic.ts
+   */
+  async declareAttack(state: GameState, attack: DirectAttack): Promise<GameState> {
+    const attackingPlayer = state.activePlayer
+    const player = state[attackingPlayer]
+
+    // Validate attack token (Hearthstone-style combat)
+    if (!player.hasAttackToken) {
+      throw new Error('You do not have the attack token this round')
+    }
+
+    // Find attacker on battlefield
+    const attackerPos = this.findUnitPosition(state.battlefield, attack.attackerId)
+    if (!attackerPos) throw new Error('Attacker not found')
+
+    const attacker = this.getUnitAt(state.battlefield, attackerPos.slot, attackerPos.player)
+    if (!attacker) throw new Error('Invalid attacker')
+
+    // Validate ownership - attacker must belong to active player
+    if (attacker.owner !== attackingPlayer) {
+      throw new Error(`Cannot attack with opponent's unit`)
+    }
+
+    // Validate can attack
+    if (attacker.hasSummoningSickness && !this.hasKeyword(attacker, 'charge') && !this.hasKeyword(attacker, 'astral_projection')) {
+      throw new Error('Summoning sickness')
+    }
+    if (attacker.hasAttackedThisTurn && !this.hasKeyword(attacker, 'windfury')) {
+      throw new Error('Already attacked')
+    }
+
+    // Check taunt
+    const opponent = attackingPlayer === 'player1' ? 'player2' : 'player1'
+    const tauntUnits = this.getUnitsWithKeyword(state.battlefield, opponent, 'taunt')
+
+    if (tauntUnits.length > 0 && attack.targetType === 'player') {
+      throw new Error('Must attack taunt first')
+    }
+
+    // Execute attack using Immer for immutability
+    return produce(state, draft => {
+      const draftAttacker = this.getUnitAtMutable(draft.battlefield, attackerPos.slot, attackerPos.player)
+      if (!draftAttacker) return
+
+      if (attack.targetType === 'unit' && attack.targetId) {
+        // Unit combat
+        const targetPos = this.findUnitPosition(draft.battlefield, attack.targetId)
+        if (!targetPos) throw new Error('Target not found')
+
+        const target = this.getUnitAtMutable(draft.battlefield, targetPos.slot, targetPos.player)
+        if (!target) throw new Error('Invalid target')
+
+        // Get modifiers
+        const attackerModifiers = this.getCardModifiers(draftAttacker)
+        const targetModifiers = this.getCardModifiers(target)
+
+        // Calculate damage
+        const attackerPower = draftAttacker.attack + (attackerModifiers.attackBonus || 0)
+        const targetPower = target.attack + (targetModifiers.attackBonus || 0)
+
+        let attackerDamage = Math.max(0, targetPower - (attackerModifiers.damageReduction || 0))
+        let targetDamage = Math.max(0, attackerPower - (targetModifiers.damageReduction || 0))
+
+        // Handle divine shield
+        if (target.divineShield && targetDamage > 0) {
+          targetDamage = 0
+          target.divineShield = false
+        }
+        if (draftAttacker.divineShield && attackerDamage > 0) {
+          attackerDamage = 0
+          draftAttacker.divineShield = false
+        }
+
+        // Handle poisonous
+        if (this.hasKeyword(target, 'poisonous') && attackerDamage > 0) {
+          attackerDamage = draftAttacker.currentHealth || draftAttacker.health
+        }
+        if (this.hasKeyword(draftAttacker, 'poisonous') && targetDamage > 0) {
+          targetDamage = target.currentHealth || target.health
+        }
+
+        // Handle elemental fury - double damage against opposing elements
+        if (this.hasKeyword(draftAttacker, 'elemental_fury')) {
+          const opposingElements: Record<string, string> = {
+            fire: 'water', water: 'fire', earth: 'air', air: 'earth',
+          }
+          if (opposingElements[draftAttacker.element] === target.element) {
+            targetDamage *= 2
+          }
+        }
+
+        // Apply damage
+        draftAttacker.currentHealth = (draftAttacker.currentHealth || draftAttacker.health) - attackerDamage
+        target.currentHealth = (target.currentHealth || target.health) - targetDamage
+
+        GameLogger.combat(`${draftAttacker.name} (${attackerPower}) vs ${target.name} (${targetPower})`)
+
+        // Handle lifesteal
+        if (this.hasKeyword(draftAttacker, 'lifesteal') && targetDamage > 0) {
+          draft[attackingPlayer].health += targetDamage
+          GameLogger.combat(`${draftAttacker.name} heals for ${targetDamage} (lifesteal)`)
+        }
+
+        // Process deaths
+        const draftUnitsAttacker = attackerPos.player === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+        const draftUnitsTarget = targetPos.player === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+
+        if (draftAttacker.currentHealth <= 0) {
+          draftUnitsAttacker[attackerPos.slot] = null
+          GameLogger.combat(`${draftAttacker.name} dies in combat`)
+        }
+        if (target.currentHealth <= 0) {
+          draftUnitsTarget[targetPos.slot] = null
+          GameLogger.combat(`${target.name} dies in combat`)
+        }
+      } else if (attack.targetType === 'player') {
+        // Face damage
+        const attackerModifiers = this.getCardModifiers(draftAttacker)
+        const damage = draftAttacker.attack + (attackerModifiers.attackBonus || 0)
+        draft[opponent].health -= damage
+        GameLogger.combat(`${draftAttacker.name} deals ${damage} damage to ${opponent}`)
+
+        // Handle lifesteal
+        if (this.hasKeyword(draftAttacker, 'lifesteal') && damage > 0) {
+          draft[attackingPlayer].health += damage
+          GameLogger.combat(`${draftAttacker.name} heals for ${damage} (lifesteal)`)
+        }
+      }
+
+      // Mark as attacked
+      draftAttacker.hasAttackedThisTurn = true
+    })
+  }
+
+  /**
+   * Helper: Find unit position on battlefield
+   */
+  private findUnitPosition(
+    battlefield: SchemaBattlefield,
+    unitId: string,
+  ): { player: 'player1' | 'player2'; slot: number } | null {
+    for (let i = 0; i < battlefield.playerUnits.length; i++) {
+      if (battlefield.playerUnits[i]?.id === unitId) {
+        return { player: 'player1', slot: i }
+      }
+    }
+    for (let i = 0; i < battlefield.enemyUnits.length; i++) {
+      if (battlefield.enemyUnits[i]?.id === unitId) {
+        return { player: 'player2', slot: i }
+      }
+    }
+    return null
+  }
+
+  /**
+   * Helper: Get unit at position (readonly)
+   */
+  private getUnitAt(
+    battlefield: SchemaBattlefield,
+    slot: number,
+    playerId: 'player1' | 'player2',
+  ): GameCard | null {
+    const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
+    return units[slot] || null
+  }
+
+  /**
+   * Helper: Get unit at position (mutable for Immer draft)
+   */
+  private getUnitAtMutable(
+    battlefield: SchemaBattlefield,
+    slot: number,
+    playerId: 'player1' | 'player2',
+  ): GameCard | null {
+    const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
+    return units[slot] || null
+  }
+
+  /**
+   * Helper: Get player units
+   */
+  private getPlayerUnits(battlefield: SchemaBattlefield, playerId: 'player1' | 'player2'): GameCard[] {
+    const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
+    return units.filter(u => u !== null) as GameCard[]
+  }
+
+  /**
+   * Helper: Get units with a specific keyword
+   */
+  private getUnitsWithKeyword(
+    battlefield: SchemaBattlefield,
+    playerId: 'player1' | 'player2',
+    keyword: string,
+  ): GameCard[] {
+    const units = this.getPlayerUnits(battlefield, playerId)
+    return units.filter(
+      unit =>
+        unit.keywords?.includes(keyword) ||
+        unit.keywords?.includes(keyword.charAt(0).toUpperCase() + keyword.slice(1)),
+    )
+  }
 }
 
 export const combatService = new CombatService()
+
+// ================================
+// EXPORTED COMPATIBILITY FUNCTIONS
+// ================================
+
+/**
+ * Declare an attack - compatibility wrapper for combat_logic.ts interface
+ */
+export async function declareAttack(state: GameState, attack: DirectAttack): Promise<GameState> {
+  return combatService.declareAttack(state, attack)
+}
+
+/**
+ * Check if a unit can attack
+ */
+export function canAttack(unit: GameCard): boolean {
+  if (!unit) return false
+  if (unit.hasSummoningSickness) {
+    // Check for charge/astral_projection keywords
+    if (!unit.keywords?.includes('charge') && !unit.keywords?.includes('astral_projection')) {
+      return false
+    }
+  }
+  if (unit.hasAttackedThisTurn) {
+    // Check for windfury
+    if (!unit.keywords?.includes('windfury')) {
+      return false
+    }
+  }
+  if ((unit.currentHealth || unit.health) <= 0) return false
+  return true
+}
+
+/**
+ * Get valid attack targets for a unit
+ */
+export function getValidAttackTargets(
+  state: GameState,
+  attackingPlayer: PlayerId,
+): { units: GameCard[]; canTargetPlayer: boolean } {
+  const opponent = attackingPlayer === 'player1' ? 'player2' : 'player1'
+  const enemyUnits = (opponent === 'player1' ? state.battlefield.playerUnits : state.battlefield.enemyUnits)
+    .filter(u => u !== null) as GameCard[]
+
+  // Check for taunt units
+  const tauntUnits = enemyUnits.filter(
+    unit => unit.keywords?.includes('taunt') || unit.keywords?.includes('Taunt'),
+  )
+
+  // Filter out stealth units that haven't attacked
+  const targetableUnits = (tauntUnits.length > 0 ? tauntUnits : enemyUnits).filter(unit => {
+    if (unit.keywords?.includes('stealth') && !unit.hasAttackedThisTurn) return false
+    if (unit.keywords?.includes('veil_of_illusion') && !unit.hasAttackedThisTurn) return false
+    return true
+  })
+
+  return {
+    units: targetableUnits,
+    canTargetPlayer: tauntUnits.length === 0,
+  }
+}
+
+/**
+ * Calculate combat damage preview without executing
+ */
+export function previewCombat(
+  attacker: GameCard,
+  defender: GameCard,
+): {
+  attackerSurvives: boolean
+  defenderSurvives: boolean
+  attackerHealthRemaining: number
+  defenderHealthRemaining: number
+} {
+  const attackerDamage = attacker.attack || 0
+  const defenderDamage = defender.attack || 0
+
+  const attackerHealthRemaining = (attacker.currentHealth || attacker.health) - defenderDamage
+  const defenderHealthRemaining = (defender.currentHealth || defender.health) - attackerDamage
+
+  return {
+    attackerSurvives: attackerHealthRemaining > 0,
+    defenderSurvives: defenderHealthRemaining > 0,
+    attackerHealthRemaining: Math.max(0, attackerHealthRemaining),
+    defenderHealthRemaining: Math.max(0, defenderHealthRemaining),
+  }
+}

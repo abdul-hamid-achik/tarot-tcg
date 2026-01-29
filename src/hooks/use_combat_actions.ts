@@ -1,5 +1,5 @@
 import { useCallback } from 'react'
-import { canAttack, declareAttack } from '@/lib/combat_logic'
+import { canAttack, declareAttack } from '@/services/combat_service'
 import { GameLogger } from '@/lib/game_logger'
 import type { Card } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'

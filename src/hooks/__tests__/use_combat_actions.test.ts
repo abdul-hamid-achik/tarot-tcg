@@ -9,7 +9,7 @@ vi.mock('@/store/game_store', () => ({
     useGameStore: vi.fn(),
 }))
 
-vi.mock('@/lib/combat_logic', () => ({
+vi.mock('@/services/combat_service', () => ({
     canAttack: vi.fn(),
     declareAttack: vi.fn(),
 }))
@@ -60,7 +60,7 @@ describe('useCombatActions', () => {
             setGameState: mockSetGameState,
         } as any)
 
-        const combatLogic = await import('@/lib/combat_logic')
+        const combatLogic = await import('@/services/combat_service')
         mockCanAttack = vi.mocked(combatLogic.canAttack)
         mockDeclareAttack = vi.mocked(combatLogic.declareAttack)
     })

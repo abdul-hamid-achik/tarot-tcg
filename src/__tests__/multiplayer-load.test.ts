@@ -151,16 +151,22 @@ describe('Multiplayer Load Testing', () => {
 
     describe('State Synchronization', () => {
         it('should handle rapid state updates without corruption', async () => {
+            const { produce } = await import('immer')
             let gameState = createTestGameState()
 
-            // Apply rapid state updates with proper setup
-            gameState.player1.mana = 50 // Ensure enough mana
+            // Apply rapid state updates with proper setup - use produce for immutable updates
+            gameState = produce(gameState, draft => {
+                draft.player1.mana = 50 // Ensure enough mana
+            })
 
             for (let i = 0; i < 7; i++) { // Limit to available slots
                 const { playCard } = await import('@/lib/game_logic')
                 const card = createTestCard({ id: `rapid_card_${i}`, cost: 1 })
 
-                gameState.player1.hand = [card]
+                // Use produce to update hand immutably
+                gameState = produce(gameState, draft => {
+                    draft.player1.hand = [card]
+                })
                 gameState = await playCard(gameState, card, i)
             }
 
@@ -241,7 +247,7 @@ describe('Performance Benchmarks', () => {
 
         // Benchmark combat resolution
         const combatStart = Date.now()
-        const { declareAttack } = await import('@/lib/combat_logic')
+        const { declareAttack } = await import('@/services/combat_service')
         const combatState = createTestGameState()
         // Set up units for combat
         combatState.battlefield.playerUnits[0] = createTestCard({

@@ -1,4 +1,5 @@
 import { GameLogger } from '@/lib/game_logger'
+import { RingBuffer } from '@/lib/ring_buffer'
 import type {
   EventData,
   EventFilter,
@@ -11,12 +12,14 @@ import type {
 
 export class EventManager {
   private subscriptions: Map<string, EventSubscription> = new Map()
-  private eventHistory: GameEvent[] = []
+  private eventHistory: RingBuffer<GameEvent>
   private nextSubscriptionId = 1
   private isProcessingEvents = false
   private eventQueue: GameEvent[] = []
 
-  constructor(private maxHistorySize: number = 1000) {}
+  constructor(maxHistorySize: number = 1000) {
+    this.eventHistory = new RingBuffer(maxHistorySize)
+  }
 
   /**
    * Subscribe to game events with optional filtering
@@ -168,12 +171,8 @@ export class EventManager {
   }
 
   private addToHistory(event: GameEvent): void {
+    // Ring buffer automatically handles max size - O(1) operation
     this.eventHistory.push(event)
-
-    // Trim history if it gets too large
-    if (this.eventHistory.length > this.maxHistorySize) {
-      this.eventHistory = this.eventHistory.slice(-this.maxHistorySize)
-    }
   }
 
   /**
@@ -181,7 +180,7 @@ export class EventManager {
    */
   getHistory(filter?: Partial<EventFilter>): GameEvent[] {
     if (!filter) {
-      return [...this.eventHistory]
+      return this.eventHistory.toArray()
     }
 
     return this.eventHistory.filter(event => {
@@ -198,17 +197,28 @@ export class EventManager {
   }
 
   /**
-   * Clear event history
+   * Get the last N events (most recent first)
+   * Optionally filter by event type
    */
-  clearHistory(): void {
-    this.eventHistory = []
+  getRecentEvents(count: number, type?: GameEventType): GameEvent[] {
+    if (type) {
+      return this.eventHistory.filter(event => event.type === type).slice(-count)
+    }
+    return this.eventHistory.getLastN(count)
   }
 
   /**
-   * Get recent events of a specific type
+   * Get event history length
    */
-  getRecentEvents(type: GameEventType, count: number = 10): GameEvent[] {
-    return this.eventHistory.filter(event => event.type === type).slice(-count)
+  getHistoryLength(): number {
+    return this.eventHistory.length
+  }
+
+  /**
+   * Clear event history
+   */
+  clearHistory(): void {
+    this.eventHistory.clear()
   }
 
   /**

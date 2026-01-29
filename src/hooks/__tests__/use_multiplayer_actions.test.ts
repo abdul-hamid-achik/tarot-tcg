@@ -23,7 +23,7 @@ vi.mock('@/lib/game_logic', () => ({
   playCard: vi.fn(),
   endTurn: vi.fn(),
 }))
-vi.mock('@/lib/combat_logic', () => ({
+vi.mock('@/services/combat_service', () => ({
   declareAttack: vi.fn(),
 }))
 
@@ -259,7 +259,7 @@ describe('useMultiplayerActions', () => {
 
     it('should call local declareAttack when in local mode', async () => {
       const mockLocalAttack = vi.fn().mockResolvedValue(mockGameState)
-      vi.doMock('@/lib/combat_logic', () => ({
+      vi.doMock('@/services/combat_service', () => ({
         declareAttack: mockLocalAttack,
       }))
 

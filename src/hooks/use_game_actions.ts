@@ -46,8 +46,11 @@ export const useGameActions = () => {
 
         GameLogger.action(`Played ${card.name}`)
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Failed to play card'
         GameLogger.error('Error playing card:', error)
-        GameLogger.action(`Failed to play ${card.name}: ${error}`)
+        GameLogger.action(`Failed to play ${card.name}: ${errorMessage}`)
+        // Show error to user
+        useGameStore.getState().showError(errorMessage)
         // Don't clear selection on error so user can see what went wrong
       } finally {
         setAnimationState(false)
@@ -75,7 +78,7 @@ export const useGameActions = () => {
       try {
         setAnimationState(true)
 
-        const { declareAttack: localDeclareAttack } = await import('@/lib/combat_logic')
+        const { declareAttack: localDeclareAttack } = await import('@/services/combat_service')
         const newGameState = await localDeclareAttack(currentState, {
           attackerId,
           targetType,
@@ -87,8 +90,11 @@ export const useGameActions = () => {
 
         GameLogger.combat(`Attack executed: ${attackerId} -> ${targetType}`)
       } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Attack failed'
         GameLogger.error('Error declaring attack:', error)
-        GameLogger.combat(`Attack failed: ${error}`)
+        GameLogger.combat(`Attack failed: ${errorMessage}`)
+        // Show error to user
+        useGameStore.getState().showError(errorMessage)
       } finally {
         setAnimationState(false)
       }
