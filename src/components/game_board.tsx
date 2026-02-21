@@ -44,17 +44,15 @@ export default function GameBoard({
   onEndTurn,
   onMulligan,
 }: GameBoardProps) {
-  const {
-    ui,
-    interaction,
-    hideCardDetail,
-    showCardDetail,
-    setGameState,
-    highlightSlots,
-    clearHighlights,
-    setValidDropZones,
-    clearValidDropZones,
-  } = useGameStore()
+  const ui = useGameStore(state => state.ui)
+  const interaction = useGameStore(state => state.interaction)
+  const hideCardDetail = useGameStore(state => state.hideCardDetail)
+  const showCardDetail = useGameStore(state => state.showCardDetail)
+  const setGameState = useGameStore(state => state.setGameState)
+  const highlightSlots = useGameStore(state => state.highlightSlots)
+  const clearHighlights = useGameStore(state => state.clearHighlights)
+  const setValidDropZones = useGameStore(state => state.setValidDropZones)
+  const clearValidDropZones = useGameStore(state => state.clearValidDropZones)
 
   const { playCard, declareAttack, attackTarget, completeMulligan, reverseCard } = useGameActions()
 
@@ -78,6 +76,9 @@ export default function GameBoard({
       setGameState(initialGameState)
       soundService.init()
       initializedRef.current = true
+    }
+    return () => {
+      soundService.destroy()
     }
   }, [initialGameState]) // setGameState is stable, don't include in deps
 

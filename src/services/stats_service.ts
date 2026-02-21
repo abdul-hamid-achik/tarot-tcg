@@ -60,6 +60,10 @@ class StatsService {
   loadStorage(): StatsStorage {
     if (this.storage) return this.storage
 
+    if (typeof window === 'undefined') {
+      return createDefaultStorage()
+    }
+
     try {
       const raw = localStorage.getItem(STORAGE_KEY)
       if (!raw) {
@@ -86,6 +90,7 @@ class StatsService {
 
   private saveStorage(): void {
     if (!this.storage) return
+    if (typeof window === 'undefined') return
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(this.storage))
     } catch {

@@ -307,6 +307,14 @@ export default function Home() {
           animation: float linear infinite;
         }
 
+        @media (prefers-reduced-motion: reduce) {
+          .animate-float,
+          .animate-fade-in,
+          .animate-slide-up {
+            animation: none;
+          }
+        }
+
         .animate-fade-in {
           animation: fade-in 1s ease-out;
         }

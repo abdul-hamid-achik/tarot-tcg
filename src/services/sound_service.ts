@@ -47,6 +47,7 @@ class SoundService {
    */
   init(): void {
     if (this.initialized) return
+    if (typeof window === 'undefined') return
 
     try {
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
@@ -179,6 +180,17 @@ class SoundService {
    */
   isReady(): boolean {
     return this.initialized && this.audioContext !== null
+  }
+
+  /**
+   * Clean up audio context (call on component unmount)
+   */
+  destroy(): void {
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close()
+    }
+    this.audioContext = null
+    this.initialized = false
   }
 }
 
