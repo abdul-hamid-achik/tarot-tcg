@@ -5,23 +5,23 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 ```bash
 # Start development server
-npm run dev
+bun run dev
 
 # Build for production
-npm run build
+bun run build
 
 # Start production server
-npm run start
+bun run start
 
 # Run linting (Biome)
-npm run lint              # Runs Biome linter/formatter
+bun run lint              # Runs Biome linter/formatter
 
 # Run tests
-npm run test              # Runs tests once and reports results
-npm run test:ui           # Opens Vitest UI for interactive testing
-npm run test:run          # Runs tests once (CI mode)
-npm run test:coverage     # Runs tests with coverage report
-npm run test:watch        # Runs tests in watch mode
+bun run test              # Runs tests once and reports results
+bun run test:ui           # Opens Vitest UI for interactive testing
+bun run test:run          # Runs tests once (CI mode)
+bun run test:coverage     # Runs tests with coverage report
+bun run test:watch        # Runs tests in watch mode
 ```
 
 ## Architecture Overview
@@ -188,7 +188,7 @@ content/
 - Replaces ESLint and Prettier with a single, faster tool
 - Configuration in `biome.json` with strict rules
 - Formats with 2-space indentation, 100-character line width
-- Run `npm run lint` to check and auto-fix issues
+- Run `bun run lint` to check and auto-fix issues
 
 ### Testing Philosophy
 
@@ -240,9 +240,9 @@ describe('GameCard', () => {
 ```
 
 **Running Tests:**
-- `npm run test` - Run all tests once
-- `npm run test:watch` - Watch mode for development
-- `npm run test:coverage` - Generate coverage report
+- `bun run test` - Run all tests once
+- `bun run test:watch` - Watch mode for development
+- `bun run test:coverage` - Generate coverage report
 - Coverage goals: >80% for services, >60% for components
 
 **Performance**
@@ -250,3 +250,13 @@ describe('GameCard', () => {
 - Implement performance modes (high/medium/low)
 - Batch animations when possible
 - Optimize grid operations for 24-cell battlefield
+
+## Browser Automation
+
+Use `agent-browser` for web automation. Run `agent-browser --help` for all commands.
+
+Core workflow:
+1. `agent-browser open <url>` - Navigate to page
+2. `agent-browser snapshot -i` - Get interactive elements with refs (@e1, @e2)
+3. `agent-browser click @e1` / `fill @e2 "text"` - Interact using refs
+4. Re-snapshot after page changes

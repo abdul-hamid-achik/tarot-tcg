@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--inspect' next dev",
-    "dev:no-debug": "next dev",
+    "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "biome check .",
@@ -22,7 +21,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
-    "db:setup": "npm run db:start && npm run db:push"
+    "db:setup": "bun run db:start && bun run db:push"
   },
   "dependencies": {
     "@mdx-js/loader": "^3.1.1",
@@ -56,6 +55,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.2.4",
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/postcss": "^4",
     "@testing-library/jest-dom": "^6.8.0",
     "@testing-library/react": "^16.3.0",
