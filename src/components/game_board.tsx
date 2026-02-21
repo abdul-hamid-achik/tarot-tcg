@@ -249,8 +249,12 @@ export default function GameBoard({
     gameState: gameState ?? initialGameState,
     onEndTurn: handleEndTurn,
     onCardPlay: handleCardPlay,
+    onShowHelp: () => setShowHelp(true),
     enabled: !!gameState && gameState.phase === 'action' && gameState.activePlayer === 'player1',
   })
+
+  // Keyboard shortcuts help overlay
+  const [showHelp, setShowHelp] = React.useState(false)
 
   // Sound toggle
   const [isMuted, setIsMuted] = React.useState(() => soundService.isMuted())
@@ -350,14 +354,58 @@ export default function GameBoard({
       <button
         onClick={toggleSound}
         className="fixed top-2 right-14 md:top-4 md:right-16 z-50 w-8 h-8 md:w-10 md:h-10 rounded-full bg-card/90 border border-border shadow-md flex items-center justify-center hover:bg-card transition-colors"
+        aria-label={isMuted ? 'Unmute sounds' : 'Mute sounds'}
         title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
       >
         {isMuted ? (
-          <VolumeX className="w-4 h-4 text-muted-foreground" />
+          <VolumeX className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
         ) : (
-          <Volume2 className="w-4 h-4 text-foreground" />
+          <Volume2 className="w-4 h-4 text-foreground" aria-hidden="true" />
         )}
       </button>
+
+      {/* Keyboard Shortcuts Help Overlay */}
+      {showHelp && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="shortcuts-title"
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+          onClick={() => setShowHelp(false)}
+        >
+          <div
+            className="bg-card rounded-xl border border-border shadow-2xl p-6 max-w-sm w-full"
+            onClick={e => e.stopPropagation()}
+          >
+            <h2 id="shortcuts-title" className="text-lg font-bold text-foreground mb-4">
+              Keyboard Shortcuts
+            </h2>
+            <dl className="space-y-2 text-sm">
+              {[
+                { key: '1–7', desc: 'Play/select card from hand' },
+                { key: 'E', desc: 'End turn' },
+                { key: 'Space', desc: 'Show selected card detail' },
+                { key: 'Escape', desc: 'Cancel selection / attack' },
+                { key: '?', desc: 'Toggle this help' },
+              ].map(({ key, desc }) => (
+                <div key={key} className="flex justify-between items-center gap-4">
+                  <kbd className="px-2 py-0.5 bg-muted border border-border rounded text-xs font-mono">
+                    {key}
+                  </kbd>
+                  <dd className="text-muted-foreground text-right flex-1">{desc}</dd>
+                </div>
+              ))}
+            </dl>
+            <button
+              onClick={() => setShowHelp(false)}
+              className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Close keyboard shortcuts help"
+            >
+              Press Escape or click outside to close
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Error Message Toast */}
       {ui.errorMessage && (

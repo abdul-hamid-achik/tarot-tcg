@@ -1,7 +1,7 @@
 'use client'
 
 import { Sparkles, X } from 'lucide-react'
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import TarotCard from '@/components/tarot_card'
 import { Button } from '@/components/ui/button'
 import type { Card as GameCard } from '@/schemas/schema'
@@ -21,6 +21,13 @@ export default function MulliganOverlay({
 }: MulliganOverlayProps) {
   const [selectedForDiscard, setSelectedForDiscard] = useState<string[]>([])
   const [draggedCard, setDraggedCard] = useState<string | null>(null)
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      closeButtonRef.current?.focus()
+    }
+  }, [isOpen])
 
   if (!isOpen) return null
 
@@ -66,21 +73,31 @@ export default function MulliganOverlay({
   const discardedCards = hand.filter(card => selectedForDiscard.includes(card.id))
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="mulligan-title"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
       <div className="bg-card rounded-xl border border-border max-w-4xl w-full max-h-[90vh] overflow-hidden shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-muted-foreground" />
+          <h2
+            id="mulligan-title"
+            className="text-xl font-bold text-foreground flex items-center gap-2"
+          >
+            <Sparkles className="w-5 h-5 text-muted-foreground" aria-hidden="true" />
             Mulligan Phase
           </h2>
           <Button
+            ref={closeButtonRef}
             variant="ghost"
             size="icon"
             onClick={onClose}
+            aria-label="Close mulligan"
             className="text-muted-foreground hover:text-foreground"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </Button>
         </div>
 
@@ -106,10 +123,22 @@ export default function MulliganOverlay({
               {discardedCards.map(card => (
                 <div
                   key={card.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Move ${card.name} back to keep`}
                   className="transform hover:scale-105 transition-transform cursor-pointer"
                   draggable
                   onDragStart={() => handleDragStart(card.id)}
                   onDragEnd={handleDragEnd}
+                  onClick={() =>
+                    setSelectedForDiscard(prev => prev.filter(id => id !== card.id))
+                  }
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedForDiscard(prev => prev.filter(id => id !== card.id))
+                    }
+                  }}
                 >
                   <TarotCard
                     card={card}
@@ -140,10 +169,20 @@ export default function MulliganOverlay({
               {keptCards.map(card => (
                 <div
                   key={card.id}
+                  role="button"
+                  tabIndex={0}
+                  aria-label={`Mark ${card.name} for discard`}
                   className="transform hover:scale-105 transition-transform cursor-pointer"
                   draggable
                   onDragStart={() => handleDragStart(card.id)}
                   onDragEnd={handleDragEnd}
+                  onClick={() => setSelectedForDiscard(prev => [...prev, card.id])}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      setSelectedForDiscard(prev => [...prev, card.id])
+                    }
+                  }}
                 >
                   <TarotCard card={card} size="small" isSelected={false} />
                 </div>

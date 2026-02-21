@@ -28,8 +28,8 @@ export const metadata: Metadata = {
       'A strategic card battler where ancient tarot wisdom meets modern gameplay. 78 unique cards, zodiac mechanics, and deep strategy.',
     type: 'website',
     siteName: 'Tarot TCG',
-    url: 'https://tarot-tcg.vercel.app',
-    images: [{ url: 'https://tarot-tcg.vercel.app/og-image.png', width: 1200, height: 630 }],
+    url: 'https://tarot-tcg.com',
+    images: [{ url: 'https://tarot-tcg.com/og-image.png', width: 1200, height: 630 }],
   },
   twitter: {
     card: 'summary_large_image',

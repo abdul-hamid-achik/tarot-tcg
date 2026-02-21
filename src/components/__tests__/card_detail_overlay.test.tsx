@@ -311,13 +311,14 @@ describe('CardDetailOverlay', () => {
                 />
             )
 
-            const closeButton = screen.getByRole('button', { name: /close/i })
+            // The footer "Close" text button
+            const closeButton = screen.getByRole('button', { name: 'Close' })
             fireEvent.click(closeButton)
 
             expect(mockOnClose).toHaveBeenCalledTimes(1)
         })
 
-        it('should call onClose when X button is clicked', () => {
+        it('should call onClose when X icon button is clicked', () => {
             const card = createTestCardWithDetails()
 
             render(
@@ -328,7 +329,8 @@ describe('CardDetailOverlay', () => {
                 />
             )
 
-            const xButton = screen.getByRole('button', { name: '' }) // X button has no accessible name
+            // The X icon button in the header (now has an accessible aria-label)
+            const xButton = screen.getByRole('button', { name: /Close Test Card details/i })
             fireEvent.click(xButton)
 
             expect(mockOnClose).toHaveBeenCalledTimes(1)
@@ -446,9 +448,11 @@ describe('CardDetailOverlay', () => {
                 />
             )
 
-            // Check that buttons are focusable
-            const closeButton = screen.getByRole('button', { name: /close/i })
-            expect(closeButton).toBeInTheDocument()
+            // Both the icon close button and the footer Close button should be accessible
+            const iconButton = screen.getByRole('button', { name: /Close Test Card details/i })
+            const footerButton = screen.getByRole('button', { name: 'Close' })
+            expect(iconButton).toBeInTheDocument()
+            expect(footerButton).toBeInTheDocument()
         })
     })
 })

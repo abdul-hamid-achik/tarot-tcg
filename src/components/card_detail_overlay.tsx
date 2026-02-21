@@ -1,6 +1,7 @@
 'use client'
 
 import { Heart, Sword, X, Zap } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import ReactMarkdown from 'react-markdown'
 import TarotCard from '@/components/tarot_card'
 import { Badge } from '@/components/ui/badge'
@@ -22,21 +23,38 @@ export default function CardDetailOverlay({
   onPlay,
   canPlay = false,
 }: CardDetailOverlayProps) {
+  const closeButtonRef = useRef<HTMLButtonElement>(null)
+
+  useEffect(() => {
+    if (isOpen) {
+      closeButtonRef.current?.focus()
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="card-detail-title"
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+    >
       <div className="bg-card rounded-xl border border-border max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between p-4 border-b border-border">
-          <h2 className="text-xl font-bold text-foreground">{card.name}</h2>
+          <h2 id="card-detail-title" className="text-xl font-bold text-foreground">
+            {card.name}
+          </h2>
           <Button
+            ref={closeButtonRef}
             variant="ghost"
             size="icon"
             onClick={onClose}
+            aria-label={`Close ${card.name} details`}
             className="text-muted-foreground hover:text-foreground"
           >
-            <X className="w-5 h-5" />
+            <X className="w-5 h-5" aria-hidden="true" />
           </Button>
         </div>
 

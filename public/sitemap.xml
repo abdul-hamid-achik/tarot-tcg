@@ -1,37 +1,37 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
-    <loc>https://tarot-tcg.vercel.app/</loc>
+    <loc>https://tarot-tcg.com/</loc>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
-    <loc>https://tarot-tcg.vercel.app/cards</loc>
+    <loc>https://tarot-tcg.com/cards</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tarot-tcg.vercel.app/play</loc>
+    <loc>https://tarot-tcg.com/play</loc>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://tarot-tcg.vercel.app/deck-builder</loc>
+    <loc>https://tarot-tcg.com/deck-builder</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tarot-tcg.vercel.app/tutorial</loc>
+    <loc>https://tarot-tcg.com/tutorial</loc>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
-    <loc>https://tarot-tcg.vercel.app/challenges</loc>
+    <loc>https://tarot-tcg.com/challenges</loc>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://tarot-tcg.vercel.app/stats</loc>
+    <loc>https://tarot-tcg.com/stats</loc>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>

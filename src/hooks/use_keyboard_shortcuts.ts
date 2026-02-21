@@ -6,6 +6,7 @@ interface KeyboardShortcutOptions {
   gameState: GameState
   onEndTurn?: () => void
   onCardPlay?: (card: Card) => void
+  onShowHelp?: () => void
   enabled: boolean
 }
 
@@ -21,6 +22,7 @@ export function useKeyboardShortcuts({
   gameState,
   onEndTurn,
   onCardPlay,
+  onShowHelp,
   enabled,
 }: KeyboardShortcutOptions) {
   const { interaction, showCardDetail, clearSelection, cancelAttack } = useGameStore()
@@ -90,6 +92,13 @@ export function useKeyboardShortcuts({
           e.preventDefault()
           break
         }
+
+        // ?: Show keyboard shortcuts help
+        case '?': {
+          onShowHelp?.()
+          e.preventDefault()
+          break
+        }
       }
     },
     [
@@ -99,6 +108,7 @@ export function useKeyboardShortcuts({
       interaction.selectedCard,
       onEndTurn,
       onCardPlay,
+      onShowHelp,
       showCardDetail,
       clearSelection,
       cancelAttack,

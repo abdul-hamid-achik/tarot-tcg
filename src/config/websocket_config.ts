@@ -4,7 +4,7 @@ export const WEBSOCKET_CONFIG = {
   // Connection URLs
   WS_URL:
     process.env.NODE_ENV === 'production'
-      ? 'wss://your-tarot-tcg-app.vercel.app'
+      ? 'wss://tarot-tcg.com'
       : 'ws://localhost:3000',
 
   // Connection settings

@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /api/
 
-Sitemap: https://tarot-tcg.vercel.app/sitemap.xml
+Sitemap: https://tarot-tcg.com/sitemap.xml
