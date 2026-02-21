@@ -1,6 +1,6 @@
 'use client'
 
-import { GameLogger } from '@/lib/game_logger'
+import { Volume2, VolumeX } from 'lucide-react'
 import React from 'react'
 // Game Components
 import { Battlefield } from '@/components/battlefield/battlefield'
@@ -18,12 +18,15 @@ import ActionBar from '@/components/ui/action_bar'
 import { useGameActions } from '@/hooks/use_game_actions'
 import { useGameClock } from '@/hooks/use_game_clock'
 import { useGameEffects } from '@/hooks/use_game_effects'
+import { useKeyboardShortcuts } from '@/hooks/use_keyboard_shortcuts'
+import { GameLogger } from '@/lib/game_logger'
 import { endTurn as endTurnGameLogic } from '@/lib/game_logic'
 // Types
 import type { Card as GameCard, GameState } from '@/schemas/schema'
 import { getPlayer, getPlayerHand, isMulliganComplete, isMulliganPhase } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
 import { interactionService } from '@/services/interaction_service'
+import { soundService } from '@/services/sound_service'
 import { useGameStore } from '@/store/game_store'
 
 interface GameBoardProps {
@@ -68,11 +71,12 @@ export default function GameBoard({
   // Use emote system
   const { currentEmote, sendEmote, clearEmote } = useEmotes()
 
-  // Initialize game state only once
+  // Initialize game state and sound system
   const initializedRef = React.useRef(false)
   React.useEffect(() => {
     if (initialGameState && !initializedRef.current) {
       setGameState(initialGameState)
+      soundService.init()
       initializedRef.current = true
     }
   }, [initialGameState]) // setGameState is stable, don't include in deps
@@ -171,7 +175,6 @@ export default function GameBoard({
     // Only stable store actions in deps - callbacks use getState() for fresh state
   }, [playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones])
 
-
   // Handle action bar events (simplified for direct attack system)
   const handleAttack = async () => {
     // In direct attack system, attacks are initiated by clicking units
@@ -188,6 +191,7 @@ export default function GameBoard({
     if (!gameState) return
 
     try {
+      soundService.play('turn_end')
       const newState = await endTurnGameLogic(gameState)
       setGameState(newState)
       onEndTurn?.()
@@ -217,6 +221,7 @@ export default function GameBoard({
 
         if (firstEmptySlot !== -1) {
           GameLogger.debug(`Playing card to slot: {player: "player1", slot: ${firstEmptySlot}}`)
+          soundService.play('card_play')
           await playCard(card, { player: 'player1', slot: firstEmptySlot })
         } else {
           GameLogger.warn('No empty slots available on battlefield')
@@ -225,6 +230,7 @@ export default function GameBoard({
       }
     } else {
       // Spell cards don't need target position
+      soundService.play('spell_cast')
       await playCard(card)
     }
     // Remove the onCardPlay callback to prevent double playing
@@ -232,9 +238,26 @@ export default function GameBoard({
   }
 
   const handleMulligan = async (selectedCards: string[]) => {
+    soundService.play('mulligan')
     await completeMulligan(selectedCards)
     onMulligan?.(selectedCards)
   }
+
+  // Keyboard shortcuts
+  useKeyboardShortcuts({
+    gameState: gameState ?? initialGameState,
+    onEndTurn: handleEndTurn,
+    onCardPlay: handleCardPlay,
+    enabled: !!gameState && gameState.phase === 'action' && gameState.activePlayer === 'player1',
+  })
+
+  // Sound toggle
+  const [isMuted, setIsMuted] = React.useState(() => soundService.isMuted())
+  const toggleSound = React.useCallback(() => {
+    const muted = soundService.toggleMute()
+    setIsMuted(muted)
+    if (!muted) soundService.play('button_click')
+  }, [])
 
   // Calculate derived values
   const totalPlayerMana = (gameState?.player1?.mana || 0) + (gameState?.player1?.spellMana || 0)
@@ -271,11 +294,11 @@ export default function GameBoard({
         onAttack={handleAttack}
         onPass={handlePass}
         onEndTurn={handleEndTurn}
-        className="fixed bottom-1/2 translate-y-1/2 right-4 z-40"
+        className="fixed bottom-1/2 translate-y-1/2 right-1 md:right-4 z-40"
       />
 
       {/* Main Game Area */}
-      <div className="h-full w-full flex items-center justify-center relative p-4">
+      <div className="h-full w-full flex items-center justify-center relative p-1 md:p-4">
         <div className="flex flex-col items-center justify-center w-full max-w-6xl">
           <Battlefield />
         </div>
@@ -321,6 +344,19 @@ export default function GameBoard({
             : false
         }
       />
+
+      {/* Sound Toggle */}
+      <button
+        onClick={toggleSound}
+        className="fixed top-2 right-14 md:top-4 md:right-16 z-50 w-8 h-8 md:w-10 md:h-10 rounded-full bg-card/90 border border-border shadow-md flex items-center justify-center hover:bg-card transition-colors"
+        title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
+      >
+        {isMuted ? (
+          <VolumeX className="w-4 h-4 text-muted-foreground" />
+        ) : (
+          <Volume2 className="w-4 h-4 text-foreground" />
+        )}
+      </button>
 
       {/* Error Message Toast */}
       {ui.errorMessage && (

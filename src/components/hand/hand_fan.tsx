@@ -35,15 +35,15 @@ export default function HandFan({
   const isActionPhase = gameState?.phase === 'action'
   const totalMana = (gameState?.player1?.mana || 0) + (gameState?.player1?.spellMana || 0)
 
-  // Position-specific styles - Improved Hearthstone-style
+  // Position-specific styles - Improved Hearthstone-style (responsive)
   const positionStyles = {
     'bottom-left': {
-      container: 'fixed bottom-8 left-1/2 transform -translate-x-1/2',
+      container: 'fixed bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2',
       transformOrigin: 'center bottom',
       fanDirection: 1, // Normal fan direction
     },
     'top-right': {
-      container: 'absolute top-4 right-12',
+      container: 'absolute top-2 md:top-4 right-8 md:right-12',
       transformOrigin: 'center top',
       fanDirection: -1, // Reverse fan direction for enemy
     },

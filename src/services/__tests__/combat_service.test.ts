@@ -445,10 +445,10 @@ describe('CombatService', () => {
     })
 
     describe('processAttack - Solar Radiance', () => {
-        it('should trigger solar radiance effect when dealing damage', async () => {
+        it('should trigger solar radiance and damage adjacent units', async () => {
             const attacker = createTestCard({
                 id: 'attacker',
-                attack: 5,
+                attack: 4,
                 health: 3,
                 currentHealth: 3,
                 keywords: ['solar_radiance']
@@ -459,9 +459,16 @@ describe('CombatService', () => {
                 health: 4,
                 currentHealth: 4
             })
+            const adjacentUnit = createTestCard({
+                id: 'adjacent',
+                attack: 1,
+                health: 6,
+                currentHealth: 6
+            })
 
             battlefield.playerUnits[0] = attacker
             battlefield.enemyUnits[0] = defender
+            battlefield.enemyUnits[1] = adjacentUnit // Adjacent to defender at slot 0
 
             const result = await combatService.processAttack(
                 battlefield,
@@ -470,7 +477,10 @@ describe('CombatService', () => {
                 gameState
             )
 
-            expect(result.triggeredEffects).toContain('solar_radiance')
+            // Solar radiance should trigger with details about adjacent units hit
+            expect(result.triggeredEffects.some(e => e.startsWith('solar_radiance:'))).toBe(true)
+            // Adjacent unit should have taken damage (half of 4 = 2)
+            expect(adjacentUnit.currentHealth).toBe(4) // 6 - 2 = 4
         })
 
         it('should not trigger solar radiance if no damage dealt', async () => {
@@ -498,7 +508,7 @@ describe('CombatService', () => {
                 gameState
             )
 
-            expect(result.triggeredEffects).not.toContain('solar_radiance')
+            expect(result.triggeredEffects.some(e => e.startsWith('solar_radiance:'))).toBe(false)
         })
     })
 

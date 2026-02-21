@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, Swords, SkipForward } from 'lucide-react'
+import { Clock, SkipForward, Swords } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -28,7 +28,7 @@ export default function ActionBar({
   if (!gameState) {
     return (
       <div className={cn('flex items-center justify-center', className)}>
-        <Badge className="bg-slate-100 px-6 py-3 text-slate-600 font-medium text-sm border border-slate-200 min-h-[44px] flex items-center justify-center">
+        <Badge className="bg-muted px-6 py-3 text-muted-foreground font-medium text-sm border border-border min-h-[44px] flex items-center justify-center">
           <Clock className="w-4 h-4 animate-spin mr-2" />
           Loading...
         </Badge>
@@ -48,16 +48,19 @@ export default function ActionBar({
   const getPhaseDisplay = () => {
     switch (gameState?.phase) {
       case 'mulligan':
-        return { text: 'Mulligan Phase', color: 'bg-gray-300 text-black border border-gray-400' }
+        return { text: 'Mulligan Phase', color: 'bg-muted text-foreground border border-border' }
       case 'action':
-        return { text: 'Action Phase', color: 'bg-gray-200 text-black border border-gray-400' }
+        return { text: 'Action Phase', color: 'bg-muted text-foreground border border-border' }
       // Removed attack_declaration and defense_declaration phases
       case 'combat_resolution':
-        return { text: 'Combat!', color: 'bg-black text-white border border-gray-800' }
+        return {
+          text: 'Combat!',
+          color: 'bg-foreground text-background border border-foreground',
+        }
       case 'end_round':
-        return { text: 'Round Ending', color: 'bg-gray-300 text-black border border-gray-400' }
+        return { text: 'Round Ending', color: 'bg-muted text-foreground border border-border' }
       default:
-        return { text: 'Unknown Phase', color: 'bg-gray-200 text-black border border-gray-300' }
+        return { text: 'Unknown Phase', color: 'bg-muted text-foreground border border-border' }
     }
   }
 
@@ -113,11 +116,13 @@ export default function ActionBar({
   const defendState = getDefendButtonState()
 
   return (
-    <div className={cn(
-      'bg-white/95 backdrop-blur-sm rounded-2xl shadow-lg border border-slate-200 p-3',
-      'transition-all duration-300',
-      className,
-    )}>
+    <div
+      className={cn(
+        'bg-card/95 backdrop-blur-sm rounded-2xl shadow-lg border border-border p-3',
+        'transition-all duration-300',
+        className,
+      )}
+    >
       {/* Action Buttons Container */}
       <div className="flex flex-col gap-2 min-w-[140px]">
         {/* Defend Button - During Defender Declaration Phase */}
@@ -130,7 +135,7 @@ export default function ActionBar({
               'transition-all duration-200 rounded-xl',
               defendState.enabled
                 ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-md'
-                : 'bg-slate-200 cursor-not-allowed text-slate-400',
+                : 'bg-muted cursor-not-allowed text-muted-foreground',
             )}
             title={defendState.tooltip}
           >
@@ -140,7 +145,7 @@ export default function ActionBar({
 
         {/* Combat Resolution */}
         {isInCombat && (
-          <div className="flex items-center justify-center gap-2 text-amber-700 text-sm px-4 py-2.5 bg-amber-50 rounded-xl border border-amber-200">
+          <div className="flex items-center justify-center gap-2 text-amber-700 dark:text-amber-400 text-sm px-4 py-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl border border-amber-200 dark:border-amber-800">
             <Swords className="w-4 h-4 animate-pulse" />
             <span className="font-semibold">Combat...</span>
           </div>
@@ -148,7 +153,7 @@ export default function ActionBar({
 
         {/* Opponent Turn Indicator */}
         {!isPlayerTurn && gameState?.phase === 'action' && (
-          <div className="flex items-center justify-center gap-2 text-slate-500 text-sm px-4 py-2.5 bg-slate-100 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm px-4 py-2.5 bg-muted rounded-xl border border-border">
             <Clock className="w-4 h-4 animate-spin" />
             <span className="font-medium">Opponent</span>
           </div>
@@ -168,7 +173,7 @@ export default function ActionBar({
         {!['action', 'defense_declaration', 'combat_resolution', 'end_round', 'mulligan'].includes(
           gameState?.phase || '',
         ) && (
-          <div className="flex items-center justify-center gap-2 text-slate-500 text-sm px-4 py-2.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm px-4 py-2.5 bg-muted/50 rounded-xl border border-border">
             <Clock className="w-4 h-4 animate-pulse" />
             <span>Waiting...</span>
           </div>
@@ -180,7 +185,7 @@ export default function ActionBar({
             onClick={onPass}
             className={cn(
               'w-full justify-center text-sm px-4 py-3 font-bold uppercase tracking-wider',
-              'bg-slate-900 hover:bg-slate-800 text-white rounded-xl shadow-md',
+              'bg-primary hover:bg-primary/90 text-primary-foreground rounded-xl shadow-md',
               'transition-all duration-200 hover:shadow-lg hover:scale-[1.02] active:scale-[0.98]',
             )}
             title="End your turn"

@@ -2,7 +2,13 @@
 
 import { produce } from 'immer'
 import { GameLogger } from '@/lib/game_logger'
-import type { Card as GameCard, GameState, DirectAttack, Battlefield as SchemaBattlefield, PlayerId } from '@/schemas/schema'
+import type {
+  DirectAttack,
+  Card as GameCard,
+  GameState,
+  PlayerId,
+  Battlefield as SchemaBattlefield,
+} from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 import { battlefieldService } from '@/services/battlefield_service'
 import { animationService } from './animation_service'
@@ -202,11 +208,26 @@ class CombatService {
         }
       }
 
-      // Handle solar radiance - damage adjacent enemies
+      // Handle solar radiance - damage adjacent enemies when attacking
       if (this.hasKeyword(attacker, 'solar_radiance') && targetDamage > 0) {
-        // This would require battlefield context to damage adjacent units
-        // For now, just mark the effect occurred
-        triggeredEffects.push('solar_radiance')
+        const solarDamage = Math.ceil(targetDamage / 2) // Adjacent units take half damage
+        const targetUnits =
+          target.player === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
+
+        // Damage units adjacent to the target (slots target.slot-1 and target.slot+1)
+        for (const adjacentSlot of [target.slot - 1, target.slot + 1]) {
+          if (adjacentSlot >= 0 && adjacentSlot < targetUnits.length) {
+            const adjacentUnit = targetUnits[adjacentSlot]
+            if (adjacentUnit) {
+              const adjHealth = adjacentUnit.currentHealth || adjacentUnit.health
+              adjacentUnit.currentHealth = adjHealth - solarDamage
+              triggeredEffects.push(`solar_radiance:${adjacentUnit.name}:${solarDamage}`)
+              GameLogger.combat(
+                `Solar Radiance deals ${solarDamage} to adjacent ${adjacentUnit.name}`,
+              )
+            }
+          }
+        }
       }
 
       // Handle lifesteal
@@ -216,8 +237,8 @@ class CombatService {
         nexusDamage = -targetDamage // Negative damage = healing
       }
 
-      const attackerSurvived = attacker.currentHealth && attacker.currentHealth > attackerDamage
-      const targetSurvived = targetUnit.currentHealth && targetUnit.currentHealth > targetDamage
+      const attackerSurvived = (attacker.currentHealth ?? attacker.health) > attackerDamage
+      const targetSurvived = (targetUnit.currentHealth ?? targetUnit.health) > targetDamage
 
       result = {
         attacker,
@@ -284,11 +305,15 @@ class CombatService {
       }
     }
 
-    // Apply tarot-specific modifiers
+    // Apply tarot-specific modifiers for reversed cards
     if (card.isReversed) {
-      // Reversed cards might have different effects
-      modifiers.attackBonus = (modifiers.attackBonus || 0) - 1
-      modifiers.defenseBonus = (modifiers.defenseBonus || 0) + 1
+      // Reversed cards have their energies inverted:
+      // - Attack is weakened (chaotic energy misdirects force)
+      // - Defense is slightly enhanced (inward focus provides protection)
+      // Scale penalty with card cost for balance (higher cost = bigger impact)
+      const reversalPenalty = Math.max(1, Math.ceil(card.cost / 3))
+      modifiers.attackBonus = (modifiers.attackBonus || 0) - reversalPenalty
+      modifiers.defenseBonus = (modifiers.defenseBonus || 0) + Math.ceil(reversalPenalty / 2)
     }
 
     // Cosmic resonance bonus
@@ -525,7 +550,11 @@ class CombatService {
     }
 
     // Validate can attack
-    if (attacker.hasSummoningSickness && !this.hasKeyword(attacker, 'charge') && !this.hasKeyword(attacker, 'astral_projection')) {
+    if (
+      attacker.hasSummoningSickness &&
+      !this.hasKeyword(attacker, 'charge') &&
+      !this.hasKeyword(attacker, 'astral_projection')
+    ) {
       throw new Error('Summoning sickness')
     }
     if (attacker.hasAttackedThisTurn && !this.hasKeyword(attacker, 'windfury')) {
@@ -542,7 +571,11 @@ class CombatService {
 
     // Execute attack using Immer for immutability
     return produce(state, draft => {
-      const draftAttacker = this.getUnitAtMutable(draft.battlefield, attackerPos.slot, attackerPos.player)
+      const draftAttacker = this.getUnitAtMutable(
+        draft.battlefield,
+        attackerPos.slot,
+        attackerPos.player,
+      )
       if (!draftAttacker) return
 
       if (attack.targetType === 'unit' && attack.targetId) {
@@ -585,7 +618,10 @@ class CombatService {
         // Handle elemental fury - double damage against opposing elements
         if (this.hasKeyword(draftAttacker, 'elemental_fury')) {
           const opposingElements: Record<string, string> = {
-            fire: 'water', water: 'fire', earth: 'air', air: 'earth',
+            fire: 'water',
+            water: 'fire',
+            earth: 'air',
+            air: 'earth',
           }
           if (opposingElements[draftAttacker.element] === target.element) {
             targetDamage *= 2
@@ -593,10 +629,36 @@ class CombatService {
         }
 
         // Apply damage
-        draftAttacker.currentHealth = (draftAttacker.currentHealth || draftAttacker.health) - attackerDamage
+        draftAttacker.currentHealth =
+          (draftAttacker.currentHealth || draftAttacker.health) - attackerDamage
         target.currentHealth = (target.currentHealth || target.health) - targetDamage
 
-        GameLogger.combat(`${draftAttacker.name} (${attackerPower}) vs ${target.name} (${targetPower})`)
+        GameLogger.combat(
+          `${draftAttacker.name} (${attackerPower}) vs ${target.name} (${targetPower})`,
+        )
+
+        // Handle solar radiance - damage units adjacent to the target
+        if (this.hasKeyword(draftAttacker, 'solar_radiance') && targetDamage > 0) {
+          const solarDamage = Math.ceil(targetDamage / 2)
+          const targetSideUnits =
+            targetPos.player === 'player1'
+              ? draft.battlefield.playerUnits
+              : draft.battlefield.enemyUnits
+
+          for (const adjSlot of [targetPos.slot - 1, targetPos.slot + 1]) {
+            if (adjSlot >= 0 && adjSlot < targetSideUnits.length) {
+              const adjUnit = targetSideUnits[adjSlot]
+              if (adjUnit) {
+                adjUnit.currentHealth = (adjUnit.currentHealth || adjUnit.health) - solarDamage
+                GameLogger.combat(`Solar Radiance deals ${solarDamage} to adjacent ${adjUnit.name}`)
+                if (adjUnit.currentHealth <= 0) {
+                  targetSideUnits[adjSlot] = null
+                  GameLogger.combat(`${adjUnit.name} dies from Solar Radiance`)
+                }
+              }
+            }
+          }
+        }
 
         // Handle lifesteal
         if (this.hasKeyword(draftAttacker, 'lifesteal') && targetDamage > 0) {
@@ -605,8 +667,14 @@ class CombatService {
         }
 
         // Process deaths
-        const draftUnitsAttacker = attackerPos.player === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
-        const draftUnitsTarget = targetPos.player === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+        const draftUnitsAttacker =
+          attackerPos.player === 'player1'
+            ? draft.battlefield.playerUnits
+            : draft.battlefield.enemyUnits
+        const draftUnitsTarget =
+          targetPos.player === 'player1'
+            ? draft.battlefield.playerUnits
+            : draft.battlefield.enemyUnits
 
         if (draftAttacker.currentHealth <= 0) {
           draftUnitsAttacker[attackerPos.slot] = null
@@ -682,7 +750,10 @@ class CombatService {
   /**
    * Helper: Get player units
    */
-  private getPlayerUnits(battlefield: SchemaBattlefield, playerId: 'player1' | 'player2'): GameCard[] {
+  private getPlayerUnits(
+    battlefield: SchemaBattlefield,
+    playerId: 'player1' | 'player2',
+  ): GameCard[] {
     const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
     return units.filter(u => u !== null) as GameCard[]
   }
@@ -746,8 +817,9 @@ export function getValidAttackTargets(
   attackingPlayer: PlayerId,
 ): { units: GameCard[]; canTargetPlayer: boolean } {
   const opponent = attackingPlayer === 'player1' ? 'player2' : 'player1'
-  const enemyUnits = (opponent === 'player1' ? state.battlefield.playerUnits : state.battlefield.enemyUnits)
-    .filter(u => u !== null) as GameCard[]
+  const enemyUnits = (
+    opponent === 'player1' ? state.battlefield.playerUnits : state.battlefield.enemyUnits
+  ).filter(u => u !== null) as GameCard[]
 
   // Check for taunt units
   const tauntUnits = enemyUnits.filter(

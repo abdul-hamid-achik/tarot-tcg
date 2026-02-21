@@ -1,5 +1,6 @@
 'use client'
 
+import { produce } from 'immer'
 import { useEffect, useState } from 'react'
 import { GameBoardErrorBoundary } from '@/components/error_boundary'
 import TarotGameBoard from '@/components/game_board'
@@ -14,8 +15,8 @@ import {
   initializeCards,
   playCard,
 } from '@/lib/game_logic'
-import { produce } from 'immer'
 import type { Card, GameState } from '@/schemas/schema'
+import { soundService } from '@/services/sound_service'
 
 export default function Tutorial() {
   const [gameState, setGameState] = useState<GameState | null>(null)
@@ -58,35 +59,18 @@ export default function Tutorial() {
       if (outcome !== 'ongoing') {
         const winner = outcome === 'player1_wins' ? 'You' : 'AI'
         setMessage(`🎊 Game Over! ${winner} wins!`)
+        soundService.play(outcome === 'player1_wins' ? 'game_win' : 'game_lose')
       }
     }
   }, [gameState])
 
   // Auto-execute AI turn
   useEffect(() => {
-    console.log('🎮 AI Trigger Check:', {
-      activePlayer: gameState?.activePlayer,
-      phase: gameState?.phase,
-      gameOutcome,
-      aiHandCount: gameState?.player2?.hand?.length || 0,
-      aiMana: gameState?.player2?.mana || 0,
-      shouldTrigger:
-        gameState?.activePlayer === 'player2' &&
-        gameState?.phase === 'action' &&
-        gameOutcome === 'ongoing',
-      player1MulliganComplete: gameState?.player1?.mulliganComplete,
-      player2MulliganComplete: gameState?.player2?.mulliganComplete,
-    })
-
     if (
       gameState?.activePlayer === 'player2' &&
       gameState?.phase === 'action' &&
       gameOutcome === 'ongoing'
     ) {
-      console.log(
-        '🎮 AI turn triggered! Hand:',
-        gameState.player2.hand.map(c => c.name),
-      )
       const timer = setTimeout(() => {
         executeAI()
       }, 1000)
@@ -147,13 +131,6 @@ export default function Tutorial() {
       })
 
       let mulliganedState = completeMulligan(preparedState)
-
-      console.log('Mulligan completed:', {
-        player1Complete: mulliganedState.player1.mulliganComplete,
-        player2Complete: mulliganedState.player2.mulliganComplete,
-        phase: mulliganedState.phase,
-        activePlayer: mulliganedState.activePlayer,
-      })
 
       // Force phase transition in tutorial if needed
       if (

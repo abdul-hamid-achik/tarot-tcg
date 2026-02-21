@@ -637,9 +637,10 @@ export class AIControllerService {
   // Helper function to check if unit can attack (imported from combat_logic)
   private canAttack(unit: Card): boolean {
     if (!unit) return false
-    if (unit.hasSummoningSickness) return false
+    if (unit.hasSummoningSickness && !unit.keywords?.some(k => k.toLowerCase() === 'charge'))
+      return false
     if (unit.hasAttackedThisTurn) return false
-    if ((unit.currentHealth || unit.health) <= 0) return false
+    if ((unit.currentHealth ?? unit.health) <= 0) return false
     return true
   }
 

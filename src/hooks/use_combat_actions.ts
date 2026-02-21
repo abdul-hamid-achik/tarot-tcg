@@ -1,7 +1,8 @@
 import { useCallback } from 'react'
-import { canAttack, declareAttack } from '@/services/combat_service'
 import { GameLogger } from '@/lib/game_logger'
 import type { Card } from '@/schemas/schema'
+import { combatAnimationService } from '@/services/combat_animation_service'
+import { canAttack, declareAttack } from '@/services/combat_service'
 import { useGameStore } from '@/store/game_store'
 
 /**
@@ -45,12 +46,70 @@ export function useCombatActions() {
       }
 
       try {
+        // Trigger attack animation before state update
+        const attackerSlot = gameState.battlefield.playerUnits.findIndex(
+          u => u?.id === interaction.attackSource,
+        )
+        if (targetType === 'unit') {
+          const targetSlot = gameState.battlefield.enemyUnits.findIndex(u => u?.id === targetId)
+          if (attackerSlot >= 0 && targetSlot >= 0) {
+            combatAnimationService.triggerAttack(attackerSlot, 'player2', targetSlot)
+          }
+        }
+
         // Execute the attack using the combat system
         const newState = await declareAttack(gameState, {
           attackerId: interaction.attackSource,
           targetType,
           targetId: targetType === 'unit' ? targetId : undefined,
         })
+
+        // Trigger damage/death animations by diffing states
+        if (targetType === 'unit') {
+          const targetSlot = gameState.battlefield.enemyUnits.findIndex(u => u?.id === targetId)
+          if (targetSlot >= 0) {
+            const prevUnit = gameState.battlefield.enemyUnits[targetSlot]
+            const currUnit = newState.battlefield.enemyUnits[targetSlot]
+            const prevHp = prevUnit?.currentHealth ?? prevUnit?.health ?? 0
+            const currHp = currUnit?.currentHealth ?? currUnit?.health ?? 0
+            if (currUnit && currHp < prevHp) {
+              setTimeout(
+                () => combatAnimationService.triggerDamage('player2', targetSlot, prevHp - currHp),
+                300,
+              )
+            }
+            if (!currUnit && prevUnit) {
+              setTimeout(() => combatAnimationService.triggerDeath('player2', targetSlot), 300)
+            }
+          }
+          // Check if attacker took damage (from retaliation)
+          if (attackerSlot >= 0) {
+            const prevAtk = gameState.battlefield.playerUnits[attackerSlot]
+            const currAtk = newState.battlefield.playerUnits[attackerSlot]
+            const prevHp = prevAtk?.currentHealth ?? prevAtk?.health ?? 0
+            const currHp = currAtk?.currentHealth ?? currAtk?.health ?? 0
+            if (currAtk && currHp < prevHp) {
+              setTimeout(
+                () =>
+                  combatAnimationService.triggerDamage('player1', attackerSlot, prevHp - currHp),
+                300,
+              )
+            }
+            if (!currAtk && prevAtk) {
+              setTimeout(() => combatAnimationService.triggerDeath('player1', attackerSlot), 300)
+            }
+          }
+        } else {
+          // Nexus damage
+          const prevHealth = gameState.player2.health
+          const currHealth = newState.player2.health
+          if (currHealth < prevHealth) {
+            setTimeout(
+              () => combatAnimationService.triggerNexusDamage('player2', prevHealth - currHealth),
+              300,
+            )
+          }
+        }
 
         // Update game state
         setGameState(newState)

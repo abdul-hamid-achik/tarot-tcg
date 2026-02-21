@@ -1,4 +1,4 @@
-import { GameLogger } from "@/lib/game_logger"
+import { GameLogger } from '@/lib/game_logger'
 import type { CardEffect, EffectContext, GameEvent, GameState } from '@/schemas/schema'
 import { cardEffectSystem } from '@/services/card_effect_system'
 import { eventManager } from '@/services/event_manager'
@@ -211,7 +211,11 @@ export class EffectStackService {
     this.state.resolutionInProgress = true
 
     try {
-      while (this.state.items.length > 0) {
+      const MAX_RESOLUTION_DEPTH = 100
+      let resolutionDepth = 0
+
+      while (this.state.items.length > 0 && resolutionDepth < MAX_RESOLUTION_DEPTH) {
+        resolutionDepth++
         const result = await this.resolveNext()
 
         allResolved.push(...result.resolved)
@@ -229,6 +233,11 @@ export class EffectStackService {
         if (allResolved.length % 10 === 0) {
           await new Promise(resolve => setTimeout(resolve, 0))
         }
+      }
+
+      if (resolutionDepth >= MAX_RESOLUTION_DEPTH) {
+        GameLogger.warn('Effect stack resolution exceeded max depth, clearing remaining items')
+        this.state.items = []
       }
 
       GameLogger.combat(`Stack resolution complete`, {
@@ -516,29 +525,76 @@ export class EffectStackService {
   }
 
   private isEffectStillValid(item: StackItem): boolean {
-    // Check if source card still exists and is in valid zone
-    if (item.sourceCardId) {
-      // This would need to be implemented based on game state access
-      // For now, assume all effects are valid
-      return true
-    }
+    try {
+      const gameState = this.getCurrentGameState()
 
-    // Check if targets still exist and are valid
-    if (item.targets) {
-      // Validate each target
-      for (const target of item.targets) {
-        // Target validation logic would go here
-        if (!this.isTargetValid(target)) {
+      // Check if source card still exists in a valid zone
+      if (item.sourceCardId) {
+        const allCards = [
+          ...gameState.battlefield.playerUnits,
+          ...gameState.battlefield.enemyUnits,
+          ...gameState.player1.hand,
+          ...gameState.player2.hand,
+        ].filter(Boolean)
+
+        const sourceExists = allCards.some(card => card?.id === item.sourceCardId)
+
+        // For abilities that require the source to be on battlefield
+        if (!sourceExists && (item.type === 'triggered_ability' || item.type === 'ability')) {
+          GameLogger.action(
+            `Effect ${item.effect.name} invalid: source card ${item.sourceCardId} no longer exists`,
+          )
           return false
         }
       }
-    }
 
-    return true
+      // Check if targets still exist and are valid
+      if (item.targets) {
+        for (const target of item.targets) {
+          if (!this.isTargetValid(target, gameState)) {
+            GameLogger.action(
+              `Effect ${item.effect.name} invalid: target ${target.id} no longer valid`,
+            )
+            return false
+          }
+        }
+      }
+
+      return true
+    } catch {
+      // If we can't get game state, assume valid to avoid blocking resolution
+      return true
+    }
   }
 
-  private isTargetValid(_target: NonNullable<StackItem['targets']>[0]): boolean {
-    // Target validation logic - would need game state access
+  private isTargetValid(
+    target: NonNullable<StackItem['targets']>[0],
+    gameState?: ReturnType<typeof this.getCurrentGameState>,
+  ): boolean {
+    if (!gameState) {
+      try {
+        gameState = this.getCurrentGameState()
+      } catch {
+        return true // Can't validate without game state
+      }
+    }
+
+    if (target.type === 'card') {
+      // Check if the targeted card still exists on the battlefield
+      const allUnits = [
+        ...gameState.battlefield.playerUnits,
+        ...gameState.battlefield.enemyUnits,
+      ].filter(Boolean)
+
+      return allUnits.some(unit => unit?.id === target.id)
+    }
+
+    if (target.type === 'player') {
+      // Players are always valid targets (player1 or player2)
+      return target.id === 'player1' || target.id === 'player2'
+    }
+
+    // Lane targets are always valid
     return true
   }
 

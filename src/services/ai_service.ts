@@ -226,8 +226,11 @@ export class AIService {
       return []
     }
 
-    // Note: AI service needs updating for battlefield system
-    const availableAttackers: any[] = [] // Simplified for now
+    // Get available attackers from battlefield
+    const availableAttackers = gameState.battlefield.enemyUnits.filter(
+      (u): u is Card =>
+        u !== null && !u.hasSummoningSickness && !u.hasAttackedThisTurn && (u.attack || 0) > 0,
+    )
 
     if (availableAttackers.length === 0) {
       return []
@@ -242,7 +245,7 @@ export class AIService {
 
       case 'cautious': {
         // Only attack with units that have higher attack than opponent's defense
-        const opponentUnits: any[] = [] // Simplified for battlefield system
+        const opponentUnits = gameState.battlefield.playerUnits.filter((u): u is Card => u !== null)
         const safeAttackers = availableAttackers.filter(attacker => {
           const wouldSurvive = opponentUnits.every(
             defender =>
@@ -323,8 +326,17 @@ export class AIService {
   private shouldPlayCard(card: Card, gameState: GameState): boolean {
     const player = gameState.player2
 
-    // Check battlefield space (simplified for now)
+    // Check battlefield space for units
     if (card.type === 'unit') {
+      const availableSlots = gameState.battlefield.enemyUnits.filter(u => u === null).length
+      if (availableSlots === 0) {
+        return false // Battlefield is full
+      }
+    }
+
+    // Check mana
+    const totalMana = player.mana + player.spellMana
+    if (card.cost > totalMana) {
       return false
     }
 
@@ -334,13 +346,8 @@ export class AIService {
     }
 
     // Consider board state
-    const opponentUnits = 0 // Simplified for battlefield system
-    const myUnits = 0 // Simplified for battlefield system
-
-    // Play cards strategically (simplified for battlefield system)
-    if (player.mana >= card.cost) {
-      return true
-    }
+    const myUnits = gameState.battlefield.enemyUnits.filter(u => u !== null).length
+    const opponentUnits = gameState.battlefield.playerUnits.filter(u => u !== null).length
 
     // Save mana if ahead and card is expensive
     if (myUnits > opponentUnits && card.cost > 5) {
@@ -352,7 +359,7 @@ export class AIService {
 
   private calculateOptimalAttack(_gameState: GameState, availableAttackers: Card[]): string[] {
     // Simple heuristic: prioritize attackers that can trade favorably
-    const opponentUnits: any[] = [] // Simplified for battlefield system
+    const opponentUnits = _gameState.battlefield.playerUnits.filter((u): u is Card => u !== null)
 
     if (opponentUnits.length === 0) {
       // No defenders, attack with all

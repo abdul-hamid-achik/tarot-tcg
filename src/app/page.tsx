@@ -108,7 +108,7 @@ export default function Home() {
                 <ChevronRight className="ml-2 w-5 h-5" />
               </Button>
             </Link>
-            <Link href="/content">
+            <Link href="/cards">
               <Button
                 size="lg"
                 variant="outline"
