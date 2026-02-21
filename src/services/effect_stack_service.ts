@@ -80,7 +80,7 @@ export interface StackState {
 export interface StackResolutionResult {
   resolved: StackItem[]
   failed: StackItem[]
-  newGameState: GameState
+  newGameState: GameState | undefined
   eventsGenerated: GameEvent[]
   responseWindowOpened?: boolean
 }
@@ -221,7 +221,7 @@ export class EffectStackService {
         allResolved.push(...result.resolved)
         allFailed.push(...result.failed)
         allEvents.push(...result.eventsGenerated)
-        currentGameState = result.newGameState
+        currentGameState = result.newGameState ?? currentGameState
 
         // Check for new effects added during resolution
         if (result.eventsGenerated.length > 0) {
@@ -652,7 +652,7 @@ export class EffectStackService {
     return playerId === 'player1' ? 'player2' : 'player1'
   }
 
-  private getCurrentGameState(): GameState {
+  private getCurrentGameState(): GameState | undefined {
     // Get game state from the most recent context
     // If we're currently resolving, use that context's game state
     if (this.state.currentlyResolving?.context.gameState) {
@@ -664,8 +664,8 @@ export class EffectStackService {
       return this.state.items[0].context.gameState
     }
 
-    // If no game state available, throw error
-    throw new Error('No game state available in effect stack context')
+    GameLogger.warn('No game state available in effect stack context')
+    return undefined
   }
 
   private setupEventListeners(): void {

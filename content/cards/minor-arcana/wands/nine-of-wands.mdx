@@ -11,10 +11,17 @@ rarity: "uncommon"
 tarotSymbol: "🜂"
 keywords: ["resilience", "courage", "persistence"]
 abilities:
-  - name: "Battle-Scarred"
-    description: "This unit has survived damage 9 times, it gains +3/+3 and Lifesteal"
-  - name: "Last Stand"
-    description: "If this is your only unit, it has +2/+2"
+  upright:
+    - name: "Battle-Scarred"
+      description: "This unit has survived damage 9 times, it gains +3/+3 and Lifesteal"
+    - name: "Last Stand"
+      description: "If this is your only unit, it has +2/+2"
+  reversed:
+    - name: "Battle Fatigue"
+      description: "Starts with -2/-2 from accumulated wounds. Cannot gain attack from abilities"
+    - name: "Broken Resolve"
+      description: "Cannot attack for the first 2 turns after taking any damage"
+
 ---
 
 # Nine of Wands

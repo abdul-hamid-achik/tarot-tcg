@@ -291,7 +291,10 @@ export class AIControllerService {
     let tradeValue = 0
 
     for (const enemyUnit of getPlayerUnits(gameState, 'player1')) {
-      if ((card.attack || 0) >= (enemyUnit.currentHealth || enemyUnit.health || 0)) {
+      // Skip units that are already dead (currentHealth <= 0)
+      const unitHealth = enemyUnit.currentHealth ?? enemyUnit.health ?? 0
+      if (unitHealth <= 0) continue
+      if ((card.attack || 0) >= unitHealth) {
         tradeValue += 0.2 // Can kill enemy unit
       }
       if ((card.health || 0) > (enemyUnit.attack || 0)) {
@@ -438,7 +441,11 @@ export class AIControllerService {
   private playCard(gameState: GameState, decision: CardPlayDecision): GameState {
     GameLogger.ai(`🤖 AI playCard: attempting to play ${decision.card.name}`)
     const newState = { ...gameState }
-    const player = { ...newState.player2 }
+    const player = {
+      ...newState.player2,
+      hand: [...newState.player2.hand],
+      deck: [...newState.player2.deck],
+    }
     const card = decision.card
 
     // Find first empty slot on the battlefield for AI (player2 uses enemyUnits)

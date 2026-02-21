@@ -197,13 +197,14 @@ class CombatService {
 
       // Handle elemental fury - double damage against opposing elements
       if (this.hasKeyword(attacker, 'elemental_fury')) {
-        const opposingElements = {
+        const opposingElements: Record<string, string> = {
           fire: 'water',
           water: 'fire',
           earth: 'air',
           air: 'earth',
         }
-        if (opposingElements[attacker.element] === targetUnit.element) {
+        const opposing = attacker.element ? opposingElements[attacker.element] : undefined
+        if (opposing && opposing === targetUnit.element) {
           targetDamage *= 2
         }
       }
