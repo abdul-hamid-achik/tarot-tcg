@@ -103,6 +103,8 @@ export const CardSchema = z.object({
   rarity: RaritySchema,
   keywords: z.array(z.string()).optional(),
   abilities: z.array(AbilitySchema).optional(),
+  uprightAbilities: z.array(AbilitySchema).optional(),
+  reversedAbilities: z.array(AbilitySchema).optional(),
 
   // Spell-specific properties
   spellType: SpellTypeSchema.optional(),

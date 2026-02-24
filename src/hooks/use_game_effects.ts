@@ -8,7 +8,7 @@ import { useGameStore } from '@/store/game_store'
 export const useGameEffects = () => {
   const { gameState, setValidDropZones, clearValidDropZones } = useGameStore()
 
-  const { playCard } = useGameActions()
+  const _gameActions = useGameActions()
 
   // Handle valid drop zones for card placement
   useEffect(() => {

@@ -202,7 +202,7 @@ export class BattlefieldService {
 
     // Fill remaining slots with null
     while (compacted.length < this.MAX_UNITS) {
-      compacted.push(null as any) // Type assertion for nullable Card
+      compacted.push(null as unknown as Card) // Type assertion for nullable Card
     }
 
     const newBattlefield = {

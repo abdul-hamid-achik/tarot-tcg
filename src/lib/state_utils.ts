@@ -6,7 +6,7 @@ import type { GameState, Card, Battlefield, Player } from '@/schemas/schema'
  * This ensures complete immutability without manual spreading
  */
 export function cloneGameState(state: GameState): GameState {
-  return produce(state, () => {})
+  return produce(state, () => { /* no-op clone */ })
 }
 
 /**
@@ -24,21 +24,21 @@ export function updateGameState(
  * Creates a deep clone of a Card using Immer
  */
 export function cloneCard(card: Card): Card {
-  return produce(card, () => {})
+  return produce(card, () => { /* no-op clone */ })
 }
 
 /**
  * Creates a deep clone of a Battlefield using Immer
  */
 export function cloneBattlefield(battlefield: Battlefield): Battlefield {
-  return produce(battlefield, () => {})
+  return produce(battlefield, () => { /* no-op clone */ })
 }
 
 /**
  * Creates a deep clone of a Player using Immer
  */
 export function clonePlayer(player: Player): Player {
-  return produce(player, () => {})
+  return produce(player, () => { /* no-op clone */ })
 }
 
 /**

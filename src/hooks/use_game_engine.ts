@@ -1,7 +1,7 @@
 'use client'
 
 import { useMemo, useCallback } from 'react'
-import type { Card, DirectAttack, GameState } from '@/schemas/schema'
+import type { Card, DirectAttack } from '@/schemas/schema'
 import { gameEngine, type GameEngineConfig, type GameEngineResult } from '@/services/game_engine'
 import { useGameStore } from '@/store/game_store'
 

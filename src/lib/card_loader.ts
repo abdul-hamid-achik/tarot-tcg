@@ -24,7 +24,29 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
     element: contentCard.element,
     rarity: contentCard.rarity,
     keywords: Array.isArray(contentCard.keywords) ? contentCard.keywords : [],
-    abilities: Array.isArray(contentCard.abilities) ? contentCard.abilities : [],
+    abilities: (() => {
+      const raw = contentCard.abilities as unknown
+      if (!raw) return []
+      if (Array.isArray(raw)) return raw
+      // Handle {upright: [...], reversed: [...]} structure from MDX
+      const obj = raw as { upright?: unknown[]; reversed?: unknown[] }
+      const result: { name: string; description: string }[] = []
+      if (obj.upright && Array.isArray(obj.upright)) result.push(...(obj.upright as { name: string; description: string }[]))
+      if (obj.reversed && Array.isArray(obj.reversed)) result.push(...(obj.reversed as { name: string; description: string }[]))
+      return result
+    })(),
+    uprightAbilities: (() => {
+      const raw = contentCard.abilities as unknown
+      if (!raw || Array.isArray(raw)) return []
+      const obj = raw as { upright?: unknown[] }
+      return obj.upright && Array.isArray(obj.upright) ? obj.upright as { name: string; description: string }[] : []
+    })(),
+    reversedAbilities: (() => {
+      const raw = contentCard.abilities as unknown
+      if (!raw || Array.isArray(raw)) return []
+      const obj = raw as { reversed?: unknown[] }
+      return obj.reversed && Array.isArray(obj.reversed) ? obj.reversed as { name: string; description: string }[] : []
+    })(),
 
     // Spell-specific properties - only set if valid
     spellType:

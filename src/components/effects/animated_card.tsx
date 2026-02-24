@@ -236,7 +236,7 @@ export function PulseGlow({
   children,
   className,
 }: PulseGlowProps) {
-  const glowColors = {
+  const _glowColors = {
     green: 'shadow-emerald-400/60',
     red: 'shadow-red-400/60',
     amber: 'shadow-amber-400/60',

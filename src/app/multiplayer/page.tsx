@@ -10,10 +10,24 @@ import type { GameState } from '@/schemas/schema'
 
 type MultiplayerState = 'setup' | 'matchmaking' | 'matched' | 'playing' | 'ended'
 
+interface MatchData {
+  matchId: string
+  yourSide: 'player1' | 'player2'
+  opponent: {
+    id: string
+    name: string
+    rating: number
+    zodiac: string
+  }
+  gameMode: string
+  zodiacCompatibility: number
+  cosmicBlessings: string[]
+}
+
 export default function MultiplayerPage() {
   const [state, setState] = useState<MultiplayerState>('setup')
   const [gameState, setGameState] = useState<GameState | null>(null)
-  const [matchData, setMatchData] = useState<any>(null)
+  const [matchData, setMatchData] = useState<MatchData | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const multiplayer = useMultiplayerActions()
@@ -57,7 +71,7 @@ export default function MultiplayerPage() {
   }, [state, matchData, multiplayer])
 
   // Handle match found
-  const handleMatchFound = (matchInfo: any) => {
+  const handleMatchFound = (matchInfo: MatchData) => {
     console.log('🎮 Match found:', matchInfo)
     setMatchData(matchInfo)
     setState('matched')

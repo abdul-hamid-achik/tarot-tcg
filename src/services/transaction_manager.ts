@@ -38,7 +38,7 @@ export class TransactionManager {
 
     this.currentTransaction = {
       id: transactionId,
-      startState: produce(startState, () => {}), // Deep clone
+      startState: produce(startState, () => { /* no-op clone */ }),
       operations: [],
       startTime: Date.now(),
       status: 'pending',
@@ -61,7 +61,7 @@ export class TransactionManager {
       id: `op_${this.currentTransaction.operations.length + 1}`,
       description,
       timestamp: Date.now(),
-      stateSnapshot: currentState ? produce(currentState, () => {}) : undefined,
+      stateSnapshot: currentState ? produce(currentState, () => { /* no-op clone */ }) : undefined,
     }
 
     this.currentTransaction.operations.push(operation)

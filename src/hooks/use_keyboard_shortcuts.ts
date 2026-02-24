@@ -50,7 +50,7 @@ export function useKeyboardShortcuts({
         case '5':
         case '6':
         case '7': {
-          const index = Number.parseInt(e.key) - 1
+          const index = Number.parseInt(e.key, 10) - 1
           if (index < hand.length && isPlayerTurn && isActionPhase) {
             const card = hand[index]
             if (onCardPlay) {

@@ -31,7 +31,7 @@ export interface StackItem {
   targets?: Array<{
     type: 'card' | 'player' | 'lane'
     id: string
-    entity: any
+    entity: unknown
   }>
   dependencies?: string[] // Other stack item IDs this depends on
 
@@ -47,8 +47,8 @@ export interface StackItem {
   metadata?: {
     triggeringEvent?: GameEvent
     layerEffects?: boolean // For replacement/prevention effects
-    modalChoice?: any // For modal effects
-    [key: string]: any
+    modalChoice?: unknown // For modal effects
+    [key: string]: unknown
   }
 }
 
@@ -527,6 +527,7 @@ export class EffectStackService {
   private isEffectStillValid(item: StackItem): boolean {
     try {
       const gameState = this.getCurrentGameState()
+      if (!gameState) return true
 
       // Check if source card still exists in a valid zone
       if (item.sourceCardId) {
@@ -577,6 +578,7 @@ export class EffectStackService {
       } catch {
         return true // Can't validate without game state
       }
+      if (!gameState) return true
     }
 
     if (target.type === 'card') {
@@ -685,11 +687,13 @@ export class EffectStackService {
   private emitStackEvent(
     eventType: string,
     item: StackItem | null,
-    additionalData: any = {},
+    additionalData: Record<string, unknown> = {},
   ): void {
+    const gameState = this.getCurrentGameState()
+    if (!gameState) return
     eventManager.emit(
-      eventType as any,
-      this.getCurrentGameState(),
+      eventType as GameEvent['type'],
+      gameState,
       {
         stackItem: item,
         stackSize: this.state.items.length,

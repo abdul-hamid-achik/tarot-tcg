@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, SkipForward, Swords } from 'lucide-react'
+import { Clock, MousePointerClick, SkipForward, Swords } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -16,7 +16,7 @@ interface ActionBarProps {
 }
 
 export default function ActionBar({
-  onAttack,
+  onAttack: _onAttack,
   onDefend,
   onPass,
   onEndTurn,
@@ -89,7 +89,17 @@ export default function ActionBar({
     return { enabled: hasValidTargets, tooltip: 'Choose attack targets' }
   }
 
-  const attackState = getAttackButtonState()
+  const _attackState = getAttackButtonState()
+
+  // Check if player has units ready to attack
+  const hasReadyAttackers =
+    isPlayerTurn &&
+    gameState?.player1?.hasAttackToken &&
+    isActionPhase(gameState) &&
+    !isInAttackMode &&
+    gameState?.battlefield.playerUnits.some(
+      u => u !== null && !u.hasSummoningSickness && !u.hasAttackedThisTurn,
+    )
 
   // Get defend button state and tooltip
   const getDefendButtonState = () => {
@@ -101,15 +111,9 @@ export default function ActionBar({
     }
 
     // No defense phase in direct attack system
-    const hasDefenders = false
-
     return {
       enabled: true, // Always enabled - player can always skip block
-      tooltip: hasDefenders
-        ? false // No defense phase in direct attack system
-          ? 'No defense needed'
-          : 'Assign defenders or skip to take damage'
-        : 'No units to defend with - skip to take damage',
+      tooltip: 'No units to defend with - skip to take damage',
     }
   }
 
@@ -176,6 +180,14 @@ export default function ActionBar({
           <div className="flex items-center justify-center gap-2 text-muted-foreground text-sm px-4 py-2.5 bg-muted/50 rounded-xl border border-border">
             <Clock className="w-4 h-4 animate-pulse" />
             <span>Waiting...</span>
+          </div>
+        )}
+
+        {/* Attack Hint - shown when player has units ready to attack */}
+        {hasReadyAttackers && (
+          <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 text-xs px-3 py-2 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-800 animate-pulse">
+            <MousePointerClick className="w-3.5 h-3.5 shrink-0" />
+            <span className="font-medium leading-tight">Click your units to attack!</span>
           </div>
         )}
 

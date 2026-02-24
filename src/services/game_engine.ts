@@ -1,7 +1,6 @@
 'use client'
 
 import { produce } from 'immer'
-import { GameLogger } from '@/lib/game_logger'
 import type {
   Card,
   CardEffect,
@@ -12,11 +11,8 @@ import type {
   PlayerId,
 } from '@/schemas/schema'
 import { animationQueue } from './animation_queue'
-import { cardEffectSystem, createEffect } from './card_effect_system'
+import { cardEffectSystem } from './card_effect_system'
 import { declareAttack, canAttack, getValidAttackTargets, previewCombat } from './combat_service'
-import { effectStackService } from './effect_stack_service'
-import { eventManager } from './event_manager'
-import { phaseManagerService } from './phase_manager_service'
 import { transactionManager } from './transaction_manager'
 import { winConditionService } from './win_condition_service'
 
@@ -116,7 +112,7 @@ export class GameEngine {
         const units = state.activePlayer === 'player1'
           ? state.battlefield.playerUnits
           : state.battlefield.enemyUnits
-        const slot = targetSlot ?? units.findIndex(u => u === null)
+        const slot = targetSlot ?? units.indexOf(null)
         if (slot === -1) {
           throw new Error('Battlefield is full')
         }

@@ -16,7 +16,7 @@ const generateActionId = () => `action_${Date.now()}_${++actionIdCounter}`
 
 export function useMultiplayerActions() {
   const { gameState, setGameState } = useGameStore()
-  const optimisticUpdatesRef = useRef<Map<string, any>>(new Map())
+  const optimisticUpdatesRef = useRef<Map<string, unknown>>(new Map())
   const confirmationTimeoutRef = useRef<Map<string, NodeJS.Timeout>>(new Map())
 
   // Initialize WebSocket connection if needed

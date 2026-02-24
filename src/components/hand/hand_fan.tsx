@@ -23,7 +23,7 @@ export default function HandFan({
   cards,
   position,
   isCurrentPlayer = false,
-  onCardPlay,
+  onCardPlay: _onCardPlay,
   onCardDetail,
   className = '',
 }: HandFanProps) {

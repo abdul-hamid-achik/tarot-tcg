@@ -11,7 +11,7 @@ import { useGameStore } from '@/store/game_store'
  * Supports both local and multiplayer gameplay with direct attack system
  */
 export const useGameActions = () => {
-  const { gameState, setGameState, interaction, clearSelection, setAnimationState } = useGameStore()
+  const { setGameState, clearSelection, setAnimationState } = useGameStore()
 
   // Get multiplayer actions for WebSocket-enabled games
   const multiplayer = useMultiplayerActions()

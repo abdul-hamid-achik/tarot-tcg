@@ -41,7 +41,7 @@ export class PersistenceService {
         try {
             await db.insert(schema.gameStates).values({
                 sessionId,
-                state: gameState as any, // Store complete game state as JSONB
+                state: gameState as unknown as Record<string, unknown>, // Store complete game state as JSONB
                 turn: gameState.turn,
                 round: gameState.round,
                 phase: gameState.phase,
@@ -215,7 +215,7 @@ export class PersistenceService {
         .select()
         .from(schema.gameSessions)
         .where(
-          // @ts-ignore - Drizzle SQL operator
+          // @ts-expect-error - Drizzle SQL operator
           db.or(
             eq(schema.gameSessions.player1Id, playerId),
             eq(schema.gameSessions.player2Id, playerId)

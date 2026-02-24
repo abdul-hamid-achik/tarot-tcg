@@ -12,7 +12,9 @@ import HandFan from '@/components/hand/hand_fan'
 import GameLayout from '@/components/layout/game_layout'
 import MulliganOverlay from '@/components/mulligan_overlay'
 import { useEmotes } from '@/components/multiplayer/emotes'
+import ElementSynergyIndicator from '@/components/element_synergy_indicator'
 import PlayerInfoPanel from '@/components/player/player_info_panel'
+import TurnIndicator from '@/components/turn_indicator'
 // UI Components
 import ActionBar from '@/components/ui/action_bar'
 import { useGameActions } from '@/hooks/use_game_actions'
@@ -39,13 +41,13 @@ interface GameBoardProps {
 
 export default function GameBoard({
   gameState: initialGameState,
-  onCardPlay,
+  onCardPlay: _onCardPlay,
   onAttack,
   onEndTurn,
   onMulligan,
 }: GameBoardProps) {
   const ui = useGameStore(state => state.ui)
-  const interaction = useGameStore(state => state.interaction)
+  const _interaction = useGameStore(state => state.interaction)
   const hideCardDetail = useGameStore(state => state.hideCardDetail)
   const showCardDetail = useGameStore(state => state.showCardDetail)
   const setGameState = useGameStore(state => state.setGameState)
@@ -54,7 +56,7 @@ export default function GameBoard({
   const setValidDropZones = useGameStore(state => state.setValidDropZones)
   const clearValidDropZones = useGameStore(state => state.clearValidDropZones)
 
-  const { playCard, declareAttack, attackTarget, completeMulligan, reverseCard } = useGameActions()
+  const { playCard, declareAttack: _declareAttack, attackTarget, completeMulligan, reverseCard: _reverseCard } = useGameActions()
 
   // Use centralized game effects
   const { gameState } = useGameEffects()
@@ -67,7 +69,7 @@ export default function GameBoard({
   })
 
   // Use emote system
-  const { currentEmote, sendEmote, clearEmote } = useEmotes()
+  const _emotes = useEmotes()
 
   // Initialize game state and sound system
   const initializedRef = React.useRef(false)
@@ -80,7 +82,7 @@ export default function GameBoard({
     return () => {
       soundService.destroy()
     }
-  }, [initialGameState]) // setGameState is stable, don't include in deps
+  }, [initialGameState, setGameState])
 
   // Set up interaction service callbacks
   React.useEffect(() => {
@@ -270,6 +272,9 @@ export default function GameBoard({
 
   return (
     <GameLayout>
+      {/* Turn Indicator Banner */}
+      <TurnIndicator />
+
       {/* Attack Arrow for Direct Combat */}
       <AttackArrow />
 
@@ -277,20 +282,34 @@ export default function GameBoard({
       {(() => {
         const player2 = getPlayer(gameState, 'player2')
         return player2 ? (
-          <PlayerInfoPanel player={player2} isCurrentPlayer={false} position="top-left" />
+          <>
+            <PlayerInfoPanel player={player2} isCurrentPlayer={false} position="top-left" />
+            <ElementSynergyIndicator
+              gameState={gameState}
+              playerId="player2"
+              className="fixed top-16 left-2 md:top-20 md:left-4 z-[60]"
+            />
+          </>
         ) : null
       })()}
 
       {(() => {
         const player1 = getPlayer(gameState, 'player1')
         return player1 ? (
-          <PlayerInfoPanel
-            player={player1}
-            isCurrentPlayer={true}
-            position="bottom-right"
-            onAttack={handleAttack}
-            onEndTurn={handlePass}
-          />
+          <>
+            <PlayerInfoPanel
+              player={player1}
+              isCurrentPlayer={true}
+              position="bottom-right"
+              onAttack={handleAttack}
+              onEndTurn={handlePass}
+            />
+            <ElementSynergyIndicator
+              gameState={gameState}
+              playerId="player1"
+              className="fixed bottom-16 left-2 md:bottom-20 md:left-4 z-[60]"
+            />
+          </>
         ) : null
       })()}
 

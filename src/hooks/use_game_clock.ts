@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { GameLogger } from '@/lib/game_logger'
 import { useGameStore } from '@/store/game_store'
 
@@ -27,7 +27,7 @@ export const useGameClock = (config: Partial<GameClockConfig> = {}) => {
   const turnStartTimeRef = useRef<number>(Date.now())
   const matchStartTimeRef = useRef<number>(Date.now())
 
-  const mergedConfig = { ...DEFAULT_CONFIG, ...config }
+  const mergedConfig = useMemo(() => ({ ...DEFAULT_CONFIG, ...config }), [config])
 
   // Match timer - always running
   useEffect(() => {

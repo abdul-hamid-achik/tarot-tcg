@@ -1,6 +1,17 @@
 'use client'
 
-import { BarChart3, BookOpen, CreditCard, Flame, Layers, Menu, Play, Swords, X } from 'lucide-react'
+import {
+  BarChart3,
+  BookOpen,
+  CreditCard,
+  Flame,
+  Layers,
+  Menu,
+  Play,
+  Settings,
+  Swords,
+  X,
+} from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useRef, useState } from 'react'
@@ -45,6 +56,12 @@ export function Navigation({ className = '' }: NavigationProps) {
       href: '/stats',
       icon: BarChart3,
       description: 'View statistics and achievements',
+    },
+    {
+      label: 'Settings',
+      href: '/settings',
+      icon: Settings,
+      description: 'Customize your experience',
     },
   ]
 

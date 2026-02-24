@@ -1,12 +1,13 @@
 'use client'
 
 import { produce } from 'immer'
-import { ArrowLeft, BarChart3, RotateCcw, Swords, Trophy } from 'lucide-react'
+import { ArrowLeft, RotateCcw, Swords } from 'lucide-react'
 import Link from 'next/link'
-import { useSearchParams } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useEffect, useState } from 'react'
 import { GameBoardErrorBoundary } from '@/components/error_boundary'
 import TarotGameBoard from '@/components/game_board'
+import { GameSummary } from '@/components/game_summary'
 import { AchievementToast } from '@/components/stats/achievement_toast'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -29,6 +30,7 @@ import { soundService } from '@/services/sound_service'
 type GameScreen = 'setup' | 'playing'
 
 function PlayContent() {
+  const router = useRouter()
   const searchParams = useSearchParams()
   const deckParam = searchParams.get('deck')
 
@@ -47,7 +49,7 @@ function PlayContent() {
     difficulty,
   })
 
-  const { newAchievements, clearAchievements } = useGameTracker(
+  const { newAchievements, clearAchievements, gameRecord } = useGameTracker(
     gameState,
     gameOutcome,
     difficulty,
@@ -94,10 +96,6 @@ function PlayContent() {
     gameState?.phase,
     gameOutcome,
     executeAI,
-    gameState?.player2?.hand?.length,
-    gameState?.player2?.mana,
-    gameState?.player1?.mulliganComplete,
-    gameState?.player2?.mulliganComplete,
   ])
 
   const startGame = () => {
@@ -356,43 +354,20 @@ function PlayContent() {
         </GameBoardErrorBoundary>
       )}
 
-      {/* Achievement Toast */}
-      {newAchievements.length > 0 && (
+      {/* Achievement Toast (only shown during gameplay, not after game ends) */}
+      {newAchievements.length > 0 && gameOutcome === 'ongoing' && (
         <AchievementToast achievements={newAchievements} onDismiss={clearAchievements} />
       )}
 
-      {/* Game Outcome */}
+      {/* Game Summary */}
       {gameOutcome !== 'ongoing' && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-xl p-8 text-center shadow-2xl max-w-md mx-4 space-y-4">
-            <div className="text-5xl">{gameOutcome === 'player1_wins' ? '🎉' : '💀'}</div>
-            <h2 className="text-3xl font-bold">
-              {gameOutcome === 'player1_wins' ? 'Victory!' : 'Defeat'}
-            </h2>
-            <p className="text-muted-foreground">
-              {gameOutcome === 'player1_wins'
-                ? 'Your mastery of the tarot prevails!'
-                : 'The cards were not in your favor this time.'}
-            </p>
-
-            <div className="flex gap-3 justify-center pt-2">
-              <Button onClick={() => startGame()} variant="outline">
-                <RotateCcw className="w-4 h-4 mr-2" />
-                Play Again
-              </Button>
-              <Button onClick={resetGame}>
-                <Trophy className="w-4 h-4 mr-2" />
-                Change Settings
-              </Button>
-              <Link href="/stats">
-                <Button variant="ghost">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  View Stats
-                </Button>
-              </Link>
-            </div>
-          </div>
-        </div>
+        <GameSummary
+          outcome={gameOutcome}
+          gameRecord={gameRecord}
+          newAchievements={newAchievements}
+          onPlayAgain={() => startGame()}
+          onReturnHome={() => router.push('/')}
+        />
       )}
     </div>
   )

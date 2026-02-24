@@ -1,6 +1,8 @@
 import { GameLogger } from '@/lib/game_logger'
 import { endTurn } from '@/lib/game_logic'
 import type { Card, GameState } from '@/schemas/schema'
+import { parseAbilityDescription } from '@/services/ability_parser'
+import type { ActionType } from '@/services/ability_parser'
 import { type AILevel, type AIPersonality, aiService } from './ai_service'
 import { battlefieldService } from './battlefield_service'
 import { eventManager } from './event_manager'
@@ -15,7 +17,7 @@ function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): 
 import { declareAttack } from '@/services/combat_service'
 
 // AI Decision weights for different strategies
-interface DecisionWeights {
+interface _DecisionWeights {
   playCard: number
   attack: number
   endTurn: number
@@ -29,7 +31,7 @@ interface CardPlayDecision {
   reasoning: string
 }
 
-interface AttackDecision {
+interface _AttackDecision {
   attackerIds: string[]
   targetPriority: 'nexus' | 'units' | 'mixed' | 'none'
   confidence: number
@@ -45,6 +47,241 @@ interface AttackEvaluation {
 }
 
 // Removed DefenseDecision - using direct attacks only
+
+// Base value scores for each parsed action type
+const ACTION_BASE_VALUES: Record<ActionType, number> = {
+  dealDamage: 1.5,
+  drawCards: 2.0,
+  gainHealth: 0.8,
+  buffAllUnits: 1.5, // multiplied by stat total, then scales with board
+  destroyUnit: 3.0,
+  destroyAllUnits: 5.0,
+  damageAllUnits: 1.0,
+  summonUnit: 2.0,
+  discardCards: -1.0, // negative - discard is a penalty
+  gainMana: 1.5,
+  addKeyword: 1.5,
+  healAllUnits: 0.5,
+  statBuff: 1.0,
+}
+
+/**
+ * Get the oriented abilities for a card based on its isReversed state.
+ * Falls back to generic abilities if orientation-specific ones are not available.
+ */
+function getOrientedAbilities(card: Card): { name?: string; description?: string }[] {
+  const isReversed = card.isReversed || false
+
+  if (isReversed) {
+    if (card.reversedAbilities && card.reversedAbilities.length > 0) {
+      return card.reversedAbilities
+    }
+  } else {
+    if (card.uprightAbilities && card.uprightAbilities.length > 0) {
+      return card.uprightAbilities
+    }
+  }
+
+  // Fall back to generic abilities
+  return card.abilities || []
+}
+
+/**
+ * Evaluate the total value of a list of abilities by parsing their descriptions.
+ * Returns a numeric score representing how valuable the abilities are.
+ */
+function evaluateAbilityValue(abilities: { name?: string; description?: string }[]): number {
+  if (!abilities || abilities.length === 0) return 0
+
+  let totalValue = 0
+
+  for (const ability of abilities) {
+    if (!ability.description) continue
+
+    const parsed = parseAbilityDescription(ability.description)
+
+    for (const action of parsed.actions) {
+      const amount = action.amount ?? 1
+
+      switch (action.type) {
+        case 'dealDamage':
+          totalValue += amount * ACTION_BASE_VALUES.dealDamage
+          break
+        case 'drawCards':
+          totalValue += amount * ACTION_BASE_VALUES.drawCards
+          break
+        case 'gainHealth':
+          totalValue += amount * ACTION_BASE_VALUES.gainHealth
+          break
+        case 'buffAllUnits': {
+          const statTotal =
+            (action.statModifiers?.attack || 0) + (action.statModifiers?.health || 0)
+          totalValue += statTotal * ACTION_BASE_VALUES.buffAllUnits
+          break
+        }
+        case 'destroyUnit':
+          totalValue += ACTION_BASE_VALUES.destroyUnit
+          break
+        case 'destroyAllUnits':
+          totalValue += ACTION_BASE_VALUES.destroyAllUnits
+          break
+        case 'damageAllUnits':
+          totalValue += amount * ACTION_BASE_VALUES.damageAllUnits
+          break
+        case 'summonUnit':
+          totalValue += ACTION_BASE_VALUES.summonUnit
+          break
+        case 'discardCards':
+          // Negative value for discard
+          totalValue += amount * ACTION_BASE_VALUES.discardCards
+          break
+        case 'gainMana':
+          totalValue += amount * ACTION_BASE_VALUES.gainMana
+          break
+        case 'addKeyword':
+          totalValue += ACTION_BASE_VALUES.addKeyword
+          break
+        case 'healAllUnits':
+          totalValue += (amount || 1) * ACTION_BASE_VALUES.healAllUnits
+          break
+        case 'statBuff': {
+          const buffTotal =
+            (action.statModifiers?.attack || 0) + (action.statModifiers?.health || 0)
+          totalValue += buffTotal * ACTION_BASE_VALUES.statBuff
+          break
+        }
+      }
+    }
+  }
+
+  return totalValue
+}
+
+/**
+ * Context-aware ability valuation that adjusts scores based on the board state.
+ * Used at hard+ difficulty for smarter card evaluation.
+ */
+function evaluateAbilityValueWithContext(
+  abilities: { name?: string; description?: string }[],
+  gameState: GameState,
+): number {
+  if (!abilities || abilities.length === 0) return 0
+
+  const myUnits = getPlayerUnits(gameState, 'player2').length
+  const oppUnits = getPlayerUnits(gameState, 'player1').length
+  const handSize = gameState.player2.hand.length
+
+  // Check how many friendly units are at full health
+  const myUnitsList = getPlayerUnits(gameState, 'player2')
+  const damagedUnits = myUnitsList.filter(
+    u => (u.currentHealth ?? u.health) < u.health,
+  ).length
+
+  let totalValue = 0
+
+  for (const ability of abilities) {
+    if (!ability.description) continue
+
+    const parsed = parseAbilityDescription(ability.description)
+
+    for (const action of parsed.actions) {
+      const amount = action.amount ?? 1
+
+      switch (action.type) {
+        case 'buffAllUnits': {
+          const statTotal =
+            (action.statModifiers?.attack || 0) + (action.statModifiers?.health || 0)
+          let value = statTotal * ACTION_BASE_VALUES.buffAllUnits
+          // Scale with board size: much better with 3+ units
+          if (myUnits >= 3) {
+            value *= 1.0 + (myUnits - 2) * 0.3
+          } else if (myUnits <= 1) {
+            value *= 0.5 // Not great with 0-1 units
+          }
+          totalValue += value
+          break
+        }
+        case 'destroyAllUnits': {
+          let value = ACTION_BASE_VALUES.destroyAllUnits
+          // Better when opponent has more units than we do
+          const unitDiff = oppUnits - myUnits
+          if (unitDiff > 0) {
+            value *= 1.0 + unitDiff * 0.3
+          } else if (unitDiff < 0) {
+            // We have more units - board wipe hurts us
+            value *= Math.max(0.2, 1.0 + unitDiff * 0.3)
+          }
+          totalValue += value
+          break
+        }
+        case 'drawCards': {
+          let value = amount * ACTION_BASE_VALUES.drawCards
+          // More valuable when hand is small
+          if (handSize < 3) {
+            value *= 1.5
+          } else if (handSize >= 6) {
+            value *= 0.6 // Less valuable with full hand
+          }
+          totalValue += value
+          break
+        }
+        case 'healAllUnits': {
+          let value = (amount || 1) * ACTION_BASE_VALUES.healAllUnits
+          // Less valuable if units are at full health
+          if (damagedUnits === 0) {
+            value *= 0.1 // Nearly worthless at full health
+          } else {
+            value *= 1.0 + damagedUnits * 0.2
+          }
+          totalValue += value
+          break
+        }
+        case 'damageAllUnits': {
+          let value = amount * ACTION_BASE_VALUES.damageAllUnits
+          // Better when opponent has many units
+          if (oppUnits >= 3) {
+            value *= 1.0 + (oppUnits - 2) * 0.2
+          }
+          // Worse if we also have many units (friendly fire)
+          if (action.target === 'all_units' && myUnits >= 2) {
+            value *= 0.7
+          }
+          totalValue += value
+          break
+        }
+        case 'dealDamage':
+          totalValue += amount * ACTION_BASE_VALUES.dealDamage
+          break
+        case 'gainHealth':
+          totalValue += amount * ACTION_BASE_VALUES.gainHealth
+          break
+        case 'destroyUnit':
+          totalValue += ACTION_BASE_VALUES.destroyUnit
+          break
+        case 'summonUnit':
+          totalValue += ACTION_BASE_VALUES.summonUnit
+          break
+        case 'discardCards':
+          totalValue += amount * ACTION_BASE_VALUES.discardCards
+          break
+        case 'gainMana':
+          totalValue += amount * ACTION_BASE_VALUES.gainMana
+          break
+        case 'addKeyword':
+          totalValue += ACTION_BASE_VALUES.addKeyword
+          break
+        case 'statBuff': {
+          const buffTotal =
+            (action.statModifiers?.attack || 0) + (action.statModifiers?.health || 0)
+          totalValue += buffTotal * ACTION_BASE_VALUES.statBuff
+          break
+        }
+      }
+    }
+  }
+
+  return totalValue
+}
 
 export class AIControllerService {
   private currentPersonality: AIPersonality = aiService.getCurrentPersonality()
@@ -279,15 +516,28 @@ export class AIControllerService {
     return Math.max(0, Math.min(100, priority))
   }
 
-  // Evaluate unit value based on stats and board state
+  // Evaluate unit value based on stats, abilities, and board state
   private evaluateUnitValue(card: Card, gameState: GameState): number {
-    if (!card.attack && !card.health) return 0
+    if (!card.attack && !card.health) {
+      // Even a 0/0 unit might have valuable abilities
+      const orientedAbilities = getOrientedAbilities(card)
+      if (orientedAbilities.length === 0) return 0
+    }
+
+    const orientedAbilities = getOrientedAbilities(card)
+
+    // Calculate ability value based on difficulty level
+    const useContextAware =
+      this.currentPersonality.level === 'hard' || this.currentPersonality.level === 'expert'
+    const abilityValue = useContextAware
+      ? evaluateAbilityValueWithContext(orientedAbilities, gameState)
+      : evaluateAbilityValue(orientedAbilities)
 
     const stats = (card.attack || 0) + (card.health || 0)
-    const efficiency = stats / Math.max(1, card.cost)
+    const totalValue = stats + abilityValue
+    const efficiency = totalValue / Math.max(1, card.cost)
 
     // Check for favorable trades
-    const _opponent = gameState.player1
     let tradeValue = 0
 
     for (const enemyUnit of getPlayerUnits(gameState, 'player1')) {
@@ -305,9 +555,32 @@ export class AIControllerService {
     return Math.min(1, efficiency / 2 + tradeValue)
   }
 
-  // Evaluate spell value based on current situation
+  // Evaluate spell value based on parsed abilities and board state
   private evaluateSpellValue(card: Card, gameState: GameState): number {
-    // Simple heuristic - would need to parse spell effects for real evaluation
+    const orientedAbilities = getOrientedAbilities(card)
+
+    // If the card has parseable abilities, evaluate them
+    if (orientedAbilities.length > 0) {
+      const useContextAware =
+        this.currentPersonality.level === 'hard' || this.currentPersonality.level === 'expert'
+      const abilityValue = useContextAware
+        ? evaluateAbilityValueWithContext(orientedAbilities, gameState)
+        : evaluateAbilityValue(orientedAbilities)
+
+      // Normalize to 0-1 range: a value of 6+ is near max
+      const normalizedValue = Math.min(1, Math.max(0, abilityValue / 6))
+
+      // Bonus for removal spells when opponent has dangerous units
+      const enemyUnits = getPlayerUnits(gameState, 'player1')
+      const needsRemoval = enemyUnits.some(u => (u.attack || 0) >= 4)
+      if (needsRemoval && normalizedValue >= 0.4) {
+        return Math.min(1, normalizedValue + 0.15)
+      }
+
+      return normalizedValue
+    }
+
+    // Fallback: no parseable abilities, use old heuristic
     const enemyUnits = getPlayerUnits(gameState, 'player1')
     const hasTargets = enemyUnits.length > 0
     const needsRemoval = enemyUnits.some(u => (u.attack || 0) >= 4)
@@ -434,6 +707,19 @@ export class AIControllerService {
       reasons.push('spell value')
     }
 
+    // Add ability reasoning
+    const orientedAbilities = getOrientedAbilities(card)
+    const abilityScore = evaluateAbilityValue(orientedAbilities)
+    if (abilityScore >= 3) {
+      reasons.push('strong abilities')
+    } else if (abilityScore >= 1.5) {
+      reasons.push('useful abilities')
+    }
+
+    if (card.isReversed) {
+      reasons.push('reversed')
+    }
+
     return reasons.join(', ')
   }
 
@@ -540,29 +826,50 @@ export class AIControllerService {
     return currentState
   }
 
-  // NEW: Direct Attack Evaluation System
+  // Direct Attack Evaluation System with ability-aware targeting
   private evaluateAttacks(state: GameState): AttackEvaluation[] {
     const evaluations: AttackEvaluation[] = []
     const myUnits = getPlayerUnits(state, 'player2')
     const enemyUnits = getPlayerUnits(state, 'player1')
+
+    // Check for taunt units - if present, we must attack them
+    const tauntUnits = enemyUnits.filter(
+      u =>
+        u.keywords?.some(k => k.toLowerCase() === 'taunt') &&
+        (u.currentHealth ?? u.health) > 0,
+    )
+    const hasTaunt = tauntUnits.length > 0
 
     for (const attacker of myUnits) {
       if (!this.canAttack(attacker)) continue
 
       // Evaluate each enemy unit as target
       for (const target of enemyUnits) {
-        const value = this.evaluateTrade(attacker, target)
+        const targetHealth = target.currentHealth ?? target.health ?? 0
+        if (targetHealth <= 0) continue
+
+        const isTauntTarget = target.keywords?.some(k => k.toLowerCase() === 'taunt') || false
+        let value = this.evaluateTrade(attacker, target, state)
+
+        // If there are taunt units, heavily penalize non-taunt targets
+        if (hasTaunt && !isTauntTarget) {
+          value -= 1000
+        }
+
         evaluations.push({
           attackerId: attacker.id,
           targetType: 'unit',
           targetId: target.id,
           value,
-          reasoning: `Trade ${attacker.name} into ${target.name}`,
+          reasoning: `Trade ${attacker.name} into ${target.name}${isTauntTarget ? ' (taunt)' : ''}`,
         })
       }
 
-      // Evaluate face damage
-      const faceValue = this.evaluateFaceDamage(attacker.attack || 0, state.player1.health)
+      // Evaluate face damage - blocked if taunt is on the field
+      let faceValue = this.evaluateFaceDamage(attacker.attack || 0, state.player1.health)
+      if (hasTaunt) {
+        faceValue -= 1000 // Cannot go face when taunt is present
+      }
       evaluations.push({
         attackerId: attacker.id,
         targetType: 'player',
@@ -574,34 +881,44 @@ export class AIControllerService {
     return evaluations.sort((a, b) => b.value - a.value)
   }
 
-  private evaluateTrade(attacker: Card, target: Card): number {
+  private evaluateTrade(attacker: Card, target: Card, state: GameState): number {
     const attackerDamage = attacker.attack || 0
-    const attackerHealth = attacker.currentHealth || attacker.health
-    const targetHealth = target.currentHealth || target.health
+    const attackerHealth = attacker.currentHealth ?? attacker.health ?? 0
+    const targetHealth = target.currentHealth ?? target.health ?? 0
     const targetDamage = target.attack || 0
 
-    // Factors to consider:
     // 1. Does attacker kill target?
     const attackerKillsTarget = attackerDamage >= targetHealth
 
     // 2. Does target kill attacker?
     const targetKillsAttacker = targetDamage >= attackerHealth
 
-    // 3. Stat values
-    const attackerValue = (attacker.attack || 0) + (attacker.health || 0)
-    const targetValue = (target.attack || 0) + (target.health || 0)
+    // 3. Stat values (base)
+    const attackerStatValue = (attacker.attack || 0) + (attacker.health || 0)
+    const targetStatValue = (target.attack || 0) + (target.health || 0)
+
+    // 4. Include ability value in unit worth assessment at normal+ difficulty
+    let attackerTotalValue = attackerStatValue
+    let targetTotalValue = targetStatValue
+
+    if (this.currentPersonality.level !== 'tutorial' && this.currentPersonality.level !== 'easy') {
+      const attackerAbilities = getOrientedAbilities(attacker)
+      const targetAbilities = getOrientedAbilities(target)
+      attackerTotalValue += evaluateAbilityValue(attackerAbilities) * 0.5
+      targetTotalValue += evaluateAbilityValue(targetAbilities) * 0.5
+    }
 
     let tradeValue = 0
 
     if (attackerKillsTarget && !targetKillsAttacker) {
       // Favorable trade - attacker survives and kills target
-      tradeValue = targetValue * 2
+      tradeValue = targetTotalValue * 2
     } else if (attackerKillsTarget && targetKillsAttacker) {
       // Equal trade - both die
-      tradeValue = targetValue - attackerValue + 5 // Slight bias towards trading
+      tradeValue = targetTotalValue - attackerTotalValue + 5 // Slight bias towards trading
     } else if (!attackerKillsTarget && targetKillsAttacker) {
       // Bad trade - attacker dies without killing target
-      tradeValue = -attackerValue
+      tradeValue = -attackerTotalValue
     } else {
       // Neither dies - evaluate damage dealt vs taken
       const damageDealt = Math.min(attackerDamage, targetHealth)
@@ -609,9 +926,33 @@ export class AIControllerService {
       tradeValue = damageDealt - damageTaken
     }
 
+    // Priority bonus: low-health high-attack enemy units are priority kill targets
+    if (attackerKillsTarget && targetDamage >= 3 && targetHealth <= 3) {
+      tradeValue += targetDamage * 1.5 // High-attack threats are priority
+    }
+
+    // If attacker has way more attack than needed, consider whether face is better
+    // (Only at hard+ difficulty)
+    if (
+      (this.currentPersonality.level === 'hard' || this.currentPersonality.level === 'expert') &&
+      attackerKillsTarget
+    ) {
+      const overkill = attackerDamage - targetHealth
+      if (overkill >= 3 && state.player1.health <= 10) {
+        // Significant overkill and opponent is low - face might be better
+        // Reduce trade value slightly so face damage can compete
+        tradeValue *= 0.8
+      }
+    }
+
     // Apply personality modifiers
     if (this.currentPersonality.attackStrategy === 'aggressive') {
-      tradeValue *= 1.2 // Aggressive AI values trades more
+      tradeValue *= 1.2
+    }
+
+    // Random difficulty uses random attack decisions
+    if (this.currentPersonality.attackStrategy === 'random') {
+      tradeValue = Math.random() * 20
     }
 
     return tradeValue
@@ -636,6 +977,13 @@ export class AIControllerService {
       value *= 1.5 // Aggressive AI prioritizes face damage
     } else if (this.currentPersonality.playStrategy === 'control') {
       value *= 0.8 // Control AI prefers board control
+    }
+
+    // Random/cautious AI is less likely to go face strategically
+    if (this.currentPersonality.attackStrategy === 'cautious') {
+      value *= 0.6 // Cautious AI rarely goes face
+    } else if (this.currentPersonality.attackStrategy === 'random') {
+      value = Math.random() * damage * 2 // Randomize face damage value
     }
 
     return value

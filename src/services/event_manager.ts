@@ -358,7 +358,7 @@ export class EventManager {
   /**
    * Emit an AI action event
    */
-  emitAIAction(action: string, data: Record<string, any> = {}): void {
+  emitAIAction(action: string, data: Record<string, unknown> = {}): void {
     GameLogger.system(`🤖 AI Action: ${action}`, data)
     // This is just for logging AI actions - no actual event emission needed for now
   }

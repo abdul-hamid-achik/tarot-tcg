@@ -104,7 +104,7 @@ export class AnimationQueue {
   ): string {
     if (!this.isEnabled) {
       // If disabled, immediately call callbacks
-      animations.forEach(a => a.onComplete?.())
+      animations.forEach(a => { a.onComplete?.() })
       onBatchComplete?.()
       return ''
     }
@@ -243,9 +243,9 @@ export class AnimationQueue {
    */
   clear(): void {
     // Call onComplete for all cleared animations
-    this.queue.forEach(a => a.onComplete?.())
+    this.queue.forEach(a => { a.onComplete?.() })
     this.batches.forEach(b => {
-      b.animations.forEach(a => a.onComplete?.())
+      b.animations.forEach(a => { a.onComplete?.() })
       b.onBatchComplete?.()
     })
 

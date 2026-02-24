@@ -25,10 +25,10 @@ enableMapSet()
 function findFirstEmptySlot(battlefield: Battlefield, playerId: 'player1' | 'player2'): number {
   const units = playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
 
-  return units.findIndex((u: Card | null) => u === null)
+  return units.indexOf(null)
 }
 
-function placeUnitOnBattlefield(
+function _placeUnitOnBattlefield(
   gameState: GameState,
   playerId: 'player1' | 'player2',
   unit: Card,
@@ -209,7 +209,7 @@ export function createInitialGameState(
   }
 
   // Initialize win condition system for this game
-  winConditionService.setGameMode(gameMode as any)
+  winConditionService.setGameMode(gameMode as 'standard')
   winConditionService.resetState()
 
   const gameState: GameState = {
@@ -366,21 +366,66 @@ export async function playCard(
     // Emit unit summoned event
     await eventHelpers.unitSummoned(card.id, card.name, unit.attack, unit.health)
 
-    // Apply battlecry based on orientation (may modify state)
-    if (isReversed && card.reversedDescription) {
-      newState = await applyReversedEffectImmutable(newState, unit)
-    } else {
-      newState = await applyUprightEffectImmutable(newState, unit)
-    }
+    // Select abilities based on orientation
+    const orientedAbilities = isReversed
+      ? (card.reversedAbilities && card.reversedAbilities.length > 0 ? card.reversedAbilities : card.abilities)
+      : (card.uprightAbilities && card.uprightAbilities.length > 0 ? card.uprightAbilities : card.abilities)
 
-    // Register card abilities with the effect system
-    if (card.abilities && card.abilities.length > 0) {
-      const triggeredAbilities = convertAbilitiesToTriggeredAbilities(card.abilities)
+    // Execute battlecry abilities (on_play triggers) through the effect system
+    if (orientedAbilities && orientedAbilities.length > 0) {
+      for (const ability of orientedAbilities) {
+        if (ability.description) {
+          const cardEffect: CardEffect = {
+            id: `battlecry_${unit.id}_${ability.name || 'effect'}`,
+            name: ability.name || 'Battlecry',
+            description: ability.description,
+            type: 'instant',
+            execute: () => ({ success: false }),
+          }
+          const effectContext: EffectContext = {
+            gameState: newState,
+            source: { ...unit, owner: state.activePlayer },
+          }
+          const result = await cardEffectSystem.executeEffect(cardEffect, effectContext)
+          if (result.success && result.newGameState) {
+            newState = result.newGameState
+          }
+        }
+      }
+
+      // Register non-battlecry abilities (start_of_turn, on_attack, etc.) with the effect system
+      const triggeredAbilities = convertAbilitiesToTriggeredAbilities(orientedAbilities)
       cardEffectSystem.registerCardAbilities(unit, triggeredAbilities)
     }
   } else if (card.type === 'spell') {
-    // Queue spell effects on the stack for proper resolution
-    if (card.effects && card.effects.length > 0) {
+    // Select spell abilities based on orientation
+    const spellAbilities = isReversed
+      ? (card.reversedAbilities && card.reversedAbilities.length > 0 ? card.reversedAbilities : [])
+      : (card.uprightAbilities && card.uprightAbilities.length > 0 ? card.uprightAbilities : [])
+
+    // Execute spell abilities through the effect system
+    if (spellAbilities.length > 0) {
+      for (const ability of spellAbilities) {
+        if (ability.description) {
+          const cardEffect: CardEffect = {
+            id: `spell_${card.id}_${ability.name || 'effect'}`,
+            name: ability.name || card.name,
+            description: ability.description,
+            type: 'instant',
+            execute: () => ({ success: false }),
+          }
+          const effectContext: EffectContext = {
+            gameState: newState,
+            source: { ...card, owner: state.activePlayer },
+          }
+          const result = await cardEffectSystem.executeEffect(cardEffect, effectContext)
+          if (result.success && result.newGameState) {
+            newState = result.newGameState
+          }
+        }
+      }
+    } else if (card.effects && card.effects.length > 0) {
+      // Fallback to old effects array for cards without oriented abilities
       await queueSpellEffectsOnStack(newState, card.effects, state.activePlayer, card)
     }
   }
@@ -430,7 +475,7 @@ function checkZodiacAlignment(zodiacClass: string, currentMonth: number): boolea
   return months ? months.includes(currentMonth) : false
 }
 
-async function applyReversedEffect(state: GameState, unit: Card): Promise<void> {
+async function _applyReversedEffect(state: GameState, unit: Card): Promise<void> {
   // Apply reversed tarot effects - simplified implementation
   if (unit.reversedDescription?.toLowerCase().includes('draw')) {
     // Reversed effect: draw a card
@@ -447,7 +492,7 @@ async function applyReversedEffect(state: GameState, unit: Card): Promise<void> 
   }
 }
 
-async function applyReversedEffectImmutable(state: GameState, unit: Card): Promise<GameState> {
+async function _applyReversedEffectImmutable(state: GameState, unit: Card): Promise<GameState> {
   // Apply reversed tarot effects - simplified implementation with immutable state
   if (unit.reversedDescription?.toLowerCase().includes('draw')) {
     const playerId = unit.owner!
@@ -469,7 +514,7 @@ async function applyReversedEffectImmutable(state: GameState, unit: Card): Promi
   return state
 }
 
-async function applyUprightEffect(state: GameState, unit: Card): Promise<void> {
+async function _applyUprightEffect(state: GameState, unit: Card): Promise<void> {
   // Apply upright tarot effects - simplified implementation
   if (unit.description?.toLowerCase().includes('damage')) {
     // Upright effect might deal damage
@@ -479,7 +524,7 @@ async function applyUprightEffect(state: GameState, unit: Card): Promise<void> {
   }
 }
 
-async function applyUprightEffectImmutable(state: GameState, unit: Card): Promise<GameState> {
+async function _applyUprightEffectImmutable(state: GameState, unit: Card): Promise<GameState> {
   // Apply upright tarot effects - simplified implementation with immutable state
   if (unit.description?.toLowerCase().includes('damage')) {
     const opponent = unit.owner === 'player1' ? 'player2' : 'player1'
@@ -823,7 +868,7 @@ export async function endTurn(state: GameState): Promise<GameState> {
   const isReversed = willDrawCard ? Math.random() < GAME_CONFIG.ORIENTATION_CHANCE : false
 
   // Update persistent effects at end of turn (may return same state or new state)
-  let updatedState = cardEffectSystem.updatePersistentEffects(state)
+  const updatedState = cardEffectSystem.updatePersistentEffects(state)
 
   // Use Immer for all state mutations
   const newState = produce(updatedState, draft => {
@@ -873,13 +918,15 @@ export async function endTurn(state: GameState): Promise<GameState> {
     nextPlayerRef.mana = nextPlayerRef.maxMana
 
     // Draw a card
-    if (willDrawCard && cardToDraw) {
-      const drawnCard = draft[nextPlayer].deck.shift()!
-      const cardWithOrientation = {
-        ...drawnCard,
-        isReversed,
+    if (willDrawCard && cardToDraw && draft[nextPlayer].deck.length > 0) {
+      const drawnCard = draft[nextPlayer].deck.shift()
+      if (drawnCard) {
+        const cardWithOrientation = {
+          ...drawnCard,
+          isReversed,
+        }
+        draft[nextPlayer].hand.push(cardWithOrientation)
       }
-      draft[nextPlayer].hand.push(cardWithOrientation)
     }
 
     // Set phase to action for the new player's turn

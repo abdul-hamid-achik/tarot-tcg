@@ -14,7 +14,7 @@ interface UseAIControllerOptions {
 export const useAIController = (options: UseAIControllerOptions = {}) => {
   const { enabled = true, autoPlay = true, difficulty = 'normal' } = options
   const { gameState, setGameState } = useGameStore()
-  const { endTurn } = useGameActions()
+  const _gameActions = useGameActions()
   const isExecutingRef = useRef(false)
 
   // AI difficulty configuration (simplified for now)

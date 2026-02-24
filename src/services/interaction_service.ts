@@ -193,7 +193,7 @@ class InteractionService {
         if (canDrop) {
           // Determine if this is a move or attack based on source and target
           const isFromHand = this.dragState.sourcePosition === 'hand'
-          const isTargetOccupied = !canDrop || dropLane.player !== 'player1' // Assumes attacking enemy
+          const _isTargetOccupied = !canDrop || dropLane.player !== 'player1' // Assumes attacking enemy
 
           if (isFromHand) {
             // Playing a card from hand to battlefield

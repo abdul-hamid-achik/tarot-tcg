@@ -11,6 +11,7 @@ import type {
 } from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 import { battlefieldService } from '@/services/battlefield_service'
+import { getSynergyAttackBonus, getSynergyHealthBonus } from '@/services/zodiac_synergy_service'
 import { animationService } from './animation_service'
 
 // Event system for triggered abilities
@@ -289,9 +290,14 @@ class CombatService {
   }
 
   /**
-   * Get all modifiers affecting a card
+   * Get all modifiers affecting a card.
+   * When gameState and playerId are provided, element synergy bonuses are included.
    */
-  private getCardModifiers(card: GameCard): CombatModifiers {
+  private getCardModifiers(
+    card: GameCard,
+    gameState?: GameState,
+    playerId?: PlayerId,
+  ): CombatModifiers {
     const modifiers: CombatModifiers = {
       attackBonus: 0,
       defenseBonus: 0,
@@ -346,6 +352,14 @@ class CombatService {
       const chakraBonus = card.chakraResonance.length
       modifiers.attackBonus = (modifiers.attackBonus || 0) + Math.floor(chakraBonus / 2)
       modifiers.defenseBonus = (modifiers.defenseBonus || 0) + Math.floor(chakraBonus / 3)
+    }
+
+    // Element synergy bonuses (when battlefield context is available)
+    if (gameState && playerId && card.element) {
+      const synergyAttack = getSynergyAttackBonus(gameState, playerId, card)
+      const synergyHealth = getSynergyHealthBonus(gameState, playerId, card)
+      modifiers.attackBonus = (modifiers.attackBonus || 0) + synergyAttack
+      modifiers.defenseBonus = (modifiers.defenseBonus || 0) + synergyHealth
     }
 
     return modifiers
@@ -505,7 +519,7 @@ class CombatService {
       }
     }
 
-    toRemove.forEach(id => this.removePersistentEffect(id))
+    toRemove.forEach(id => { this.removePersistentEffect(id) })
     GameLogger.action(`Cleaned up end-of-turn effects: ${toRemove.length}`)
   }
 
@@ -521,7 +535,7 @@ class CombatService {
       }
     }
 
-    toRemove.forEach(id => this.removePersistentEffect(id))
+    toRemove.forEach(id => { this.removePersistentEffect(id) })
     GameLogger.action('Reset combat effects')
   }
 
@@ -587,9 +601,9 @@ class CombatService {
         const target = this.getUnitAtMutable(draft.battlefield, targetPos.slot, targetPos.player)
         if (!target) throw new Error('Invalid target')
 
-        // Get modifiers
-        const attackerModifiers = this.getCardModifiers(draftAttacker)
-        const targetModifiers = this.getCardModifiers(target)
+        // Get modifiers (pass state for element synergy calculations)
+        const attackerModifiers = this.getCardModifiers(draftAttacker, state, attackingPlayer)
+        const targetModifiers = this.getCardModifiers(target, state, opponent)
 
         // Calculate damage
         const attackerPower = draftAttacker.attack + (attackerModifiers.attackBonus || 0)
@@ -687,7 +701,7 @@ class CombatService {
         }
       } else if (attack.targetType === 'player') {
         // Face damage
-        const attackerModifiers = this.getCardModifiers(draftAttacker)
+        const attackerModifiers = this.getCardModifiers(draftAttacker, state, attackingPlayer)
         const damage = draftAttacker.attack + (attackerModifiers.attackBonus || 0)
         draft[opponent].health -= damage
         GameLogger.combat(`${draftAttacker.name} deals ${damage} damage to ${opponent}`)

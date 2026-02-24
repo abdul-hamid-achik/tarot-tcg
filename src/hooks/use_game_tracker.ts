@@ -8,6 +8,7 @@ import { extractBaseCardId, statsService } from '@/services/stats_service'
 interface GameTrackerResult {
   newAchievements: AchievementProgress[]
   clearAchievements: () => void
+  gameRecord: GameRecord | null
 }
 
 interface TrackerCounters {
@@ -49,6 +50,7 @@ export function useGameTracker(
   const prevStateRef = useRef<GameState | null>(null)
   const recordedRef = useRef(false)
   const achievementsRef = useRef<AchievementProgress[]>([])
+  const gameRecordRef = useRef<GameRecord | null>(null)
 
   // Reset when a new game starts
   const currentRound = gameState?.round ?? null
@@ -63,6 +65,7 @@ export function useGameTracker(
     countersRef.current = createCounters()
     recordedRef.current = false
     achievementsRef.current = []
+    gameRecordRef.current = null
   }
   prevRoundRef.current = currentRound
 
@@ -162,6 +165,8 @@ export function useGameTracker(
       timestamp: Date.now(),
     }
 
+    gameRecordRef.current = record
+
     const updatedStats = statsService.recordGame(record)
     const newlyUnlocked = achievementService.checkAchievements(updatedStats, record)
     if (newlyUnlocked.length > 0) {
@@ -203,5 +208,6 @@ export function useGameTracker(
   return {
     newAchievements: achievementsRef.current,
     clearAchievements,
+    gameRecord: gameRecordRef.current,
   }
 }

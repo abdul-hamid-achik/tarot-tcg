@@ -313,11 +313,11 @@ export class WinConditionService {
     if (condition.eventHandlers) {
       for (const [eventType, handler] of Object.entries(condition.eventHandlers)) {
         eventManager.subscribe(
-          { types: [eventType as any] },
+          { types: [eventType as GameEvent['type']] },
           async (event: GameEvent) => {
             const playerId = this.extractPlayerIdFromEvent(event)
             if (playerId) {
-              ;(handler as any)(event, playerId)
+              ;(handler as (event: GameEvent, playerId: string) => void)(event, playerId)
             }
           },
           { priority: 50 },
@@ -361,7 +361,7 @@ export class WinConditionService {
     for (const [conditionId, condition] of this.state.activeConditions) {
       // Check for both players
       for (const playerId of ['player1', 'player2'] as const) {
-        const result = (condition.checkCondition as any)(gameState, playerId)
+        const result = (condition.checkCondition as unknown as (gs: GameState, pid: string) => WinConditionResult)(gameState, playerId)
 
         if (result.achieved) {
           results.push({
@@ -378,7 +378,7 @@ export class WinConditionService {
           })
         } else {
           // Update progress tracking
-          const progress = (condition.getProgress as any)?.(gameState, playerId)
+          const progress = (condition.getProgress as unknown as ((gs: GameState, pid: string) => WinConditionProgress) | undefined)?.(gameState, playerId)
           if (progress) {
             this.updatePlayerProgress(playerId, conditionId, progress)
           }
@@ -465,7 +465,7 @@ export class WinConditionService {
   private updateAllProgress(gameState: GameState): void {
     for (const [conditionId, condition] of this.state.activeConditions) {
       for (const playerId of ['player1', 'player2'] as const) {
-        const progress = (condition.getProgress as any)?.(gameState, playerId)
+        const progress = (condition.getProgress as unknown as ((gs: GameState, pid: string) => WinConditionProgress) | undefined)?.(gameState, playerId)
         if (progress) {
           this.updatePlayerProgress(playerId, conditionId, progress)
         }
@@ -561,7 +561,7 @@ export class WinConditionService {
   private emitWinConditionEvent(eventType: string, data: WinConditionEventData): void {
     // Emit custom win condition events
     eventManager.emit(
-      eventType as any,
+      eventType as GameEvent['type'],
       {} as GameState, // Would need actual game state
       data,
       { type: 'system', id: 'win_conditions' },

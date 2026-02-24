@@ -8,8 +8,9 @@ import type {
   GameEvent,
   GameState,
   TriggeredAbility,
-  PlayerId,
 } from '@/schemas/schema'
+import { parseAbilityDescription } from '@/services/ability_parser'
+import type { ParsedAction } from '@/services/ability_parser'
 import { effectStackService } from '@/services/effect_stack_service'
 import { eventManager } from '@/services/event_manager'
 import { useGameStore } from '@/store/game_store'
@@ -18,11 +19,11 @@ import { useGameStore } from '@/store/game_store'
 // ABILITY PRIORITY LEVELS
 // ================================
 export const ABILITY_PRIORITIES = {
-  REPLACEMENT_EFFECT: 1000,  // Effects that replace other effects
-  TRIGGERED_ABILITY: 500,    // Standard triggered abilities
-  STATE_BASED_ACTION: 250,   // Automatic game state checks
-  PERSISTENT_EFFECT: 100,    // Ongoing stat modifications
-  UI_UPDATE: 0,              // Lowest priority - UI updates
+  REPLACEMENT_EFFECT: 1000, // Effects that replace other effects
+  TRIGGERED_ABILITY: 500, // Standard triggered abilities
+  STATE_BASED_ACTION: 250, // Automatic game state checks
+  PERSISTENT_EFFECT: 100, // Ongoing stat modifications
+  UI_UPDATE: 0, // Lowest priority - UI updates
 } as const
 
 // ================================
@@ -31,7 +32,7 @@ export const ABILITY_PRIORITIES = {
 export type EffectExecutor = (
   effect: CardEffect,
   context: EffectContext,
-  params: EffectParams
+  params: EffectParams,
 ) => EffectResult
 
 export interface EffectParams {
@@ -40,6 +41,7 @@ export interface EffectParams {
   targetId?: string
   duration?: number
   statModifiers?: { attack?: number; health?: number }
+  keyword?: string
 }
 
 // ================================
@@ -58,7 +60,6 @@ const effectExecutors: Record<string, EffectExecutor> = {
         GameLogger.action(`${effect.name}: Dealt ${amount} damage to ${targetPlayer}`)
       } else if (targetType === 'unit' && targetId) {
         // Find and damage the unit
-        const allUnits = [...draft.battlefield.playerUnits, ...draft.battlefield.enemyUnits]
         for (let i = 0; i < 7; i++) {
           if (draft.battlefield.playerUnits[i]?.id === targetId) {
             const unit = draft.battlefield.playerUnits[i]!
@@ -80,7 +81,8 @@ const effectExecutors: Record<string, EffectExecutor> = {
           }
         }
       } else if (targetType === 'all_enemies') {
-        const enemyUnits = sourceOwner === 'player1' ? draft.battlefield.enemyUnits : draft.battlefield.playerUnits
+        const enemyUnits =
+          sourceOwner === 'player1' ? draft.battlefield.enemyUnits : draft.battlefield.playerUnits
         for (let i = 0; i < enemyUnits.length; i++) {
           const unit = enemyUnits[i]
           if (unit) {
@@ -108,13 +110,11 @@ const effectExecutors: Record<string, EffectExecutor> = {
         GameLogger.action(`${effect.name}: ${sourceOwner} gained ${amount} health`)
       } else if (targetType === 'unit') {
         // Heal the source unit
-        const units = sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+        const units =
+          sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
         for (const unit of units) {
           if (unit?.id === context.source.id) {
-            unit.currentHealth = Math.min(
-              (unit.currentHealth || unit.health) + amount,
-              unit.health
-            )
+            unit.currentHealth = Math.min((unit.currentHealth || unit.health) + amount, unit.health)
             GameLogger.action(`${effect.name}: ${unit.name} healed for ${amount}`)
             break
           }
@@ -207,10 +207,11 @@ const effectExecutors: Record<string, EffectExecutor> = {
     const sourceOwner = context.source.owner || gameState.activePlayer
 
     const newState = produce(gameState, draft => {
-      const units = sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+      const units =
+        sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
 
       // Find empty slot
-      const emptySlot = units.findIndex(u => u === null)
+      const emptySlot = units.indexOf(null)
       if (emptySlot !== -1) {
         // Create a basic token
         units[emptySlot] = {
@@ -269,8 +270,171 @@ const effectExecutors: Record<string, EffectExecutor> = {
     const sourceOwner = context.source.owner || gameState.activePlayer
 
     const newState = produce(gameState, draft => {
-      draft[sourceOwner].mana += amount
+      draft[sourceOwner].mana = Math.min(10, draft[sourceOwner].mana + amount)
       GameLogger.action(`${effect.name}: ${sourceOwner} gained ${amount} mana`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  healAllUnits: (effect, context, params) => {
+    const { amount = 1, targetType = 'all_allies' } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      const friendlyUnits =
+        sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+      const enemyUnits =
+        sourceOwner === 'player1' ? draft.battlefield.enemyUnits : draft.battlefield.playerUnits
+
+      const unitsToHeal =
+        targetType === 'all_units'
+          ? [...friendlyUnits, ...enemyUnits]
+          : targetType === 'all_enemies'
+            ? [...enemyUnits]
+            : [...friendlyUnits]
+
+      for (const unit of unitsToHeal) {
+        if (unit) {
+          unit.currentHealth = Math.min((unit.currentHealth || unit.health) + amount, unit.health)
+        }
+      }
+
+      GameLogger.action(`${effect.name}: Healed ${targetType} for ${amount}`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  damageAllUnits: (effect, context, params) => {
+    const { amount = 1, targetType = 'all_units' } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      const friendlyUnits =
+        sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+      const enemyUnits =
+        sourceOwner === 'player1' ? draft.battlefield.enemyUnits : draft.battlefield.playerUnits
+
+      const applyDamage = (units: (Card | null)[]) => {
+        for (let i = 0; i < units.length; i++) {
+          const unit = units[i]
+          if (unit) {
+            unit.currentHealth = (unit.currentHealth || unit.health) - amount
+            if (unit.currentHealth <= 0) {
+              units[i] = null
+            }
+          }
+        }
+      }
+
+      if (targetType === 'all_units') {
+        applyDamage(friendlyUnits)
+        applyDamage(enemyUnits)
+        draft.player1.health -= amount
+        draft.player2.health -= amount
+      } else if (targetType === 'all_enemies') {
+        applyDamage(enemyUnits)
+      } else if (targetType === 'all_allies') {
+        applyDamage(friendlyUnits)
+      }
+
+      GameLogger.action(`${effect.name}: Dealt ${amount} damage to ${targetType}`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  buffAllUnits: (effect, context, params) => {
+    const { statModifiers = {}, targetType = 'all_allies' } = params
+    const { attack = 0, health = 0 } = statModifiers
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      const friendlyUnits =
+        sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+      const enemyUnits =
+        sourceOwner === 'player1' ? draft.battlefield.enemyUnits : draft.battlefield.playerUnits
+
+      const applyBuff = (units: (Card | null)[]) => {
+        for (const unit of units) {
+          if (unit) {
+            unit.attack += attack
+            unit.health += health
+            unit.currentHealth = (unit.currentHealth || unit.health) + health
+          }
+        }
+      }
+
+      if (targetType === 'all_units') {
+        applyBuff(friendlyUnits)
+        applyBuff(enemyUnits)
+      } else if (targetType === 'all_enemies') {
+        applyBuff(enemyUnits)
+      } else {
+        applyBuff(friendlyUnits)
+      }
+
+      GameLogger.action(`${effect.name}: Buffed ${targetType} by +${attack}/+${health}`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  destroyAllUnits: (effect, context, params) => {
+    const { targetType = 'all_units' } = params
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+
+    const newState = produce(gameState, draft => {
+      if (targetType === 'all_units') {
+        draft.battlefield.playerUnits = Array(7).fill(null)
+        draft.battlefield.enemyUnits = Array(7).fill(null)
+      } else if (targetType === 'all_enemies') {
+        const enemyField = sourceOwner === 'player1' ? 'enemyUnits' : 'playerUnits'
+        draft.battlefield[enemyField] = Array(7).fill(null)
+      } else if (targetType === 'all_allies') {
+        const allyField = sourceOwner === 'player1' ? 'playerUnits' : 'enemyUnits'
+        draft.battlefield[allyField] = Array(7).fill(null)
+      }
+
+      GameLogger.action(`${effect.name}: Destroyed ${targetType}`)
+    })
+
+    return { success: true, newGameState: newState }
+  },
+
+  addKeyword: (effect, context, params) => {
+    const gameState = context.gameState
+    const sourceOwner = context.source.owner || gameState.activePlayer
+    const keyword = params.keyword || ''
+
+    const newState = produce(gameState, draft => {
+      const units =
+        sourceOwner === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
+
+      for (const unit of units) {
+        if (unit?.id === context.source.id) {
+          if (!unit.keywords) {
+            unit.keywords = []
+          }
+          if (!unit.keywords.includes(keyword)) {
+            unit.keywords.push(keyword)
+          }
+          if (keyword === 'divine shield') {
+            unit.divineShield = true
+          } else if (keyword === 'ethereal') {
+            unit.ethereal = true
+          } else if (keyword === 'mystic ward') {
+            unit.mysticWard = true
+          }
+          GameLogger.action(`${effect.name}: ${unit.name} gained ${keyword}`)
+          break
+        }
+      }
     })
 
     return { success: true, newGameState: newState }
@@ -331,7 +495,7 @@ export class CardEffectSystem {
   async executeEffect(
     effect: CardEffect,
     context: EffectContext,
-    triggeringEvent?: GameEvent,
+    _triggeringEvent?: GameEvent,
   ): Promise<EffectResult> {
     try {
       // Check if effect can execute
@@ -351,16 +515,37 @@ export class CardEffectSystem {
         const result = executeFn(context)
         if (result.success) {
           // Emit effect triggered event
-          eventManager.emitSystemEvent('effect_triggered', result.newGameState || context.gameState, {
-            effectId: effect.id,
-            effectName: effect.name,
-            sourceCardId: context.source.id,
-          })
+          eventManager.emitSystemEvent(
+            'effect_triggered',
+            result.newGameState || context.gameState,
+            {
+              effectId: effect.id,
+              effectName: effect.name,
+              sourceCardId: context.source.id,
+            },
+          )
           return result
         }
       }
 
-      // Try to match to a registered executor by parsing the effect name/id
+      // Try structured ability parser for description-based effects
+      const parsedResult = this.executeFromParsedAbility(effect, context)
+      if (parsedResult) {
+        if (parsedResult.success) {
+          eventManager.emitSystemEvent(
+            'effect_triggered',
+            parsedResult.newGameState || context.gameState,
+            {
+              effectId: effect.id,
+              effectName: effect.name,
+              sourceCardId: context.source.id,
+            },
+          )
+        }
+        return parsedResult
+      }
+
+      // Legacy fallback: match to a registered executor by parsing the effect name/id
       const executorKey = this.matchEffectToExecutor(effect)
       if (executorKey && effectExecutors[executorKey]) {
         const params = this.extractEffectParams(effect)
@@ -368,11 +553,15 @@ export class CardEffectSystem {
 
         // Emit effect triggered event
         if (result.success) {
-          eventManager.emitSystemEvent('effect_triggered', result.newGameState || context.gameState, {
-            effectId: effect.id,
-            effectName: effect.name,
-            sourceCardId: context.source.id,
-          })
+          eventManager.emitSystemEvent(
+            'effect_triggered',
+            result.newGameState || context.gameState,
+            {
+              effectId: effect.id,
+              effectName: effect.name,
+              sourceCardId: context.source.id,
+            },
+          )
         }
 
         return result
@@ -391,22 +580,109 @@ export class CardEffectSystem {
   }
 
   /**
+   * Execute an effect by parsing its description into structured actions
+   * using the ability parser. Returns null if parsing yields no actions.
+   */
+  private executeFromParsedAbility(
+    effect: CardEffect,
+    context: EffectContext,
+  ): EffectResult | null {
+    try {
+      const parsed = parseAbilityDescription(effect.description || '')
+      if (parsed.actions.length === 0) return null
+
+      let currentState = context.gameState
+      for (const action of parsed.actions) {
+        const executorName = action.type
+        if (effectExecutors[executorName]) {
+          const params = this.parsedActionToParams(action)
+          const result = effectExecutors[executorName](
+            effect,
+            { ...context, gameState: currentState },
+            params,
+          )
+          if (result.newGameState) currentState = result.newGameState
+        }
+      }
+      return { success: true, newGameState: currentState }
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Convert a ParsedAction into EffectParams compatible with existing executors.
+   */
+  private parsedActionToParams(action: ParsedAction): EffectParams {
+    const params: EffectParams = {}
+
+    if (action.amount !== undefined) {
+      params.amount = action.amount
+    }
+
+    // Map ParsedAction target to executor targetType
+    if (action.target) {
+      switch (action.target) {
+        case 'player':
+          params.targetType = 'player'
+          break
+        case 'opponent':
+          params.targetType = 'player'
+          break
+        case 'all_friendly':
+          params.targetType = 'all_allies'
+          break
+        case 'all_enemy':
+          params.targetType = 'all_enemies'
+          break
+        case 'all_units':
+          params.targetType = 'all_units'
+          break
+        case 'any_target':
+          params.targetType = 'unit'
+          break
+        case 'self':
+          params.targetType = 'unit'
+          break
+      }
+    }
+
+    if (action.statModifiers) {
+      params.statModifiers = action.statModifiers
+    }
+
+    // Pass keyword through for addKeyword executor
+    if (action.keyword) {
+      params.keyword = action.keyword
+    }
+
+    return params
+  }
+
+  /**
    * Match an effect to an executor based on name/description
    */
   private matchEffectToExecutor(effect: CardEffect): string | null {
     const name = effect.name.toLowerCase()
     const description = effect.description?.toLowerCase() || ''
 
-    if (name.includes('damage') || description.includes('deal') && description.includes('damage')) {
+    if (
+      name.includes('damage') ||
+      (description.includes('deal') && description.includes('damage'))
+    ) {
       return 'dealDamage'
     }
-    if (name.includes('heal') || description.includes('gain') && description.includes('health')) {
+    if (name.includes('heal') || (description.includes('gain') && description.includes('health'))) {
       return 'gainHealth'
     }
     if (name.includes('draw') || description.includes('draw')) {
       return 'drawCards'
     }
-    if (name.includes('buff') || description.includes('+') && (description.includes('attack') || description.includes('health'))) {
+    if (
+      name.includes('buff') ||
+      (description.includes('+') &&
+        (description.includes('attack') || description.includes('health')))
+    ) {
       return 'statBuff'
     }
     if (name.includes('discard') || description.includes('discard')) {
@@ -418,7 +694,7 @@ export class CardEffectSystem {
     if (name.includes('destroy') || description.includes('destroy')) {
       return 'destroyUnit'
     }
-    if (name.includes('mana') || description.includes('gain') && description.includes('mana')) {
+    if (name.includes('mana') || (description.includes('gain') && description.includes('mana'))) {
       return 'gainMana'
     }
 
@@ -597,7 +873,7 @@ export class CardEffectSystem {
       }
 
       // Check end conditions
-      if (activeEffect.endCondition && activeEffect.endCondition(gameState)) {
+      if (activeEffect.endCondition?.(gameState)) {
         expiredEffects.push(effectId)
         continue
       }
@@ -625,12 +901,10 @@ export class CardEffectSystem {
     }
 
     // Apply ongoing stat modifications from persistent effects
-    return produce(gameState, draft => {
-      for (const activeEffect of this.activeEffects.values()) {
-        if (activeEffect.effect.type === 'persistent') {
-          // Re-apply persistent stat buffs (this ensures they stay applied)
-          // The actual stat application would be done when calculating combat
-        }
+    return produce(gameState, _draft => {
+      for (const _activeEffect of this.activeEffects.values()) {
+        // Re-apply persistent stat buffs (this ensures they stay applied)
+        // The actual stat application would be done when calculating combat
       }
     })
   }
@@ -654,7 +928,7 @@ export class CardEffectSystem {
     sourceCardId: string,
     effect: CardEffect,
     context: EffectContext,
-    duration?: number
+    duration?: number,
   ): string {
     const effectId = `persistent_${this.nextEffectId++}`
 
@@ -712,8 +986,8 @@ export class CardEffectSystem {
     eventManager.subscribe(
       { types: ['card_destroyed', 'unit_dies', 'card_returned_to_hand'] },
       async event => {
-        if ((event as any).source?.type === 'card') {
-          this.unregisterCardAbilities((event as any).source.id)
+        if ((event as unknown as { source?: { type: string; id: string } }).source?.type === 'card') {
+          this.unregisterCardAbilities((event as unknown as { source: { id: string } }).source.id)
         }
       },
     )
@@ -752,7 +1026,7 @@ export class CardEffectSystem {
     // Check filter condition
     if (ability.trigger.filter) {
       try {
-        if (!(ability.trigger.filter as (event: any) => boolean)(event)) {
+        if (!(ability.trigger.filter as (event: GameEvent) => boolean)(event)) {
           return false
         }
       } catch {
@@ -867,16 +1141,25 @@ export const cardEffectSystem = new CardEffectSystem()
 
 // Helper functions for creating common effects
 export const createEffect = {
-  dealDamage: (amount: number, targetType: 'player' | 'unit' | 'all_enemies' = 'player'): CardEffect => ({
+  dealDamage: (
+    amount: number,
+    targetType: 'player' | 'unit' | 'all_enemies' = 'player',
+  ): CardEffect => ({
     id: `deal_damage_${amount}_${targetType}`,
     name: `Deal ${amount} Damage`,
     description: `Deal ${amount} damage to ${targetType === 'all_enemies' ? 'all enemy units' : `target ${targetType}`}`,
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.dealDamage(
-        { id: `deal_damage_${amount}`, name: `Deal ${amount} Damage`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: `deal_damage_${amount}`,
+          name: `Deal ${amount} Damage`,
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { amount, targetType }
+        { amount, targetType },
       )
     },
   }),
@@ -888,9 +1171,15 @@ export const createEffect = {
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.gainHealth(
-        { id: `gain_health_${amount}`, name: `Gain ${amount} Health`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: `gain_health_${amount}`,
+          name: `Gain ${amount} Health`,
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { amount, targetType }
+        { amount, targetType },
       )
     },
   }),
@@ -902,9 +1191,15 @@ export const createEffect = {
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.drawCards(
-        { id: `draw_${amount}`, name: `Draw Cards`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: `draw_${amount}`,
+          name: `Draw Cards`,
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { amount }
+        { amount },
       )
     },
   }),
@@ -921,9 +1216,15 @@ export const createEffect = {
     duration,
     execute: (context: EffectContext) => {
       return effectExecutors.statBuff(
-        { id: `buff_${attack}_${health}`, name: `+${attack}/+${health}`, description: '', type: 'persistent', execute: () => ({ success: true }) },
+        {
+          id: `buff_${attack}_${health}`,
+          name: `+${attack}/+${health}`,
+          description: '',
+          type: 'persistent',
+          execute: () => ({ success: true }),
+        },
         context,
-        { statModifiers: { attack, health } }
+        { statModifiers: { attack, health } },
       )
     },
   }),
@@ -935,9 +1236,15 @@ export const createEffect = {
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.discardCards(
-        { id: `discard_${amount}`, name: `Discard Cards`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: `discard_${amount}`,
+          name: `Discard Cards`,
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { amount }
+        { amount },
       )
     },
   }),
@@ -949,9 +1256,15 @@ export const createEffect = {
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.summonUnit(
-        { id: `summon_${attack}_${health}`, name: `Summon Token`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: `summon_${attack}_${health}`,
+          name: `Summon Token`,
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { statModifiers: { attack, health } }
+        { statModifiers: { attack, health } },
       )
     },
   }),
@@ -963,9 +1276,15 @@ export const createEffect = {
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.destroyUnit(
-        { id: 'destroy_unit', name: 'Destroy Unit', description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: 'destroy_unit',
+          name: 'Destroy Unit',
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { targetId }
+        { targetId },
       )
     },
   }),
@@ -977,9 +1296,15 @@ export const createEffect = {
     type: 'instant',
     execute: (context: EffectContext) => {
       return effectExecutors.gainMana(
-        { id: `gain_mana_${amount}`, name: `Gain Mana`, description: '', type: 'instant', execute: () => ({ success: true }) },
+        {
+          id: `gain_mana_${amount}`,
+          name: `Gain Mana`,
+          description: '',
+          type: 'instant',
+          execute: () => ({ success: true }),
+        },
         context,
-        { amount }
+        { amount },
       )
     },
   }),

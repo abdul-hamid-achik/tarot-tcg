@@ -9,8 +9,22 @@ import { Select } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
 import type { ZodiacClass } from '@/schemas/schema'
 
+interface MatchmakingMatchData {
+  matchId: string
+  yourSide: 'player1' | 'player2'
+  opponent: {
+    id: string
+    name: string
+    rating: number
+    zodiac: string
+  }
+  gameMode: string
+  zodiacCompatibility: number
+  cosmicBlessings: string[]
+}
+
 interface MatchmakingProps {
-  onMatchFound: (matchData: any) => void
+  onMatchFound: (matchData: MatchmakingMatchData) => void
   onCancel: () => void
   className?: string
 }
@@ -20,7 +34,7 @@ interface MatchmakingStatus {
   position?: number
   estimatedWait?: string
   cosmicAdvice?: string
-  matchData?: any
+  matchData?: MatchmakingMatchData
 }
 
 export function MatchmakingInterface({ onMatchFound, onCancel, className }: MatchmakingProps) {

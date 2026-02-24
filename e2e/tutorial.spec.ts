@@ -81,7 +81,7 @@ test.describe('Tutorial Game Flow', () => {
     // We just verify the structure exists - a full game takes too long for E2E
     const outcomeModal = page.getByText(/game over|you win|ai wins/i)
     // This will timeout if no outcome - that's expected for a fresh game
-    const hasOutcome = await outcomeModal.isVisible({ timeout: 2000 }).catch(() => false)
+    const _hasOutcome = await outcomeModal.isVisible({ timeout: 2000 }).catch(() => false)
 
     // Just verify the page didn't crash
     expect(page.url()).toContain('/tutorial')

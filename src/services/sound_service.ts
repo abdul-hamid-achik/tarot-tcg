@@ -50,7 +50,7 @@ class SoundService {
     if (typeof window === 'undefined') return
 
     try {
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
       this.initialized = true
 
       // Load preferences from localStorage
@@ -139,7 +139,7 @@ class SoundService {
       gainNode.connect(ctx.destination)
       oscillator.start(now)
       oscillator.stop(now + def.duration + 0.05)
-    } catch (error) {
+    } catch (_error) {
       // Silently fail - don't break the game for sound errors
     }
   }
