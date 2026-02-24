@@ -88,6 +88,9 @@ export default function HandFan({
     if (!isCurrentPlayer) return
     if (!gameState) return
 
+    // Skip click if a drag just completed (pointer capture causes click to fire after drag)
+    if (interactionService.justCompletedDrag()) return
+
     const { selectCard, clearSelection, interaction } = useGameStore.getState()
 
     // Check if card is already selected
@@ -137,18 +140,8 @@ export default function HandFan({
     event.preventDefault()
     event.stopPropagation()
 
-    // Convert React PointerEvent to native PointerEvent for InteractionService
-    const nativeEvent = new PointerEvent('pointerdown', {
-      clientX: event.clientX,
-      clientY: event.clientY,
-      pointerId: event.pointerId,
-      pointerType: event.pointerType as 'mouse' | 'pen' | 'touch',
-      bubbles: true,
-      cancelable: true,
-    })
-
-    // Handle drag initiation through InteractionService (it will gate by phase/turn)
-    interactionService.handlePointerDown(nativeEvent, card, 'hand', cardElement)
+    // Use the actual native PointerEvent for proper pointer capture support
+    interactionService.handlePointerDown(event.nativeEvent, card, 'hand', cardElement)
   }
 
   // Handle card hover effects - Enhanced for better UX with drag awareness

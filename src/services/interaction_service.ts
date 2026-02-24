@@ -30,6 +30,8 @@ export interface InteractionCallbacks {
   onClearHighlights?: () => void
   onShowTooltip?: (message: string, position: { x: number; y: number }) => void
   onHideTooltip?: () => void
+  onDragStart?: (card: GameCard) => void
+  onDragEnd?: () => void
   getValidDropZones?: (card: GameCard, from: BattlefieldPosition | 'hand') => BattlefieldPosition[]
   canDragCard?: (card: GameCard, from: BattlefieldPosition | 'hand') => boolean
   canDropOn?: (
@@ -47,6 +49,8 @@ class InteractionService {
   private dragThreshold = 5 // pixels to differentiate click from drag
   private longPressTimeout: number | null = null
   private longPressDelay = 500 // ms for long press on touch devices
+  private _justDragged = false
+  private _justDraggedTimer: number | null = null
 
   /**
    * Set the interaction mode
@@ -303,6 +307,14 @@ class InteractionService {
     dragPreview.style.transition = 'transform 0.1s ease-out'
     dragPreview.style.filter = 'drop-shadow(0 8px 16px rgba(0, 0, 0, 0.4))'
 
+    // Set initial position at current pointer location
+    if (this.dragState.currentPosition) {
+      const offsetX = this.dragState.currentPosition.x - this.dragState.dragElement.offsetWidth / 2
+      const offsetY = this.dragState.currentPosition.y - this.dragState.dragElement.offsetHeight / 2
+      dragPreview.style.left = `${offsetX}px`
+      dragPreview.style.top = `${offsetY}px`
+    }
+
     // Store the preview element
     this.dragState.dragElement.dataset.previewId = 'drag-preview'
 
@@ -313,6 +325,9 @@ class InteractionService {
     if (!this.dragState.dragElement.dataset.hasPreview) {
       this.dragState.dragElement.dataset.hasPreview = 'true'
     }
+
+    // Notify callback
+    this.callbacks.onDragStart?.(this.dragState.draggedCard)
   }
 
   /**
@@ -334,6 +349,15 @@ class InteractionService {
     }
 
     this.callbacks.onHideTooltip?.()
+    this.callbacks.onDragEnd?.()
+
+    // Set justDragged flag to prevent click handler from firing
+    this._justDragged = true
+    if (this._justDraggedTimer) clearTimeout(this._justDraggedTimer)
+    this._justDraggedTimer = window.setTimeout(() => {
+      this._justDragged = false
+      this._justDraggedTimer = null
+    }, 100)
   }
 
   /**
@@ -356,13 +380,13 @@ class InteractionService {
    * Get lane position from screen coordinates
    */
   private getSlotFromPosition(x: number, y: number): BattlefieldPosition | null {
-    // This would need to be implemented based on your UI layout
-    // For now, returning a placeholder
-    const element = document.elementFromPoint(x, y)
-    if (element?.hasAttribute('data-player') && element?.hasAttribute('data-slot')) {
+    const rawElement = document.elementFromPoint(x, y)
+    // Traverse up the DOM to find the slot container with data attributes
+    const slotElement = rawElement?.closest('[data-slot]') as HTMLElement | null
+    if (slotElement?.hasAttribute('data-player') && slotElement?.hasAttribute('data-slot')) {
       return {
-        player: element.getAttribute('data-player') as 'player1' | 'player2',
-        slot: Number(element.getAttribute('data-slot')),
+        player: slotElement.getAttribute('data-player') as 'player1' | 'player2',
+        slot: Number(slotElement.getAttribute('data-slot')),
       }
     }
     return null
@@ -461,6 +485,13 @@ class InteractionService {
    */
   hasSelectedCard(): boolean {
     return this.clickState.selectedCard !== null
+  }
+
+  /**
+   * Check if a drag just completed (used to suppress click events after drag)
+   */
+  justCompletedDrag(): boolean {
+    return this._justDragged
   }
 
   /**

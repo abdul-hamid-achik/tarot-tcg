@@ -55,6 +55,8 @@ export default function GameBoard({
   const clearHighlights = useGameStore(state => state.clearHighlights)
   const setValidDropZones = useGameStore(state => state.setValidDropZones)
   const clearValidDropZones = useGameStore(state => state.clearValidDropZones)
+  const startCardDrag = useGameStore(state => state.startCardDrag)
+  const endCardDrag = useGameStore(state => state.endCardDrag)
 
   const { playCard, declareAttack: _declareAttack, attackTarget, completeMulligan, reverseCard: _reverseCard } = useGameActions()
 
@@ -155,6 +157,12 @@ export default function GameBoard({
         clearHighlights()
         clearValidDropZones()
       },
+      onDragStart: (card: GameCard) => {
+        startCardDrag(card, { x: 0, y: 0 })
+      },
+      onDragEnd: () => {
+        endCardDrag()
+      },
     }
 
     interactionService.setCallbacks(callbacks)
@@ -176,7 +184,7 @@ export default function GameBoard({
       document.removeEventListener('pointerup', handlePointerUp)
     }
     // Only stable store actions in deps - callbacks use getState() for fresh state
-  }, [playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones])
+  }, [playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones, startCardDrag, endCardDrag])
 
   // Handle action bar events (simplified for direct attack system)
   const handleAttack = async () => {
