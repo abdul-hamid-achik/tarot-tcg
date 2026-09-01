@@ -1,8 +1,8 @@
 'use client'
 
-import { GameLogger } from '@/lib/game_logger'
 import React from 'react'
 import { useMultiplayerActions } from '@/hooks/use_multiplayer_actions'
+import { GameLogger } from '@/lib/game_logger'
 import { cn } from '@/lib/utils'
 import { useGameStore } from '@/store/game_store'
 
@@ -137,9 +137,12 @@ export function GameJoinInterface({ onJoin, onCreateGame, className }: GameJoinP
       <h3 className="text-lg font-bold text-center">🎴 Multiplayer Tarot TCG</h3>
 
       <div className="flex flex-col gap-2">
-        <label className="text-sm text-gray-300">Join Existing Game</label>
+        <label htmlFor="join-game-id" className="text-sm text-gray-300">
+          Join Existing Game
+        </label>
         <div className="flex gap-2">
           <input
+            id="join-game-id"
             type="text"
             value={gameId}
             onChange={e => setGameId(e.target.value)}
@@ -147,6 +150,7 @@ export function GameJoinInterface({ onJoin, onCreateGame, className }: GameJoinP
             className="flex-1 px-3 py-2 bg-gray-800 border border-gray-600 rounded text-white placeholder-gray-400"
           />
           <button
+            type="button"
             onClick={handleJoinGame}
             disabled={!gameId.trim() || isJoining}
             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded transition-colors"
@@ -163,6 +167,7 @@ export function GameJoinInterface({ onJoin, onCreateGame, className }: GameJoinP
       </div>
 
       <button
+        type="button"
         onClick={handleCreateGame}
         className="w-full px-4 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-medium"
       >

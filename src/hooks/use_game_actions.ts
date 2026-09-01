@@ -115,7 +115,7 @@ export const useGameActions = () => {
       } else {
         // Get the latest state directly from the store to avoid stale closure issues
         const currentState = useGameStore.getState().gameState
-        
+
         // Find the target unit ID
         const targetUnits =
           target.player === 'player1'

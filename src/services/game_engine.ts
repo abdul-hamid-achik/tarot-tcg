@@ -12,7 +12,7 @@ import type {
 } from '@/schemas/schema'
 import { animationQueue } from './animation_queue'
 import { cardEffectSystem } from './card_effect_system'
-import { declareAttack, canAttack, getValidAttackTargets, previewCombat } from './combat_service'
+import { canAttack, declareAttack, getValidAttackTargets, previewCombat } from './combat_service'
 import { transactionManager } from './transaction_manager'
 import { winConditionService } from './win_condition_service'
 
@@ -76,11 +76,7 @@ export class GameEngine {
   /**
    * Play a card from hand
    */
-  async playCard(
-    state: GameState,
-    card: Card,
-    targetSlot?: number
-  ): Promise<GameEngineResult> {
+  async playCard(state: GameState, card: Card, targetSlot?: number): Promise<GameEngineResult> {
     // Validate phase
     const phaseValidation = this.validatePhase(state, ['action'])
     if (!phaseValidation.success) {
@@ -109,9 +105,10 @@ export class GameEngine {
 
       // Validate battlefield space for units
       if (card.type === 'unit') {
-        const units = state.activePlayer === 'player1'
-          ? state.battlefield.playerUnits
-          : state.battlefield.enemyUnits
+        const units =
+          state.activePlayer === 'player1'
+            ? state.battlefield.playerUnits
+            : state.battlefield.enemyUnits
         const slot = targetSlot ?? units.indexOf(null)
         if (slot === -1) {
           throw new Error('Battlefield is full')
@@ -171,10 +168,7 @@ export class GameEngine {
   /**
    * Declare an attack
    */
-  async attack(
-    state: GameState,
-    attack: DirectAttack
-  ): Promise<GameEngineResult> {
+  async attack(state: GameState, attack: DirectAttack): Promise<GameEngineResult> {
     // Validate phase
     const phaseValidation = this.validatePhase(state, ['action'])
     if (!phaseValidation.success) {
@@ -409,10 +403,7 @@ export class GameEngine {
   /**
    * Execute an effect directly
    */
-  async executeEffect(
-    effect: CardEffect,
-    context: EffectContext
-  ): Promise<GameEngineResult> {
+  async executeEffect(effect: CardEffect, context: EffectContext): Promise<GameEngineResult> {
     const result = await cardEffectSystem.executeEffect(effect, context)
     return {
       success: result.success,

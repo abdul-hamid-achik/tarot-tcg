@@ -2,10 +2,7 @@ import { GameLogger } from '@/lib/game_logger'
 // WebSocket configuration for Tarot TCG multiplayer
 export const WEBSOCKET_CONFIG = {
   // Connection URLs
-  WS_URL:
-    process.env.NODE_ENV === 'production'
-      ? 'wss://tarot-tcg.com'
-      : 'ws://localhost:3000',
+  WS_URL: process.env.NODE_ENV === 'production' ? 'wss://tarot-tcg.com' : 'ws://localhost:3000',
 
   // Connection settings
   HEARTBEAT_INTERVAL: 30000, // 30 seconds

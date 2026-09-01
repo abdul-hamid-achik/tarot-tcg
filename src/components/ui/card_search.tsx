@@ -145,6 +145,7 @@ export function CardSearch({
               <Badge key={key} variant="secondary" className="flex items-center space-x-1">
                 <span className="capitalize">{displayValue}</span>
                 <button
+                  type="button"
                   onClick={() => clearFilter(key as keyof SearchFilters)}
                   className="ml-1 hover:text-red-600"
                 >
@@ -176,12 +177,14 @@ export function CardSearch({
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
             {/* Zodiac Class Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Zodiac Class</label>
+              <label htmlFor="card-search-zodiac" className="text-sm font-medium mb-2 block">
+                Zodiac Class
+              </label>
               <Select
                 value={filters.zodiacClass || 'all'}
                 onValueChange={value => handleFilterChange('zodiacClass', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="card-search-zodiac">
                   <SelectValue placeholder="All Classes" />
                 </SelectTrigger>
                 <SelectContent>
@@ -197,12 +200,14 @@ export function CardSearch({
 
             {/* Element Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Element</label>
+              <label htmlFor="card-search-element" className="text-sm font-medium mb-2 block">
+                Element
+              </label>
               <Select
                 value={filters.element || 'all'}
                 onValueChange={value => handleFilterChange('element', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="card-search-element">
                   <SelectValue placeholder="All Elements" />
                 </SelectTrigger>
                 <SelectContent>
@@ -218,12 +223,14 @@ export function CardSearch({
 
             {/* Type Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Type</label>
+              <label htmlFor="card-search-type" className="text-sm font-medium mb-2 block">
+                Type
+              </label>
               <Select
                 value={filters.type || 'all'}
                 onValueChange={value => handleFilterChange('type', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="card-search-type">
                   <SelectValue placeholder="All Types" />
                 </SelectTrigger>
                 <SelectContent>
@@ -239,12 +246,14 @@ export function CardSearch({
 
             {/* Rarity Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Rarity</label>
+              <label htmlFor="card-search-rarity" className="text-sm font-medium mb-2 block">
+                Rarity
+              </label>
               <Select
                 value={filters.rarity || 'all'}
                 onValueChange={value => handleFilterChange('rarity', value)}
               >
-                <SelectTrigger>
+                <SelectTrigger id="card-search-rarity">
                   <SelectValue placeholder="All Rarities" />
                 </SelectTrigger>
                 <SelectContent>
@@ -260,9 +269,12 @@ export function CardSearch({
 
             {/* Cost Range Filter */}
             <div>
-              <label className="text-sm font-medium mb-2 block">Mana Cost</label>
+              <label htmlFor="card-search-cost-min" className="text-sm font-medium mb-2 block">
+                Mana Cost
+              </label>
               <div className="flex items-center space-x-2">
                 <Input
+                  id="card-search-cost-min"
                   type="number"
                   placeholder="Min"
                   min={0}

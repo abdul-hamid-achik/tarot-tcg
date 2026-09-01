@@ -1,6 +1,6 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 
@@ -202,13 +202,7 @@ export function StaggerContainer({
   )
 }
 
-export function StaggerItem({
-  children,
-  className,
-}: {
-  children: ReactNode
-  className?: string
-}) {
+export function StaggerItem({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <motion.div
       className={cn(className)}
@@ -230,12 +224,7 @@ interface PulseGlowProps {
   className?: string
 }
 
-export function PulseGlow({
-  isActive,
-  color = 'green',
-  children,
-  className,
-}: PulseGlowProps) {
+export function PulseGlow({ isActive, color = 'green', children, className }: PulseGlowProps) {
   const _glowColors = {
     green: 'shadow-emerald-400/60',
     red: 'shadow-red-400/60',
@@ -266,17 +255,19 @@ export function PulseGlow({
             }
           : {}
       }
-      style={{
-        '--tw-shadow-color': isActive
-          ? color === 'green'
-            ? 'rgba(52, 211, 153, 0.6)'
-            : color === 'red'
-              ? 'rgba(248, 113, 113, 0.6)'
-              : color === 'amber'
-                ? 'rgba(251, 191, 36, 0.6)'
-                : 'rgba(96, 165, 250, 0.6)'
-          : 'transparent',
-      } as React.CSSProperties}
+      style={
+        {
+          '--tw-shadow-color': isActive
+            ? color === 'green'
+              ? 'rgba(52, 211, 153, 0.6)'
+              : color === 'red'
+                ? 'rgba(248, 113, 113, 0.6)'
+                : color === 'amber'
+                  ? 'rgba(251, 191, 36, 0.6)'
+                  : 'rgba(96, 165, 250, 0.6)'
+            : 'transparent',
+        } as React.CSSProperties
+      }
     >
       {children}
     </motion.div>

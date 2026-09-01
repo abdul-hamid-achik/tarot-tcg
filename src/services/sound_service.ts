@@ -18,7 +18,16 @@ type SoundEffect =
   | 'mulligan'
 
 // Synthesized sound parameters for each effect
-const SOUND_DEFINITIONS: Record<SoundEffect, { frequency: number; duration: number; type: OscillatorType; volume: number; ramp?: 'up' | 'down' | 'pulse' }> = {
+const SOUND_DEFINITIONS: Record<
+  SoundEffect,
+  {
+    frequency: number
+    duration: number
+    type: OscillatorType
+    volume: number
+    ramp?: 'up' | 'down' | 'pulse'
+  }
+> = {
   card_play: { frequency: 440, duration: 0.15, type: 'sine', volume: 0.3, ramp: 'down' },
   card_draw: { frequency: 600, duration: 0.1, type: 'sine', volume: 0.2, ramp: 'up' },
   attack: { frequency: 200, duration: 0.2, type: 'sawtooth', volume: 0.3, ramp: 'down' },
@@ -50,7 +59,10 @@ class SoundService {
     if (typeof window === 'undefined') return
 
     try {
-      this.audioContext = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)()
+      this.audioContext = new (
+        window.AudioContext ||
+        (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext
+      )()
       this.initialized = true
 
       // Load preferences from localStorage

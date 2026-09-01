@@ -9,8 +9,8 @@ import type {
   GameState,
   TriggeredAbility,
 } from '@/schemas/schema'
-import { parseAbilityDescription } from '@/services/ability_parser'
 import type { ParsedAction } from '@/services/ability_parser'
+import { parseAbilityDescription } from '@/services/ability_parser'
 import { effectStackService } from '@/services/effect_stack_service'
 import { eventManager } from '@/services/event_manager'
 import { useGameStore } from '@/store/game_store'
@@ -986,7 +986,9 @@ export class CardEffectSystem {
     eventManager.subscribe(
       { types: ['card_destroyed', 'unit_dies', 'card_returned_to_hand'] },
       async event => {
-        if ((event as unknown as { source?: { type: string; id: string } }).source?.type === 'card') {
+        if (
+          (event as unknown as { source?: { type: string; id: string } }).source?.type === 'card'
+        ) {
           this.unregisterCardAbilities((event as unknown as { source: { id: string } }).source.id)
         }
       },

@@ -100,11 +100,13 @@ export class AnimationQueue {
   enqueueBatch(
     animations: Omit<QueuedAnimation, 'id'>[],
     mode: 'sequential' | 'parallel' = 'sequential',
-    onBatchComplete?: () => void
+    onBatchComplete?: () => void,
   ): string {
     if (!this.isEnabled) {
       // If disabled, immediately call callbacks
-      animations.forEach(a => { a.onComplete?.() })
+      animations.forEach(a => {
+        a.onComplete?.()
+      })
       onBatchComplete?.()
       return ''
     }
@@ -123,7 +125,7 @@ export class AnimationQueue {
     })
 
     GameLogger.debug(
-      `AnimationQueue: Enqueued batch ${batchId} (${animations.length} animations, ${mode})`
+      `AnimationQueue: Enqueued batch ${batchId} (${animations.length} animations, ${mode})`,
     )
 
     // Start processing if not already
@@ -215,8 +217,9 @@ export class AnimationQueue {
    * Check if there are blocking animations
    */
   private hasBlockingAnimations(): boolean {
-    return this.queue.some(a => a.blocking) ||
-      this.batches.some(b => b.animations.some(a => a.blocking))
+    return (
+      this.queue.some(a => a.blocking) || this.batches.some(b => b.animations.some(a => a.blocking))
+    )
   }
 
   /**
@@ -243,9 +246,13 @@ export class AnimationQueue {
    */
   clear(): void {
     // Call onComplete for all cleared animations
-    this.queue.forEach(a => { a.onComplete?.() })
+    this.queue.forEach(a => {
+      a.onComplete?.()
+    })
     this.batches.forEach(b => {
-      b.animations.forEach(a => { a.onComplete?.() })
+      b.animations.forEach(a => {
+        a.onComplete?.()
+      })
       b.onBatchComplete?.()
     })
 

@@ -1,8 +1,8 @@
 'use client'
 
-import { useMemo, useCallback } from 'react'
+import { useCallback, useMemo } from 'react'
 import type { Card, DirectAttack } from '@/schemas/schema'
-import { gameEngine, type GameEngineConfig, type GameEngineResult } from '@/services/game_engine'
+import { type GameEngineConfig, type GameEngineResult, gameEngine } from '@/services/game_engine'
 import { useGameStore } from '@/store/game_store'
 
 /**
@@ -30,7 +30,7 @@ export function useGameEngine(config?: Partial<GameEngineConfig>) {
       }
       return result.success
     },
-    [setGameState, showError]
+    [setGameState, showError],
   )
 
   /**
@@ -41,7 +41,7 @@ export function useGameEngine(config?: Partial<GameEngineConfig>) {
       const result = await gameEngine.playCard(gameState, card, targetSlot)
       return handleResult(result)
     },
-    [gameState, handleResult]
+    [gameState, handleResult],
   )
 
   /**
@@ -52,7 +52,7 @@ export function useGameEngine(config?: Partial<GameEngineConfig>) {
       const result = await gameEngine.attack(gameState, attackData)
       return handleResult(result)
     },
-    [gameState, handleResult]
+    [gameState, handleResult],
   )
 
   /**
@@ -79,7 +79,7 @@ export function useGameEngine(config?: Partial<GameEngineConfig>) {
       const result = gameEngine.toggleMulliganCard(gameState, cardId)
       return handleResult(result)
     },
-    [gameState, handleResult]
+    [gameState, handleResult],
   )
 
   /**

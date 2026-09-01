@@ -1,11 +1,10 @@
 'use client'
 
-import { GameLogger } from '@/lib/game_logger'
 import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select } from '@/components/ui/select'
+import { GameLogger } from '@/lib/game_logger'
 import { cn } from '@/lib/utils'
 import type { ZodiacClass } from '@/schemas/schema'
 
@@ -169,10 +168,14 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
           {/* Player Setup */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-800 dark:text-gray-200">
+              <label
+                htmlFor="matchmaking-player-name"
+                className="text-sm font-medium text-gray-800 dark:text-gray-200"
+              >
                 Your Name
               </label>
               <Input
+                id="matchmaking-player-name"
                 value={playerName}
                 onChange={e => setPlayerName(e.target.value)}
                 placeholder="Enter your mystical name..."
@@ -180,13 +183,14 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
               />
             </div>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-800 dark:text-gray-200">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 Zodiac Sign
-              </label>
-              <Select
+              </span>
+              <select
                 value={favoriteZodiac}
-                onValueChange={value => setFavoriteZodiac(value as ZodiacClass)}
+                onChange={e => setFavoriteZodiac(e.target.value as ZodiacClass)}
+                className="h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 text-sm text-black dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               >
                 <option value="aries">♈ Aries - The Ram</option>
                 <option value="taurus">♉ Taurus - The Bull</option>
@@ -200,21 +204,25 @@ export function MatchmakingInterface({ onMatchFound, onCancel, className }: Matc
                 <option value="capricorn">♑ Capricorn - The Goat</option>
                 <option value="aquarius">♒ Aquarius - The Water Bearer</option>
                 <option value="pisces">♓ Pisces - The Fish</option>
-              </Select>
-            </div>
+              </select>
+            </label>
 
-            <div className="flex flex-col gap-2">
-              <label className="text-sm font-medium text-gray-800 dark:text-gray-200">
+            <label className="flex flex-col gap-2">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 Game Mode
-              </label>
-              <Select value={gameMode} onValueChange={setGameMode}>
+              </span>
+              <select
+                value={gameMode}
+                onChange={e => setGameMode(e.target.value)}
+                className="h-10 w-full rounded-md border border-gray-300 bg-gray-50 px-3 text-sm text-black dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+              >
                 <option value="standard">🎴 Standard - Classic gameplay</option>
                 <option value="arcana_master">🃏 Arcana Master - Complete Major Arcana</option>
                 <option value="zodiac_mystic">♈ Zodiac Mystic - Align all signs</option>
                 <option value="elemental_sage">🌊 Elemental Sage - Master all elements</option>
                 <option value="chaos">⚡ Chaos Mode - Multiple win conditions</option>
-              </Select>
-            </div>
+              </select>
+            </label>
           </div>
 
           {/* Start Matchmaking Button */}

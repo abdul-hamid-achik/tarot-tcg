@@ -111,6 +111,7 @@ export default function MulliganOverlay({
           </div>
 
           {/* Discard Area - Top Row */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: drop target for drag-and-drop mulligan */}
           <div
             className="min-h-32 border-2 border-dashed border-muted-foreground/40 bg-muted rounded-lg p-4"
             onDragOver={handleDragOver}
@@ -121,24 +122,15 @@ export default function MulliganOverlay({
             </div>
             <div className="flex gap-3 justify-center flex-wrap">
               {discardedCards.map(card => (
-                <div
+                <button
+                  type="button"
                   key={card.id}
-                  role="button"
-                  tabIndex={0}
                   aria-label={`Move ${card.name} back to keep`}
-                  className="transform hover:scale-105 transition-transform cursor-pointer"
+                  className="transform hover:scale-105 transition-transform cursor-pointer border-0 bg-transparent p-0"
                   draggable
                   onDragStart={() => handleDragStart(card.id)}
                   onDragEnd={handleDragEnd}
-                  onClick={() =>
-                    setSelectedForDiscard(prev => prev.filter(id => id !== card.id))
-                  }
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setSelectedForDiscard(prev => prev.filter(id => id !== card.id))
-                    }
-                  }}
+                  onClick={() => setSelectedForDiscard(prev => prev.filter(id => id !== card.id))}
                 >
                   <TarotCard
                     card={card}
@@ -146,7 +138,7 @@ export default function MulliganOverlay({
                     isSelected={true}
                     className="ring-2 ring-foreground/60"
                   />
-                </div>
+                </button>
               ))}
               {discardedCards.length === 0 && (
                 <div className="text-muted-foreground/60 text-sm italic">
@@ -157,6 +149,7 @@ export default function MulliganOverlay({
           </div>
 
           {/* Keep Area - Bottom Row */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: drop target for drag-and-drop mulligan */}
           <div
             className="min-h-32 border-2 border-dashed border-muted-foreground/50 bg-muted/50 rounded-lg p-4"
             onDragOver={handleDragOver}
@@ -167,25 +160,18 @@ export default function MulliganOverlay({
             </div>
             <div className="flex gap-3 justify-center flex-wrap">
               {keptCards.map(card => (
-                <div
+                <button
+                  type="button"
                   key={card.id}
-                  role="button"
-                  tabIndex={0}
                   aria-label={`Mark ${card.name} for discard`}
-                  className="transform hover:scale-105 transition-transform cursor-pointer"
+                  className="transform hover:scale-105 transition-transform cursor-pointer border-0 bg-transparent p-0"
                   draggable
                   onDragStart={() => handleDragStart(card.id)}
                   onDragEnd={handleDragEnd}
                   onClick={() => setSelectedForDiscard(prev => [...prev, card.id])}
-                  onKeyDown={e => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      setSelectedForDiscard(prev => [...prev, card.id])
-                    }
-                  }}
                 >
                   <TarotCard card={card} size="small" isSelected={false} />
-                </div>
+                </button>
               ))}
             </div>
           </div>

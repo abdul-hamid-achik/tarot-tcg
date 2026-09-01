@@ -38,7 +38,9 @@ export class TransactionManager {
 
     this.currentTransaction = {
       id: transactionId,
-      startState: produce(startState, () => { /* no-op clone */ }),
+      startState: produce(startState, () => {
+        /* no-op clone */
+      }),
       operations: [],
       startTime: Date.now(),
       status: 'pending',
@@ -61,7 +63,11 @@ export class TransactionManager {
       id: `op_${this.currentTransaction.operations.length + 1}`,
       description,
       timestamp: Date.now(),
-      stateSnapshot: currentState ? produce(currentState, () => { /* no-op clone */ }) : undefined,
+      stateSnapshot: currentState
+        ? produce(currentState, () => {
+            /* no-op clone */
+          })
+        : undefined,
     }
 
     this.currentTransaction.operations.push(operation)
@@ -82,7 +88,7 @@ export class TransactionManager {
 
     GameLogger.debug(
       `TransactionManager: Committed transaction ${this.currentTransaction.id} ` +
-      `(${this.currentTransaction.operations.length} operations, ${duration}ms)`
+        `(${this.currentTransaction.operations.length} operations, ${duration}ms)`,
     )
 
     // Clear the transaction
@@ -104,7 +110,7 @@ export class TransactionManager {
 
     GameLogger.debug(
       `TransactionManager: Rolled back transaction ${this.currentTransaction.id} ` +
-      `(${this.currentTransaction.operations.length} operations discarded)`
+        `(${this.currentTransaction.operations.length} operations discarded)`,
     )
 
     this.currentTransaction = null
@@ -134,7 +140,10 @@ export class TransactionManager {
     }
 
     // Remove operations after the rollback point
-    this.currentTransaction.operations = this.currentTransaction.operations.slice(0, operationIndex + 1)
+    this.currentTransaction.operations = this.currentTransaction.operations.slice(
+      0,
+      operationIndex + 1,
+    )
 
     GameLogger.debug(`TransactionManager: Rolled back to operation ${operationId}`)
     return operation.stateSnapshot

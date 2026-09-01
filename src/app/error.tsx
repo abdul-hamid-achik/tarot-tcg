@@ -1,10 +1,10 @@
 'use client'
 
+import { ArrowLeft, RotateCcw } from 'lucide-react'
 import { useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { RotateCcw, ArrowLeft } from 'lucide-react'
 
-export default function Error({
+export default function AppError({
   error,
   reset,
 }: {

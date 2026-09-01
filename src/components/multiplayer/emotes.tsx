@@ -1,7 +1,7 @@
 'use client'
 
-import { GameLogger } from '@/lib/game_logger'
 import React, { useState } from 'react'
+import { GameLogger } from '@/lib/game_logger'
 import { cn } from '@/lib/utils'
 
 export interface TarotEmote {
@@ -188,6 +188,7 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
     <div className={cn('relative', className)}>
       {/* Emote Trigger Button */}
       <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
         className={cn(
           'w-12 h-12 rounded-full bg-purple-600 hover:bg-purple-700 text-white',
@@ -204,7 +205,12 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
       {isOpen && (
         <>
           {/* Backdrop */}
-          <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setIsOpen(false)} />
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-black/20"
+            aria-label="Close emote picker"
+            onClick={() => setIsOpen(false)}
+          />
 
           {/* Emote Panel */}
           <div className="absolute bottom-14 right-0 z-50 bg-gray-900/95 backdrop-blur-sm border border-purple-600/50 rounded-xl p-4 w-80 max-w-[90vw] shadow-2xl">
@@ -212,7 +218,11 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
               {/* Header */}
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-bold text-purple-400">🎴 Tarot Emotes</h3>
-                <button onClick={() => setIsOpen(false)} className="text-gray-400 hover:text-white">
+                <button
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-white"
+                >
                   ✕
                 </button>
               </div>
@@ -221,6 +231,7 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
               <div className="flex gap-1 mb-2">
                 {(['all', 'major', 'minor', 'elements'] as const).map(category => (
                   <button
+                    type="button"
                     key={category}
                     onClick={() => setSelectedCategory(category)}
                     className={cn(
@@ -245,6 +256,7 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
               <div className="grid grid-cols-4 gap-2 max-h-64 overflow-y-auto">
                 {filteredEmotes.map(emote => (
                   <button
+                    type="button"
                     key={emote.id}
                     onClick={() => handleEmoteClick(emote)}
                     className={cn(
@@ -252,11 +264,11 @@ export function EmoteWheel({ onEmote, className }: EmoteWheelProps) {
                       'hover:scale-105 active:scale-95',
                       'flex flex-col items-center gap-1',
                       emote.mood === 'positive' &&
-                      'bg-green-600/20 hover:bg-green-600/30 border border-green-600/30',
+                        'bg-green-600/20 hover:bg-green-600/30 border border-green-600/30',
                       emote.mood === 'negative' &&
-                      'bg-red-600/20 hover:bg-red-600/30 border border-red-600/30',
+                        'bg-red-600/20 hover:bg-red-600/30 border border-red-600/30',
                       emote.mood === 'neutral' &&
-                      'bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/30',
+                        'bg-purple-600/20 hover:bg-purple-600/30 border border-purple-600/30',
                     )}
                     title={emote.text}
                   >

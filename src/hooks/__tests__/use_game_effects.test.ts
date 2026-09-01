@@ -1,17 +1,12 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { useGameEffects } from '../use_game_effects'
-import { useGameActions } from '../use_game_actions'
 import { useGameStore } from '@/store/game_store'
 import { battlefieldService } from '@/services/battlefield_service'
-import { GameLogger } from '@/lib/game_logger'
 import type { GameState } from '@/schemas/schema'
 
-// Mock dependencies
-vi.mock('../use_game_actions')
 vi.mock('@/store/game_store')
 vi.mock('@/services/battlefield_service')
-vi.mock('@/lib/game_logger')
 
 describe('useGameEffects', () => {
   const mockGameState: GameState = {
@@ -63,29 +58,18 @@ describe('useGameEffects', () => {
 
   const mockSetValidDropZones = vi.fn()
   const mockClearValidDropZones = vi.fn()
-  const mockPlayCard = vi.fn()
 
   beforeEach(() => {
     vi.clearAllMocks()
     vi.useFakeTimers()
 
-    // Mock useGameStore
     vi.mocked(useGameStore).mockReturnValue({
       gameState: mockGameState,
       setValidDropZones: mockSetValidDropZones,
       clearValidDropZones: mockClearValidDropZones,
     } as any)
 
-    // Mock useGameActions
-    vi.mocked(useGameActions).mockReturnValue({
-      playCard: mockPlayCard,
-    } as any)
-
-    // Mock battlefieldService.isSlotEmpty
     vi.mocked(battlefieldService.isSlotEmpty).mockReturnValue(true)
-
-    // Mock GameLogger
-    vi.mocked(GameLogger.debug).mockImplementation(() => {})
   })
 
   afterEach(() => {
@@ -212,8 +196,8 @@ describe('useGameEffects', () => {
     })
   })
 
-  describe('AI Turn Handling', () => {
-    it('should log debug message during AI turn', () => {
+  describe('Opponent turn drop zones', () => {
+    it('should clear drop zones during the opponent action phase', () => {
       vi.mocked(useGameStore).mockReturnValue({
         gameState: { ...mockGameState, activePlayer: 'player2' },
         setValidDropZones: mockSetValidDropZones,
@@ -222,21 +206,18 @@ describe('useGameEffects', () => {
 
       renderHook(() => useGameEffects())
 
-      // Fast-forward time
-      vi.advanceTimersByTime(1000)
-
-      expect(GameLogger.debug).toHaveBeenCalledWith('AI passes turn')
+      expect(mockClearValidDropZones).toHaveBeenCalled()
+      expect(mockSetValidDropZones).not.toHaveBeenCalled()
     })
 
-    it('should not trigger AI action during player1 turn', () => {
+    it('should keep painting drop zones during player1 turn', () => {
       renderHook(() => useGameEffects())
 
-      vi.advanceTimersByTime(1000)
-
-      expect(GameLogger.debug).not.toHaveBeenCalled()
+      expect(mockSetValidDropZones).toHaveBeenCalled()
+      expect(mockClearValidDropZones).not.toHaveBeenCalled()
     })
 
-    it('should not trigger AI action during non-action phase', () => {
+    it('should clear drop zones during a non-action opponent phase', () => {
       vi.mocked(useGameStore).mockReturnValue({
         gameState: { ...mockGameState, activePlayer: 'player2', phase: 'combat' },
         setValidDropZones: mockSetValidDropZones,
@@ -245,15 +226,12 @@ describe('useGameEffects', () => {
 
       renderHook(() => useGameEffects())
 
-      vi.advanceTimersByTime(1000)
-
-      expect(GameLogger.debug).not.toHaveBeenCalled()
+      expect(mockClearValidDropZones).toHaveBeenCalled()
     })
 
-    it('should handle rapid AI turn state changes', () => {
+    it('should clear drop zones on each opponent-turn rerender', () => {
       const { rerender } = renderHook(() => useGameEffects())
 
-      // Switch to AI turn multiple times rapidly
       for (let i = 0; i < 5; i++) {
         vi.mocked(useGameStore).mockReturnValue({
           gameState: { ...mockGameState, activePlayer: 'player2', turn: i },
@@ -263,11 +241,7 @@ describe('useGameEffects', () => {
         rerender()
       }
 
-      // Fast-forward all timers
-      vi.runAllTimers()
-
-      // Should have triggered debug log for each AI turn
-      expect(GameLogger.debug).toHaveBeenCalledTimes(5)
+      expect(mockClearValidDropZones).toHaveBeenCalled()
     })
   })
 
@@ -298,10 +272,6 @@ describe('useGameEffects', () => {
       rerender()
 
       expect(mockClearValidDropZones).toHaveBeenCalledTimes(2)
-
-      // AI should trigger after 1 second
-      vi.advanceTimersByTime(1000)
-      expect(GameLogger.debug).toHaveBeenCalledWith('AI passes turn')
     })
 
     it('should handle partial battlefield occupation', () => {
@@ -382,7 +352,7 @@ describe('useGameEffects', () => {
       expect(() => renderHook(() => useGameEffects())).toThrow('Battlefield error')
     })
 
-    it('should handle unmounting during AI turn timeout', () => {
+    it('should unmount cleanly during the opponent turn', () => {
       vi.mocked(useGameStore).mockReturnValue({
         gameState: { ...mockGameState, activePlayer: 'player2' },
         setValidDropZones: mockSetValidDropZones,
@@ -391,14 +361,8 @@ describe('useGameEffects', () => {
 
       const { unmount } = renderHook(() => useGameEffects())
 
-      // Unmount before timeout completes
-      unmount()
-
-      // Fast-forward time
-      vi.advanceTimersByTime(1000)
-
-      // Should still log (timeout isn't cleaned up in current implementation)
-      expect(GameLogger.debug).toHaveBeenCalled()
+      expect(mockClearValidDropZones).toHaveBeenCalled()
+      expect(() => unmount()).not.toThrow()
     })
   })
 })

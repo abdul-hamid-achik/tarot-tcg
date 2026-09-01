@@ -290,17 +290,10 @@ export function CompactEffectStackPanel({
   }
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       className={`flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded px-2 py-1 ${className}`}
       onClick={onClick}
-      onKeyDown={e => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          onClick?.()
-        }
-      }}
     >
       {isResolving ? (
         <>
@@ -313,6 +306,6 @@ export function CompactEffectStackPanel({
           <span className="text-xs text-gray-600">Stack ({stackSize})</span>
         </>
       )}
-    </div>
+    </button>
   )
 }

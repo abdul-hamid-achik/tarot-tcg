@@ -5,8 +5,8 @@
  */
 export class RingBuffer<T> {
   private buffer: (T | undefined)[]
-  private head = 0  // Points to the next write position
-  private tail = 0  // Points to the oldest element
+  private head = 0 // Points to the next write position
+  private tail = 0 // Points to the oldest element
   private count = 0 // Current number of elements
 
   constructor(private readonly capacity: number) {

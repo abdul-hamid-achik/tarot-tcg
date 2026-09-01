@@ -519,7 +519,9 @@ class CombatService {
       }
     }
 
-    toRemove.forEach(id => { this.removePersistentEffect(id) })
+    toRemove.forEach(id => {
+      this.removePersistentEffect(id)
+    })
     GameLogger.action(`Cleaned up end-of-turn effects: ${toRemove.length}`)
   }
 
@@ -535,7 +537,9 @@ class CombatService {
       }
     }
 
-    toRemove.forEach(id => { this.removePersistentEffect(id) })
+    toRemove.forEach(id => {
+      this.removePersistentEffect(id)
+    })
     GameLogger.action('Reset combat effects')
   }
 

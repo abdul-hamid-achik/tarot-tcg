@@ -1,12 +1,14 @@
-import { produce, type Draft } from 'immer'
-import type { GameState, Card, Battlefield, Player } from '@/schemas/schema'
+import { type Draft, produce } from 'immer'
+import type { Battlefield, Card, GameState, Player } from '@/schemas/schema'
 
 /**
  * Creates a deep clone of a GameState using Immer
  * This ensures complete immutability without manual spreading
  */
 export function cloneGameState(state: GameState): GameState {
-  return produce(state, () => { /* no-op clone */ })
+  return produce(state, () => {
+    /* no-op clone */
+  })
 }
 
 /**
@@ -15,7 +17,7 @@ export function cloneGameState(state: GameState): GameState {
  */
 export function updateGameState(
   state: GameState,
-  recipe: (draft: Draft<GameState>) => void
+  recipe: (draft: Draft<GameState>) => void,
 ): GameState {
   return produce(state, recipe)
 }
@@ -24,40 +26,40 @@ export function updateGameState(
  * Creates a deep clone of a Card using Immer
  */
 export function cloneCard(card: Card): Card {
-  return produce(card, () => { /* no-op clone */ })
+  return produce(card, () => {
+    /* no-op clone */
+  })
 }
 
 /**
  * Creates a deep clone of a Battlefield using Immer
  */
 export function cloneBattlefield(battlefield: Battlefield): Battlefield {
-  return produce(battlefield, () => { /* no-op clone */ })
+  return produce(battlefield, () => {
+    /* no-op clone */
+  })
 }
 
 /**
  * Creates a deep clone of a Player using Immer
  */
 export function clonePlayer(player: Player): Player {
-  return produce(player, () => { /* no-op clone */ })
+  return produce(player, () => {
+    /* no-op clone */
+  })
 }
 
 /**
  * Updates a Player immutably using Immer's produce
  */
-export function updatePlayer(
-  player: Player,
-  recipe: (draft: Draft<Player>) => void
-): Player {
+export function updatePlayer(player: Player, recipe: (draft: Draft<Player>) => void): Player {
   return produce(player, recipe)
 }
 
 /**
  * Updates a Card immutably using Immer's produce
  */
-export function updateCard(
-  card: Card,
-  recipe: (draft: Draft<Card>) => void
-): Card {
+export function updateCard(card: Card, recipe: (draft: Draft<Card>) => void): Card {
   return produce(card, recipe)
 }
 
@@ -66,7 +68,7 @@ export function updateCard(
  */
 export function updateBattlefield(
   battlefield: Battlefield,
-  recipe: (draft: Draft<Battlefield>) => void
+  recipe: (draft: Draft<Battlefield>) => void,
 ): Battlefield {
   return produce(battlefield, recipe)
 }
@@ -77,18 +79,15 @@ export function updateBattlefield(
 export function updateCards(
   cards: Card[],
   predicate: (card: Card) => boolean,
-  recipe: (draft: Draft<Card>) => void
+  recipe: (draft: Draft<Card>) => void,
 ): Card[] {
-  return cards.map(card => predicate(card) ? produce(card, recipe) : card)
+  return cards.map(card => (predicate(card) ? produce(card, recipe) : card))
 }
 
 /**
  * Helper to safely get a player from game state
  */
-export function getPlayerFromState(
-  state: GameState,
-  playerId: 'player1' | 'player2'
-): Player {
+export function getPlayerFromState(state: GameState, playerId: 'player1' | 'player2'): Player {
   return state[playerId]
 }
 
@@ -102,7 +101,10 @@ export function getOpponentId(playerId: 'player1' | 'player2'): 'player1' | 'pla
 /**
  * Helper to get units on the battlefield for a specific player
  */
-export function getPlayerUnits(battlefield: Battlefield, playerId: 'player1' | 'player2'): (Card | null)[] {
+export function getPlayerUnits(
+  battlefield: Battlefield,
+  playerId: 'player1' | 'player2',
+): (Card | null)[] {
   return playerId === 'player1' ? battlefield.playerUnits : battlefield.enemyUnits
 }
 
@@ -111,7 +113,7 @@ export function getPlayerUnits(battlefield: Battlefield, playerId: 'player1' | '
  */
 export function findCardOnBattlefield(
   battlefield: Battlefield,
-  cardId: string
+  cardId: string,
 ): { card: Card; playerId: 'player1' | 'player2'; slot: number } | null {
   for (let i = 0; i < battlefield.playerUnits.length; i++) {
     const card = battlefield.playerUnits[i]
@@ -133,7 +135,7 @@ export function findCardOnBattlefield(
  */
 export function findCardInHand(
   state: GameState,
-  cardId: string
+  cardId: string,
 ): { card: Card; playerId: 'player1' | 'player2'; index: number } | null {
   const player1Index = state.player1.hand.findIndex(c => c.id === cardId)
   if (player1Index !== -1) {

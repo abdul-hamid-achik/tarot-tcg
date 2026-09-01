@@ -205,6 +205,7 @@ export default function MultiplayerPage() {
               The cards have spoken their wisdom
             </p>
             <button
+              type="button"
               onClick={handleReturnToSetup}
               className="w-full bg-black dark:bg-white text-white dark:text-black hover:bg-gray-800 dark:hover:bg-gray-100 font-bold py-3 rounded-lg transition-colors"
             >
