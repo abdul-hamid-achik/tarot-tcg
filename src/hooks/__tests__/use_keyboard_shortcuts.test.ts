@@ -42,7 +42,6 @@ function renderShortcuts(
   const defaults = {
     gameState,
     onEndTurn: vi.fn(),
-    onCardPlay: vi.fn(),
     onShowHelp: vi.fn(),
     enabled: true,
   }
@@ -56,6 +55,8 @@ describe('useKeyboardShortcuts', () => {
     // Reset interaction state for each test
     mockStore.interaction.targetingMode = 'none'
     mockStore.interaction.selectedCard = null
+    mockStore.ui.activeOverlay = 'none'
+    mockStore.ui.errorMessage = null
   })
 
   afterEach(() => {
@@ -87,45 +88,77 @@ describe('useKeyboardShortcuts', () => {
   })
 
   describe('number keys 1-7 (select card)', () => {
-    it('calls onCardPlay with the correct hand card for key "1"', () => {
-      const onCardPlay = vi.fn()
-      renderShortcuts({ onCardPlay })
+    it('selects the hand card for key "1"', () => {
+      renderShortcuts()
 
       pressKey('1')
 
-      expect(onCardPlay).toHaveBeenCalledWith(
+      expect(mockStore.selectCard).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'c1' }),
       )
     })
 
-    it('calls onCardPlay with card at index 2 for key "3"', () => {
-      const onCardPlay = vi.fn()
-      renderShortcuts({ onCardPlay })
+    it('selects the card at index 2 for key "3"', () => {
+      renderShortcuts()
 
       pressKey('3')
 
-      expect(onCardPlay).toHaveBeenCalledWith(
+      expect(mockStore.selectCard).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'c3' }),
       )
     })
 
     it('does nothing when key index exceeds hand size', () => {
-      const onCardPlay = vi.fn()
-      renderShortcuts({ onCardPlay })
+      renderShortcuts()
 
-      pressKey('7') // only 3 cards in hand
+      pressKey('7')
 
-      expect(onCardPlay).not.toHaveBeenCalled()
+      expect(mockStore.selectCard).not.toHaveBeenCalled()
     })
 
-    it('shows card detail when onCardPlay is not provided', () => {
-      renderShortcuts({ onCardPlay: undefined })
+    it('clears selection when the same card is already selected', () => {
+      mockStore.interaction.selectedCard = createTestCard({ id: 'c1', name: 'Card 1' })
+      renderShortcuts()
+
+      pressKey('1')
+
+      expect(mockStore.clearSelection).toHaveBeenCalledTimes(1)
+      expect(mockStore.selectCard).not.toHaveBeenCalled()
+    })
+
+    it('shows card detail when the card costs more than available mana', () => {
+      const gameState = createTestGameState({
+        activePlayer: 'player1',
+        phase: 'action',
+        player1: {
+          ...createTestGameState().player1,
+          mana: 0,
+          spellMana: 0,
+          hand: [
+            createTestCard({ id: 'c1', name: 'Card 1', cost: 3 }),
+          ],
+        },
+      })
+      renderShortcuts({ gameState })
 
       pressKey('1')
 
       expect(mockStore.showCardDetail).toHaveBeenCalledWith(
         expect.objectContaining({ id: 'c1' }),
       )
+      expect(mockStore.selectCard).not.toHaveBeenCalled()
+    })
+  })
+
+  describe('help overlay', () => {
+    it('closes help on Escape when help is open', () => {
+      const onCloseHelp = vi.fn()
+      renderShortcuts({ helpOpen: true, onCloseHelp })
+
+      pressKey('Escape')
+
+      expect(onCloseHelp).toHaveBeenCalledTimes(1)
+      expect(mockStore.cancelAttack).not.toHaveBeenCalled()
     })
   })
 
@@ -160,6 +193,16 @@ describe('useKeyboardShortcuts', () => {
   })
 
   describe('Escape key (cancel)', () => {
+    it('closes card detail overlay first', () => {
+      mockStore.ui.activeOverlay = 'cardDetail'
+      renderShortcuts({})
+
+      pressKey('Escape')
+
+      expect(mockStore.hideCardDetail).toHaveBeenCalledTimes(1)
+      expect(mockStore.cancelAttack).not.toHaveBeenCalled()
+    })
+
     it('calls cancelAttack when in attack targeting mode', () => {
       mockStore.interaction.targetingMode = 'attack'
       renderShortcuts({})
@@ -177,6 +220,15 @@ describe('useKeyboardShortcuts', () => {
       pressKey('Escape')
 
       expect(mockStore.clearSelection).toHaveBeenCalledTimes(1)
+    })
+
+    it('dismisses an error toast', () => {
+      mockStore.ui.errorMessage = 'Already attacked'
+      renderShortcuts({})
+
+      pressKey('Escape')
+
+      expect(mockStore.clearError).toHaveBeenCalledTimes(1)
     })
   })
 

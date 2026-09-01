@@ -3,34 +3,34 @@ import { expect, test } from '@playwright/test'
 test.describe('Home Page', () => {
   test('should load and display hero section', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: /TAROT TRADING CARD GAME/i })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Tarot TCG', exact: true })).toBeVisible()
   })
 
   test('should have navigation links', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('link', { name: /begin your journey/i })).toBeVisible()
-    await expect(page.getByRole('link', { name: /explore the cards/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /^play$/i }).first()).toBeVisible()
+    await expect(page.getByRole('link', { name: /browse cards/i })).toBeVisible()
   })
 
-  test('should navigate to tutorial', async ({ page }) => {
+  test('should navigate to play', async ({ page }) => {
     await page.goto('/')
     await page
-      .getByRole('link', { name: /begin your journey/i })
+      .getByRole('link', { name: /^play$/i })
       .first()
       .click()
-    await page.waitForURL('/tutorial')
-    expect(page.url()).toContain('/tutorial')
+    await page.waitForURL('/play')
+    expect(page.url()).toContain('/play')
   })
 
-  test('should display featured cards section', async ({ page }) => {
+  test('should display dual-face section', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('The Duality of Fate')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Upright and reversed' })).toBeVisible()
   })
 
-  test('should display features section', async ({ page }) => {
+  test('should display match facts', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByText('Mysticism Meets Mastery')).toBeVisible()
-    await expect(page.getByText('Zodiac Seasons')).toBeVisible()
-    await expect(page.getByText('Elemental Harmony')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'A match' })).toBeVisible()
+    await expect(page.getByText('Draw a face')).toBeVisible()
+    await expect(page.getByText('Seven slots')).toBeVisible()
   })
 })

@@ -5,6 +5,7 @@ import { GameLogger } from '@/lib/game_logger'
 import { type Card as GameCard, type GameState, GameStateSchema } from '@/schemas/schema'
 import type { Battlefield, BattlefieldPosition } from '@/services/battlefield_service'
 import { declareAttack } from '@/services/combat_service'
+import { performReading } from '@/services/reading_service'
 
 export interface InteractionState {
   mode: 'click' | 'drag' | 'hybrid'
@@ -15,6 +16,11 @@ export interface InteractionState {
   attackSource: string | null // Unit starting attack
   validAttackTargets: Set<string> // Valid targets for current attack
   targetingMode: 'none' | 'attack' | 'spell'
+  reading: {
+    pastId: string | null
+    presentId: string | null
+    futureId: string | null
+  }
 }
 
 export interface UIState {
@@ -64,6 +70,10 @@ export interface GameStore {
   startAttack: (unitId: string) => void
   executeAttack: (targetId: string, targetType: 'unit' | 'player') => Promise<void>
   cancelAttack: () => void
+  placeInReading: (card: GameCard) => void
+  setReadingSlot: (slot: 'past' | 'present' | 'future', cardId: string | null) => void
+  clearReading: () => void
+  commitReading: () => Promise<void>
 
   // Visual feedback
   highlightSlots: (positions: BattlefieldPosition[]) => void
@@ -184,6 +194,7 @@ export const useGameStore = create<GameStore>()(
         attackSource: null,
         validAttackTargets: new Set(),
         targetingMode: 'none',
+        reading: { pastId: null, presentId: null, futureId: null },
       },
 
       ui: {
@@ -249,6 +260,15 @@ export const useGameStore = create<GameStore>()(
       selectCard: card =>
         set(state => {
           state.interaction.selectedCard = card
+          const zones = new Set<string>()
+          if (card.type === 'unit') {
+            state.gameState.battlefield.playerUnits.forEach((unit, index) => {
+              if (unit === null) {
+                zones.add(createSlotKey({ player: 'player1', slot: index }))
+              }
+            })
+          }
+          state.validDropZones = zones
         }),
 
       clearSelection: () =>
@@ -259,6 +279,7 @@ export const useGameStore = create<GameStore>()(
           state.interaction.attackSource = null
           state.interaction.targetingMode = 'none'
           state.interaction.validAttackTargets = new Set()
+          state.validDropZones = new Set()
         }),
 
       startCardDrag: (card, position) =>
@@ -325,6 +346,57 @@ export const useGameStore = create<GameStore>()(
           state.interaction.targetingMode = 'none'
           state.interaction.validAttackTargets = new Set()
         }),
+
+      placeInReading: card =>
+        set(state => {
+          const reading = state.interaction.reading
+          const occupied = [reading.futureId, reading.presentId, reading.pastId]
+          if (occupied.includes(card.id)) {
+            if (reading.futureId === card.id) reading.futureId = null
+            if (reading.presentId === card.id) reading.presentId = null
+            if (reading.pastId === card.id) reading.pastId = null
+            return
+          }
+          if (!reading.futureId) reading.futureId = card.id
+          else if (!reading.presentId) reading.presentId = card.id
+          else if (!reading.pastId) reading.pastId = card.id
+        }),
+
+      setReadingSlot: (slot, cardId) =>
+        set(state => {
+          state.interaction.reading[
+            slot === 'past' ? 'pastId' : slot === 'present' ? 'presentId' : 'futureId'
+          ] = cardId
+        }),
+
+      clearReading: () =>
+        set(state => {
+          state.interaction.reading = { pastId: null, presentId: null, futureId: null }
+        }),
+
+      commitReading: async () => {
+        const { gameState, interaction } = get()
+        const { futureId, presentId, pastId } = interaction.reading
+        if (!futureId) {
+          get().showError('Future is required to read')
+          return
+        }
+        try {
+          const newState = await performReading(gameState, {
+            futureId,
+            presentId: presentId ?? undefined,
+            pastId: pastId ?? undefined,
+          })
+          set(state => {
+            state.gameState = newState
+            state.interaction.reading = { pastId: null, presentId: null, futureId: null }
+            state.interaction.selectedCard = null
+          })
+        } catch (error) {
+          const message = error instanceof Error ? error.message : 'Reading failed'
+          get().showError(message)
+        }
+      },
 
       highlightSlots: positions =>
         set(state => {

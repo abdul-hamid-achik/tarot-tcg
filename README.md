@@ -100,7 +100,7 @@ npm run test:coverage    # Generate test coverage report
 ## 🏗️ Tech Stack
 
 ### Core
-- **Framework**: Next.js 15.5.2 with App Router
+- **Framework**: Next.js 16 with App Router
 - **UI Library**: React 19.1.0
 - **Language**: TypeScript 5 with strict mode
 - **State Management**: Zustand 5.0 with devtools
@@ -112,7 +112,8 @@ npm run test:coverage    # Generate test coverage report
 - **Icons**: Lucide React
 
 ### Content & Data
-- **Content Management**: Contentlayer2 for MDX-based cards
+- **Content Management**: Content Collections for MDX-based cards
+- **Icons**: Lucide React 1.x
 - **Database**: Neon Postgres with Drizzle ORM
 - **Schema Validation**: Zod 4.1
 
@@ -228,6 +229,6 @@ This project follows standard React/TypeScript patterns with **service-based arc
 - **Zustand store** manages global game state
 - **Pure functions** for predictable state updates
 
-We prioritize comprehensive testing and clean architecture. Check `CLAUDE.md` for detailed development guidelines.
+We prioritize comprehensive testing and clean architecture. Check `AGENTS.md` for detailed development guidelines.
 
 Feel free to submit issues and pull requests!

@@ -27,7 +27,8 @@ describe('InteractionService - Drag and Drop', () => {
             reversedDescription: 'Reversed test card',
             keywords: [],
             element: 'fire',
-            zodiacSign: 'aries',
+            zodiacClass: 'aries',
+            rarity: 'common',
         } as GameCard
 
         // Mock element

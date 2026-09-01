@@ -13,26 +13,7 @@ describe('GameBoard Integration - State Management', () => {
     let testCard: Card
 
     beforeEach(() => {
-        const deck = [
-            {
-                id: 'test-card-1',
-                name: 'Test Card',
-                type: 'unit' as const,
-                cost: 3,
-                attack: 2,
-                health: 3,
-                description: 'Test',
-                reversedDescription: 'Reversed',
-                keywords: [],
-                element: 'fire' as const,
-                zodiacSign: 'aries' as const,
-            },
-        ]
-
-        const initialState = createInitialGameState({
-            player1Deck: deck,
-            player2Deck: deck,
-        })
+        const initialState = createInitialGameState()
 
         // Skip mulligan phase and give player sufficient mana for testing
         gameState = produce(initialState, draft => {

@@ -30,6 +30,10 @@ export const TargetTypeSchema = z.enum(['self', 'ally', 'enemy', 'any', 'all'])
 
 export const CardTypeSchema = z.enum(['unit', 'spell'])
 
+export const ArcanaCategorySchema = z.enum(['major', 'minor'])
+
+export const SuitSchema = z.enum(['wands', 'cups', 'swords', 'pentacles'])
+
 // Removed CardPositionSchema - using battlefield-only system
 
 export const PhaseSchema = z.enum([
@@ -95,13 +99,17 @@ export const CardSchema = z.object({
   description: z.string().optional(),
   reversedDescription: z.string().optional(), // Different effect when reversed
   tarotSymbol: z.string().optional(),
+  tarotNumber: z.string().optional(),
   isReversed: z.boolean().optional(), // Critical tarot mechanic
+  category: ArcanaCategorySchema.optional(),
+  suit: SuitSchema.optional(),
 
   // Zodiac system properties
   zodiacClass: ZodiacClassSchema,
   element: ElementSchema,
   rarity: RaritySchema,
   keywords: z.array(z.string()).optional(),
+  slug: z.string().optional(),
   abilities: z.array(AbilitySchema).optional(),
   uprightAbilities: z.array(AbilitySchema).optional(),
   reversedAbilities: z.array(AbilitySchema).optional(),
@@ -118,6 +126,7 @@ export const CardSchema = z.object({
   // Tarot-specific mechanics
   hasSummoningSickness: z.boolean().optional(),
   hasAttackedThisTurn: z.boolean().optional(),
+  exhaustedForReading: z.boolean().optional(),
   divineShield: z.boolean().optional(), // Like Divine Shield in Hearthstone
   ethereal: z.boolean().optional(), // Card disappears at end of turn
   arcaneCharge: z.number().optional(), // Charges that build up over time
@@ -179,6 +188,7 @@ export const PlayerSchema = z.object({
   selectedForMulligan: z.array(z.string()),
   hasPassed: z.boolean(),
   actionsThisTurn: z.number(),
+  hasReadThisTurn: z.boolean().optional(),
 })
 
 export const GameStateSchema = z.object({

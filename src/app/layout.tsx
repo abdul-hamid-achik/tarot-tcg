@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from 'next/font/google'
 import './globals.css'
 import '../styles/drag-drop.css'
 import { GameErrorBoundary } from '@/components/error_boundary'
+import { SiteShell } from '@/components/site_shell'
 import { ThemeProvider } from '@/contexts/theme_context'
 
 const geistSans = Geist({
@@ -16,6 +17,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
+  metadataBase: new URL('https://tarot-tcg.com'),
   title: {
     default: 'Tarot TCG - Strategic Card Game',
     template: '%s | Tarot TCG',
@@ -43,10 +45,12 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
+      <body className="font-sans antialiased">
         <GameErrorBoundary showDetails={process.env.NODE_ENV === 'development'}>
-          <ThemeProvider>{children}</ThemeProvider>
+          <ThemeProvider>
+            <SiteShell>{children}</SiteShell>
+          </ThemeProvider>
         </GameErrorBoundary>
       </body>
     </html>

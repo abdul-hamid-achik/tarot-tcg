@@ -56,6 +56,7 @@ export const createTestPlayer = (id: 'player1' | 'player2', overrides: Partial<P
   selectedForMulligan: [],
   hasPassed: false,
   actionsThisTurn: 0,
+  hasReadThisTurn: false,
   ...overrides
 })
 
@@ -178,21 +179,28 @@ export const createMockGameStore = (gameState: GameState = createTestGameState()
   startAttack: vi.fn(),
   executeAttack: vi.fn(),
   cancelAttack: vi.fn(),
+  placeInReading: vi.fn(),
+  setReadingSlot: vi.fn(),
+  clearReading: vi.fn(),
+  commitReading: vi.fn(),
   ui: {
-    activeOverlay: 'none',
+    activeOverlay: 'none' as 'none' | 'cardDetail' | 'mulligan' | 'gameOutcome',
     cardDetailOverlay: null,
     isAnimating: false,
     performanceMode: 'high',
+    errorMessage: null as string | null,
   },
+  clearError: vi.fn(),
   interaction: {
     mode: 'hybrid',
-    selectedCard: null,
+    selectedCard: null as Card | null,
     draggedCard: null,
     dragStartPosition: null,
     hoveredSlot: null,
     attackSource: null,
     validAttackTargets: new Set<string>(),
     targetingMode: 'none',
+    reading: { pastId: null, presentId: null, futureId: null },
   },
   multiplayer: {
     sessionId: null,
@@ -208,6 +216,7 @@ export const createMockGameStore = (gameState: GameState = createTestGameState()
   clearValidDropZones: vi.fn(),
   showCardDetail: vi.fn(),
   hideCardDetail: vi.fn(),
+  selectCard: vi.fn(),
 })
 // Assert helpers for battlefield-only system
 export const expectPlayerHasCard = (gameState: GameState, playerId: 'player1' | 'player2', cardId: string) => {

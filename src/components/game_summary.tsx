@@ -14,9 +14,10 @@ import {
   Wand2,
 } from 'lucide-react'
 import Link from 'next/link'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { AchievementProgress, GameRecord } from '@/schemas/stats_schema'
 import { achievementService } from '@/services/achievement_service'
 
@@ -26,6 +27,14 @@ interface GameSummaryProps {
   newAchievements: AchievementProgress[]
   onPlayAgain: () => void
   onReturnHome: () => void
+}
+
+const DIFFICULTY_LABEL: Record<GameRecord['difficulty'], string> = {
+  tutorial: 'Training',
+  easy: 'Novice',
+  normal: 'Apprentice',
+  hard: 'Master',
+  expert: 'Oracle',
 }
 
 function formatDuration(seconds: number): string {
@@ -58,19 +67,21 @@ function getWinConditionText(
   return 'Defeated by the opponent'
 }
 
-interface StatItemProps {
+function StatItem({
+  icon,
+  label,
+  value,
+}: {
   icon: React.ReactNode
   label: string
   value: string | number
-}
-
-function StatItem({ icon, label, value }: StatItemProps) {
+}) {
   return (
-    <div className="flex items-center gap-3 p-3 rounded-lg bg-white/5 border border-white/10">
-      <div className="text-muted-foreground shrink-0">{icon}</div>
-      <div className="flex-1 min-w-0">
+    <div className="flex items-center gap-2 rounded-md border border-border bg-muted/40 px-2.5 py-1.5">
+      <div className="shrink-0 text-muted-foreground">{icon}</div>
+      <div className="min-w-0 flex-1">
         <div className="text-xs text-muted-foreground">{label}</div>
-        <div className="text-sm font-semibold text-foreground">{value}</div>
+        <div className="text-sm font-semibold tabular-nums text-foreground">{value}</div>
       </div>
     </div>
   )
@@ -84,10 +95,11 @@ export function GameSummary({
   onReturnHome,
 }: GameSummaryProps) {
   const [visible, setVisible] = useState(false)
+  const playAgainRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    // Trigger entrance animation
     const timer = setTimeout(() => setVisible(true), 50)
+    playAgainRef.current?.focus()
     return () => clearTimeout(timer)
   }, [])
 
@@ -99,138 +111,149 @@ export function GameSummary({
       role="dialog"
       aria-modal="true"
       aria-labelledby="game-summary-title"
-      className="fixed inset-0 bg-black/70 backdrop-blur-md z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-3 sm:p-4"
     >
       <div
-        className={`bg-card/95 border border-border rounded-2xl shadow-2xl max-w-lg w-full max-h-[90vh] overflow-y-auto transition-all duration-500 ease-out ${
-          visible ? 'scale-100 opacity-100' : 'scale-90 opacity-0'
-        }`}
+        className={cn(
+          'flex max-h-[90dvh] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl transition-transform duration-300 ease-out',
+          visible ? 'scale-100 opacity-100' : 'scale-95 opacity-0',
+        )}
       >
-        {/* Result Banner */}
-        <div
-          className={`px-6 pt-8 pb-4 text-center ${
-            isVictory
-              ? 'bg-gradient-to-b from-amber-500/20 to-transparent'
-              : 'bg-gradient-to-b from-red-500/20 to-transparent'
-          }`}
+        <header
+          className={cn(
+            'shrink-0 px-5 pt-4 pb-2 text-center',
+            isVictory ? 'bg-amber-500/10' : 'bg-red-500/10',
+          )}
         >
-          <div className="mb-2">
-            {isVictory ? (
-              <Trophy className="w-12 h-12 mx-auto text-amber-400 drop-shadow-[0_0_12px_rgba(251,191,36,0.5)]" />
-            ) : (
-              <Swords className="w-12 h-12 mx-auto text-red-400 drop-shadow-[0_0_12px_rgba(239,68,68,0.5)]" />
-            )}
-          </div>
+          {isVictory ? (
+            <Trophy className="mx-auto mb-1 h-7 w-7 text-amber-500" aria-hidden="true" />
+          ) : (
+            <Swords className="mx-auto mb-1 h-7 w-7 text-red-500" aria-hidden="true" />
+          )}
           <h2
             id="game-summary-title"
-            className={`text-4xl font-black tracking-tight ${
-              isVictory
-                ? 'text-amber-400 drop-shadow-[0_0_20px_rgba(251,191,36,0.4)]'
-                : 'text-red-400 drop-shadow-[0_0_20px_rgba(239,68,68,0.4)]'
-            }`}
+            className={cn(
+              'text-2xl font-black sm:text-3xl',
+              isVictory ? 'text-amber-500' : 'text-red-500',
+            )}
           >
             {isVictory ? 'VICTORY' : 'DEFEAT'}
           </h2>
-          <p className="text-sm text-muted-foreground mt-1">{winConditionText}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{winConditionText}</p>
+          {gameRecord && (
+            <p className="mt-0.5 text-xs text-muted-foreground">
+              {DIFFICULTY_LABEL[gameRecord.difficulty]} · {gameRecord.deckName}
+            </p>
+          )}
+        </header>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-5 py-3">
+          {gameRecord && (
+            <div className="space-y-2">
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground">Game Stats</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <StatItem
+                  icon={<Layers className="h-4 w-4" />}
+                  label="Rounds Played"
+                  value={gameRecord.rounds}
+                />
+                <StatItem
+                  icon={<Clock className="h-4 w-4" />}
+                  label="Duration"
+                  value={formatDuration(gameRecord.durationSeconds)}
+                />
+                <StatItem
+                  icon={<Sparkles className="h-4 w-4" />}
+                  label="Cards Played"
+                  value={gameRecord.cardsPlayed}
+                />
+                <StatItem
+                  icon={<Flame className="h-4 w-4" />}
+                  label="Damage Dealt"
+                  value={gameRecord.damageDealt}
+                />
+                <StatItem
+                  icon={<Swords className="h-4 w-4" />}
+                  label="Units Summoned"
+                  value={gameRecord.unitsPlayed}
+                />
+                <StatItem
+                  icon={<Wand2 className="h-4 w-4" />}
+                  label="Spells Cast"
+                  value={gameRecord.spellsPlayed}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="flex items-center justify-between rounded-md border border-border px-2.5 py-1.5 text-sm">
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <Heart className="h-3.5 w-3.5 text-green-600" aria-hidden="true" />
+                    You
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {Math.max(0, gameRecord.playerHealthRemaining)} HP
+                  </span>
+                </div>
+                <div className="flex items-center justify-between rounded-md border border-border px-2.5 py-1.5 text-sm">
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <Heart className="h-3.5 w-3.5 text-red-600" aria-hidden="true" />
+                    Opponent
+                  </span>
+                  <span className="font-semibold tabular-nums">
+                    {Math.max(0, gameRecord.opponentHealthRemaining)} HP
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {newAchievements.length > 0 && (
+            <div className={cn('space-y-2', gameRecord && 'mt-4 border-t border-border pt-3')}>
+              <h3 className="text-xs font-semibold uppercase text-muted-foreground">
+                Achievements Earned
+              </h3>
+              <div className="space-y-2">
+                {newAchievements.map(achievement => {
+                  const def = achievementService.getDefinition(achievement.id)
+                  if (!def) return null
+
+                  return (
+                    <div
+                      key={achievement.id}
+                      title={def.description}
+                      className="flex items-center gap-2 rounded-md border border-amber-500/30 bg-amber-500/10 px-2.5 py-1"
+                    >
+                      <div className="text-base" aria-hidden="true">
+                        {def.icon}
+                      </div>
+                      <div className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
+                        {def.name}
+                        <span className="sr-only">. {def.description}</span>
+                      </div>
+                      <Badge variant="secondary" className="shrink-0">
+                        New
+                      </Badge>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Game Stats */}
-        {gameRecord && (
-          <div className="px-6 py-4 space-y-3">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Game Stats
-            </h3>
-            <div className="grid grid-cols-2 gap-2">
-              <StatItem
-                icon={<Layers className="w-4 h-4" />}
-                label="Rounds Played"
-                value={gameRecord.rounds}
-              />
-              <StatItem
-                icon={<Clock className="w-4 h-4" />}
-                label="Duration"
-                value={formatDuration(gameRecord.durationSeconds)}
-              />
-              <StatItem
-                icon={<Sparkles className="w-4 h-4" />}
-                label="Cards Played"
-                value={gameRecord.cardsPlayed}
-              />
-              <StatItem
-                icon={<Flame className="w-4 h-4" />}
-                label="Damage Dealt"
-                value={gameRecord.damageDealt}
-              />
-              <StatItem
-                icon={<Swords className="w-4 h-4" />}
-                label="Units Summoned"
-                value={gameRecord.unitsPlayed}
-              />
-              <StatItem
-                icon={<Wand2 className="w-4 h-4" />}
-                label="Spells Cast"
-                value={gameRecord.spellsPlayed}
-              />
-            </div>
-
-            {/* Health Summary */}
-            <div className="flex items-center justify-between px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-sm">
-              <div className="flex items-center gap-2">
-                <Heart className="w-4 h-4 text-green-400" />
-                <span className="text-muted-foreground">Your Nexus</span>
-              </div>
-              <span className="font-semibold text-foreground">
-                {Math.max(0, gameRecord.playerHealthRemaining)} HP
-              </span>
-            </div>
-          </div>
-        )}
-
-        {/* Achievements Earned */}
-        {newAchievements.length > 0 && (
-          <div className="px-6 py-4 space-y-3 border-t border-border">
-            <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
-              Achievements Earned
-            </h3>
-            <div className="space-y-2">
-              {newAchievements.map(achievement => {
-                const def = achievementService.getDefinition(achievement.id)
-                if (!def) return null
-
-                return (
-                  <div
-                    key={achievement.id}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-amber-500/10 border border-amber-500/20"
-                  >
-                    <div className="text-2xl">{def.icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-semibold text-foreground">{def.name}</div>
-                      <div className="text-xs text-muted-foreground">{def.description}</div>
-                    </div>
-                    <Badge variant="secondary" className="shrink-0">
-                      New
-                    </Badge>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Action Buttons */}
-        <div className="px-6 pt-2 pb-6">
-          <div className="flex flex-col sm:flex-row gap-2">
-            <Button onClick={onPlayAgain} className="flex-1" size="lg">
-              <RotateCcw className="w-4 h-4" />
+        <div className="shrink-0 border-t border-border bg-card px-5 py-2">
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <Button ref={playAgainRef} onClick={onPlayAgain} className="flex-1">
+              <RotateCcw className="h-4 w-4" />
               Play Again
             </Button>
-            <Button onClick={onReturnHome} variant="outline" className="flex-1" size="lg">
-              <Home className="w-4 h-4" />
+            <Button onClick={onReturnHome} variant="outline" className="flex-1">
+              <Home className="h-4 w-4" />
               Return Home
             </Button>
             <Link href="/stats" className="flex-1">
-              <Button variant="ghost" className="w-full" size="lg">
-                <BarChart3 className="w-4 h-4" />
+              <Button variant="ghost" className="w-full">
+                <BarChart3 className="h-4 w-4" />
                 View Stats
               </Button>
             </Link>

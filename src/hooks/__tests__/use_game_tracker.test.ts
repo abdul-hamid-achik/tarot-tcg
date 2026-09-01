@@ -31,20 +31,30 @@ import { achievementService } from '@/services/achievement_service'
 import { questService } from '@/services/quest_service'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+type TrackerProps = {
+  gs: ReturnType<typeof createTestGameState>
+  out: 'player1_wins' | 'player2_wins' | 'ongoing'
+  diff: string
+  deck: string
+  match?: number
+}
+
 function renderTracker(
   gameState = createTestGameState(),
   outcome: 'player1_wins' | 'player2_wins' | 'ongoing' = 'ongoing',
   difficulty = 'normal',
   deckName = 'Test Deck',
+  matchId = 0,
 ) {
-  return renderHook(
-    ({ gs, out, diff, deck }) => useGameTracker(gs, out, diff, deck),
+  return renderHook<ReturnType<typeof useGameTracker>, TrackerProps>(
+    ({ gs, out, diff, deck, match = 0 }) => useGameTracker(gs, out, diff, deck, match),
     {
       initialProps: {
         gs: gameState,
         out: outcome,
         diff: difficulty,
         deck: deckName,
+        match: matchId,
       },
     },
   )
@@ -115,12 +125,67 @@ describe('useGameTracker', () => {
       const { rerender } = renderTracker(createTestGameState(), 'ongoing', 'hard', 'My Deck')
 
       act(() => {
-        rerender({ gs: createTestGameState(), out: 'player1_wins', diff: 'hard', deck: 'My Deck' })
+        rerender({
+          gs: createTestGameState(),
+          out: 'player1_wins',
+          diff: 'hard',
+          deck: 'My Deck',
+          match: 0,
+        })
       })
 
       expect(statsService.recordGame).toHaveBeenCalledWith(
         expect.objectContaining({ difficulty: 'hard', deckName: 'My Deck' }),
       )
+    })
+
+    it('exposes gameRecord on the hook result after a win', () => {
+      const { result, rerender } = renderTracker(createTestGameState(), 'ongoing')
+
+      act(() => {
+        rerender({
+          gs: createTestGameState({ round: 7, player1: createTestGameState().player1 }),
+          out: 'player1_wins',
+          diff: 'normal',
+          deck: 'Test Deck',
+          match: 0,
+        })
+      })
+
+      expect(result.current.gameRecord).toMatchObject({
+        result: 'win',
+        deckName: 'Test Deck',
+        difficulty: 'normal',
+      })
+    })
+
+    it('clears gameRecord when matchId changes', () => {
+      const { result, rerender } = renderTracker(createTestGameState(), 'ongoing', 'normal', 'Deck', 1)
+
+      act(() => {
+        rerender({
+          gs: createTestGameState(),
+          out: 'player1_wins',
+          diff: 'normal',
+          deck: 'Deck',
+          match: 1,
+        })
+      })
+
+      expect(result.current.gameRecord).not.toBeNull()
+
+      act(() => {
+        rerender({
+          gs: createTestGameState(),
+          out: 'ongoing',
+          diff: 'normal',
+          deck: 'Deck',
+          match: 2,
+        })
+      })
+
+      expect(result.current.gameRecord).toBeNull()
+      expect(statsService.recordGame).toHaveBeenCalledTimes(1)
     })
   })
 

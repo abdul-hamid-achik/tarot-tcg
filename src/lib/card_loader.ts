@@ -1,81 +1,144 @@
-import type { Card as ContentlayerCard } from 'contentlayer/generated'
-import { allCards } from 'contentlayer/generated'
+import type { Card as ContentCard } from 'content-collections'
+import { allCards } from 'content-collections'
 import type { Card } from '@/schemas/schema'
 import { CardSchema } from '@/schemas/schema'
+import { toOrientedCardFields } from './card_orientation'
 import { GameLogger } from './game_logger'
 
-/**
- * Convert a Contentlayer card to a game Card
- */
-export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card {
-  // Clean and validate the data before creating the card
-  const rawCard = {
+function suitFromSlug(slug?: string): Card['suit'] {
+  if (!slug) return undefined
+  const suits = ['wands', 'cups', 'swords', 'pentacles'] as const
+  return suits.find(suit => slug.includes(`/${suit}/`) || slug.startsWith(`${suit}/`))
+}
+
+function orientedFieldsFor(contentCard: ContentCard) {
+  return toOrientedCardFields({
+    description: contentCard.description,
+    reversedDescription: contentCard.reversedDescription,
+    abilities: contentCard.abilities,
+    effects: contentCard.effects,
+    slug: contentCard.slug,
+  })
+}
+
+function contentCardToRawCard(contentCard: ContentCard) {
+  const oriented = orientedFieldsFor(contentCard)
+
+  return {
     id: contentCard.id,
     name: contentCard.name,
     cost: contentCard.cost,
     attack: contentCard.attack || 0,
     health: contentCard.health || 0,
     type: contentCard.cardType,
-    description: contentCard.body.raw,
+    description: oriented.description,
+    reversedDescription: oriented.reversedDescription,
     tarotSymbol: contentCard.tarotSymbol,
-
-    // Zodiac system properties
+    tarotNumber: contentCard.tarotNumber,
+    slug: oriented.slug,
+    category: contentCard.category?.startsWith('major') ? 'major' : 'minor',
+    suit: suitFromSlug(oriented.slug || contentCard.slug),
     zodiacClass: contentCard.zodiacClass,
     element: contentCard.element,
     rarity: contentCard.rarity,
     keywords: Array.isArray(contentCard.keywords) ? contentCard.keywords : [],
-    abilities: (() => {
-      const raw = contentCard.abilities as unknown
-      if (!raw) return []
-      if (Array.isArray(raw)) return raw
-      // Handle {upright: [...], reversed: [...]} structure from MDX
-      const obj = raw as { upright?: unknown[]; reversed?: unknown[] }
-      const result: { name: string; description: string }[] = []
-      if (obj.upright && Array.isArray(obj.upright)) result.push(...(obj.upright as { name: string; description: string }[]))
-      if (obj.reversed && Array.isArray(obj.reversed)) result.push(...(obj.reversed as { name: string; description: string }[]))
-      return result
-    })(),
-    uprightAbilities: (() => {
-      const raw = contentCard.abilities as unknown
-      if (!raw || Array.isArray(raw)) return []
-      const obj = raw as { upright?: unknown[] }
-      return obj.upright && Array.isArray(obj.upright) ? obj.upright as { name: string; description: string }[] : []
-    })(),
-    reversedAbilities: (() => {
-      const raw = contentCard.abilities as unknown
-      if (!raw || Array.isArray(raw)) return []
-      const obj = raw as { reversed?: unknown[] }
-      return obj.reversed && Array.isArray(obj.reversed) ? obj.reversed as { name: string; description: string }[] : []
-    })(),
-
-    // Spell-specific properties - only set if valid
+    abilities: oriented.abilities,
+    uprightAbilities: oriented.uprightAbilities,
+    reversedAbilities: oriented.reversedAbilities,
     spellType:
       contentCard.cardType === 'spell' &&
       contentCard.spellType &&
       ['instant', 'ritual', 'enchantment'].includes(contentCard.spellType)
         ? contentCard.spellType
         : undefined,
-    effects: Array.isArray(contentCard.effects) ? contentCard.effects : [],
-
-    // Runtime state (initialized empty)
+    effects: oriented.effects,
     statusEffects: [],
     counters: {},
   }
+}
 
-  // Use Zod to validate and clean the data
+/**
+ * Convert a content collection card to a game Card
+ */
+export function contentCardToGameCard(contentCard: ContentCard): Card {
+  const rawCard = contentCardToRawCard(contentCard)
   const result = CardSchema.safeParse(rawCard)
   if (result.success) {
     return result.data
-  } else {
-    GameLogger.warn(`Card validation failed for ${contentCard.id}:`, result.error.issues)
-    // Return a fallback valid card
-    return CardSchema.parse({
-      ...rawCard,
-      abilities: [],
-      keywords: [],
-      effects: [],
-      spellType: undefined,
-    })
+  }
+
+  GameLogger.warn(`Card validation failed for ${contentCard.id}:`, result.error.issues)
+  return CardSchema.parse({
+    ...rawCard,
+    abilities: [],
+    uprightAbilities: [],
+    reversedAbilities: [],
+    keywords: [],
+    effects: [],
+    spellType: undefined,
+  })
+}
+
+export type ContentValidationIssue = {
+  cardName: string
+  cardId: string
+  errors: Array<{ path: string; message: string }>
+}
+
+export type ContentValidationSummary = {
+  total: number
+  expectedTotal: number
+  valid: number
+  invalid: number
+  invalidDetails: ContentValidationIssue[]
+  missingReversed: Array<{ id: string; name: string }>
+  duplicateIds: string[]
+  complete: boolean
+}
+
+export function validateAllContent(): ContentValidationSummary {
+  const invalidDetails: ContentValidationIssue[] = []
+  const missingReversed: Array<{ id: string; name: string }> = []
+  const seenIds = new Set<string>()
+  const duplicateIds: string[] = []
+
+  for (const contentCard of allCards) {
+    if (seenIds.has(contentCard.id)) {
+      duplicateIds.push(contentCard.id)
+    }
+    seenIds.add(contentCard.id)
+
+    const oriented = orientedFieldsFor(contentCard)
+    if (oriented.reversedAbilities.length === 0 && !oriented.reversedDescription) {
+      missingReversed.push({ id: contentCard.id, name: contentCard.name })
+    }
+
+    const result = CardSchema.safeParse(contentCardToRawCard(contentCard))
+    if (!result.success) {
+      invalidDetails.push({
+        cardName: contentCard.name,
+        cardId: contentCard.id,
+        errors: result.error.issues.map(issue => ({
+          path: issue.path.join('.'),
+          message: issue.message,
+        })),
+      })
+    }
+  }
+
+  const invalid = invalidDetails.length
+  const total = allCards.length
+
+  return {
+    total,
+    expectedTotal: 78,
+    valid: total - invalid,
+    invalid,
+    invalidDetails,
+    missingReversed,
+    duplicateIds,
+    complete:
+      invalid === 0 && total === 78 && missingReversed.length === 0 && duplicateIds.length === 0,
   }
 }
 
@@ -83,14 +146,14 @@ export function contentlayerCardToGameCard(contentCard: ContentlayerCard): Card 
  * Get all cards as game Cards
  */
 export function getAllCards(): Card[] {
-  return allCards.map(contentlayerCardToGameCard)
+  return allCards.map(contentCardToGameCard)
 }
 
 /**
  * Get cards by zodiac class
  */
 export function getCardsByZodiacClass(zodiacClass: string): Card[] {
-  return allCards.filter(card => card.zodiacClass === zodiacClass).map(contentlayerCardToGameCard)
+  return allCards.filter(card => card.zodiacClass === zodiacClass).map(contentCardToGameCard)
 }
 
 /**
@@ -98,7 +161,7 @@ export function getCardsByZodiacClass(zodiacClass: string): Card[] {
  */
 export function getCardById(id: string): Card | undefined {
   const contentCard = allCards.find(card => card.id === id)
-  return contentCard ? contentlayerCardToGameCard(contentCard) : undefined
+  return contentCard ? contentCardToGameCard(contentCard) : undefined
 }
 
 /**
@@ -133,7 +196,7 @@ export function getFilteredCards(filters: {
     filtered = filtered.filter(card => card.cost >= filters.minCost!)
   }
 
-  return filtered.map(contentlayerCardToGameCard)
+  return filtered.map(contentCardToGameCard)
 }
 
 /**
@@ -233,7 +296,7 @@ export function createZodiacDeck(zodiacClass: string, size: number = 30): Card[]
 
   const allOtherCards = allCards
     .filter(card => card.zodiacClass !== zodiacClass)
-    .map(contentlayerCardToGameCard)
+    .map(contentCardToGameCard)
 
   const deck: Card[] = []
   const cardCounts = new Map<string, number>()

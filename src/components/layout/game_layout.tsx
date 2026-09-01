@@ -1,6 +1,7 @@
 'use client'
 
 import type React from 'react'
+import { cn } from '@/lib/utils'
 
 interface GameLayoutProps {
   children: React.ReactNode
@@ -10,7 +11,10 @@ interface GameLayoutProps {
 export default function GameLayout({ children, className = '' }: GameLayoutProps) {
   return (
     <div
-      className={`h-screen w-screen bg-background text-foreground overflow-auto relative transition-colors ${className}`}
+      className={cn(
+        'relative flex h-full min-h-0 w-full flex-col overflow-hidden bg-background text-foreground',
+        className,
+      )}
     >
       {children}
     </div>

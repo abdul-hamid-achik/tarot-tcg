@@ -35,8 +35,10 @@ const mockAudioContext = {
   close: vi.fn().mockResolvedValue(undefined),
 }
 
-// Stub globally before anything imports AudioContext
-vi.stubGlobal('AudioContext', vi.fn(() => mockAudioContext))
+const AudioContextMock = vi.fn(function AudioContext() {
+  return mockAudioContext
+})
+vi.stubGlobal('AudioContext', AudioContextMock)
 
 // ── Fresh singleton per test ──────────────────────────────────────────────────
 // resetModules() ensures each test gets a pristine SoundService instance
@@ -62,7 +64,7 @@ describe('SoundService', () => {
       const svc = await freshService()
       svc.init()
 
-      expect(AudioContext).toHaveBeenCalledTimes(1)
+      expect(AudioContextMock).toHaveBeenCalledTimes(1)
       expect(svc.isReady()).toBe(true)
     })
 
@@ -71,7 +73,7 @@ describe('SoundService', () => {
       svc.init()
       svc.init()
 
-      expect(AudioContext).toHaveBeenCalledTimes(1)
+      expect(AudioContextMock).toHaveBeenCalledTimes(1)
     })
 
     it('loads saved mute preference from localStorage', async () => {

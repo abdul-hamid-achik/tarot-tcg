@@ -2,21 +2,15 @@
 
 import { Volume2, VolumeX } from 'lucide-react'
 import React from 'react'
-// Game Components
 import { Battlefield } from '@/components/battlefield/battlefield'
-// Overlays
 import CardDetailOverlay from '@/components/card_detail_overlay'
 import { AttackArrow } from '@/components/combat/attack_arrow'
 import HandFan from '@/components/hand/hand_fan'
-// Layout Components
 import GameLayout from '@/components/layout/game_layout'
 import MulliganOverlay from '@/components/mulligan_overlay'
 import { useEmotes } from '@/components/multiplayer/emotes'
-import ElementSynergyIndicator from '@/components/element_synergy_indicator'
 import PlayerInfoPanel from '@/components/player/player_info_panel'
-import TurnIndicator from '@/components/turn_indicator'
-// UI Components
-import ActionBar from '@/components/ui/action_bar'
+import { ReadingSpread } from '@/components/reading_spread'
 import { useGameActions } from '@/hooks/use_game_actions'
 import { useGameClock } from '@/hooks/use_game_clock'
 import { useGameEffects } from '@/hooks/use_game_effects'
@@ -42,7 +36,7 @@ interface GameBoardProps {
 export default function GameBoard({
   gameState: initialGameState,
   onCardPlay: _onCardPlay,
-  onAttack,
+  onAttack: _onAttack,
   onEndTurn,
   onMulligan,
 }: GameBoardProps) {
@@ -58,7 +52,7 @@ export default function GameBoard({
   const startCardDrag = useGameStore(state => state.startCardDrag)
   const endCardDrag = useGameStore(state => state.endCardDrag)
 
-  const { playCard, declareAttack: _declareAttack, attackTarget, completeMulligan, reverseCard: _reverseCard } = useGameActions()
+  const { playCard, completeMulligan } = useGameActions()
 
   // Use centralized game effects
   const { gameState } = useGameEffects()
@@ -184,19 +178,15 @@ export default function GameBoard({
       document.removeEventListener('pointerup', handlePointerUp)
     }
     // Only stable store actions in deps - callbacks use getState() for fresh state
-  }, [playCard, clearHighlights, clearValidDropZones, highlightSlots, setValidDropZones, startCardDrag, endCardDrag])
-
-  // Handle action bar events (simplified for direct attack system)
-  const handleAttack = async () => {
-    // In direct attack system, attacks are initiated by clicking units
-    // This method kept for compatibility but simplified
-    GameLogger.debug('Attack mode - click units to attack')
-    onAttack?.([])
-  }
-
-  const _handleDirectAttack = async (attackerId: string, target: 'nexus') => {
-    await attackTarget(attackerId, target)
-  }
+  }, [
+    playCard,
+    clearHighlights,
+    clearValidDropZones,
+    highlightSlots,
+    setValidDropZones,
+    startCardDrag,
+    endCardDrag,
+  ])
 
   const handleEndTurn = React.useCallback(async () => {
     if (!gameState) return
@@ -254,17 +244,18 @@ export default function GameBoard({
     onMulligan?.(selectedCards)
   }
 
-  // Keyboard shortcuts
+  const [showHelp, setShowHelp] = React.useState(false)
+
   useKeyboardShortcuts({
     gameState: gameState ?? initialGameState,
     onEndTurn: handleEndTurn,
-    onCardPlay: handleCardPlay,
     onShowHelp: () => setShowHelp(true),
-    enabled: !!gameState && gameState.phase === 'action' && gameState.activePlayer === 'player1',
+    helpOpen: showHelp,
+    onCloseHelp: () => setShowHelp(false),
+    enabled:
+      showHelp ||
+      (!!gameState && gameState.phase === 'action' && gameState.activePlayer === 'player1'),
   })
-
-  // Keyboard shortcuts help overlay
-  const [showHelp, setShowHelp] = React.useState(false)
 
   // Sound toggle
   const [isMuted, setIsMuted] = React.useState(() => soundService.isMuted())
@@ -278,81 +269,55 @@ export default function GameBoard({
   const totalPlayerMana = (gameState?.player1?.mana || 0) + (gameState?.player1?.spellMana || 0)
   const isPlayerTurn = gameState?.activePlayer === 'player1'
 
+  const player1 = getPlayer(gameState, 'player1')
+  const player2 = getPlayer(gameState, 'player2')
+
   return (
     <GameLayout>
-      {/* Turn Indicator Banner */}
-      <TurnIndicator />
-
-      {/* Attack Arrow for Direct Combat */}
       <AttackArrow />
 
-      {/* Player Info Panels */}
-      {(() => {
-        const player2 = getPlayer(gameState, 'player2')
-        return player2 ? (
-          <>
-            <PlayerInfoPanel player={player2} isCurrentPlayer={false} position="top-left" />
-            <ElementSynergyIndicator
-              gameState={gameState}
-              playerId="player2"
-              className="fixed top-16 left-2 md:top-20 md:left-4 z-[60]"
-            />
-          </>
-        ) : null
-      })()}
+      <div className="relative flex min-h-0 flex-1 flex-col">
+        <button
+          type="button"
+          onClick={toggleSound}
+          className="absolute top-1 right-2 z-20 flex h-8 w-8 items-center justify-center rounded-full border border-border bg-card"
+          aria-label={isMuted ? 'Unmute sounds' : 'Mute sounds'}
+          title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
+        >
+          {isMuted ? (
+            <VolumeX className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          ) : (
+            <Volume2 className="h-4 w-4 text-foreground" aria-hidden="true" />
+          )}
+        </button>
 
-      {(() => {
-        const player1 = getPlayer(gameState, 'player1')
-        return player1 ? (
-          <>
-            <PlayerInfoPanel
-              player={player1}
-              isCurrentPlayer={true}
-              position="bottom-right"
-              onAttack={handleAttack}
-              onEndTurn={handlePass}
-            />
-            <ElementSynergyIndicator
-              gameState={gameState}
-              playerId="player1"
-              className="fixed bottom-16 left-2 md:bottom-20 md:left-4 z-[60]"
-            />
-          </>
-        ) : null
-      })()}
+        <div className="flex min-h-0 flex-1 flex-col items-center justify-end gap-1 overflow-hidden px-2 py-1">
+          {player2 ? <PlayerInfoPanel player={player2} isCurrentPlayer={false} /> : null}
 
-      {/* Action Bar - Positioned on the right side */}
-      <ActionBar
-        onAttack={handleAttack}
-        onPass={handlePass}
-        onEndTurn={handleEndTurn}
-        className="fixed bottom-1/2 translate-y-1/2 right-1 md:right-4 z-40"
-      />
+          <div className="flex w-full justify-center">
+            <Battlefield />
+          </div>
 
-      {/* Main Game Area */}
-      <div className="h-full w-full flex items-center justify-center relative p-1 md:p-4">
-        <div className="flex flex-col items-center justify-center w-full max-w-6xl">
-          <Battlefield />
+          {player1 ? (
+            <PlayerInfoPanel player={player1} isCurrentPlayer onEndTurn={handlePass} />
+          ) : null}
+
+          <ReadingSpread />
+
+          <div className="w-full max-w-3xl shrink-0 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+            <HandFan
+              cards={getPlayerHand(gameState, 'player1')}
+              position="bottom-left"
+              isCurrentPlayer
+              embedded
+              onCardPlay={handleCardPlay}
+              onCardDetail={card => {
+                showCardDetail(card)
+              }}
+            />
+          </div>
         </div>
       </div>
-
-      {/* Hand Components */}
-      <HandFan
-        cards={getPlayerHand(gameState, 'player2')}
-        position="top-right"
-        isCurrentPlayer={false}
-      />
-
-      <HandFan
-        cards={getPlayerHand(gameState, 'player1')}
-        position="bottom-left"
-        isCurrentPlayer={true}
-        onCardPlay={handleCardPlay}
-        onCardDetail={card => {
-          // Show card detail overlay
-          showCardDetail(card)
-        }}
-      />
 
       {/* Overlays */}
       <MulliganOverlay
@@ -377,42 +342,29 @@ export default function GameBoard({
         }
       />
 
-      {/* Sound Toggle */}
-      <button
-        onClick={toggleSound}
-        className="fixed top-2 right-14 md:top-4 md:right-16 z-50 w-8 h-8 md:w-10 md:h-10 rounded-full bg-card/90 border border-border shadow-md flex items-center justify-center hover:bg-card transition-colors"
-        aria-label={isMuted ? 'Unmute sounds' : 'Mute sounds'}
-        title={isMuted ? 'Unmute sounds' : 'Mute sounds'}
-      >
-        {isMuted ? (
-          <VolumeX className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
-        ) : (
-          <Volume2 className="w-4 h-4 text-foreground" aria-hidden="true" />
-        )}
-      </button>
-
-      {/* Keyboard Shortcuts Help Overlay */}
       {showHelp && (
         <div
           role="dialog"
           aria-modal="true"
           aria-labelledby="shortcuts-title"
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={() => setShowHelp(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm"
         >
-          <div
-            className="bg-card rounded-xl border border-border shadow-2xl p-6 max-w-sm w-full"
-            onClick={e => e.stopPropagation()}
-          >
+          <button
+            type="button"
+            className="absolute inset-0 cursor-default"
+            aria-label="Close keyboard shortcuts help"
+            onClick={() => setShowHelp(false)}
+          />
+          <div className="relative z-10 w-full max-w-sm rounded-xl border border-border bg-card p-6 shadow-2xl">
             <h2 id="shortcuts-title" className="text-lg font-bold text-foreground mb-4">
               Keyboard Shortcuts
             </h2>
             <dl className="space-y-2 text-sm">
               {[
-                { key: '1–7', desc: 'Play/select card from hand' },
+                { key: '1–7', desc: 'Select a card from hand, then click a slot' },
                 { key: 'E', desc: 'End turn' },
                 { key: 'Space', desc: 'Show selected card detail' },
-                { key: 'Escape', desc: 'Cancel selection / attack' },
+                { key: 'Escape', desc: 'Cancel selection, attack, or this help' },
                 { key: '?', desc: 'Toggle this help' },
               ].map(({ key, desc }) => (
                 <div key={key} className="flex justify-between items-center gap-4">
@@ -424,9 +376,9 @@ export default function GameBoard({
               ))}
             </dl>
             <button
+              type="button"
               onClick={() => setShowHelp(false)}
-              className="mt-5 w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
-              aria-label="Close keyboard shortcuts help"
+              className="mt-5 w-full text-center text-sm text-muted-foreground transition-colors hover:text-foreground"
             >
               Press Escape or click outside to close
             </button>
@@ -436,8 +388,11 @@ export default function GameBoard({
 
       {/* Error Message Toast */}
       {ui.errorMessage && (
-        <div className="fixed bottom-20 left-1/2 -translate-x-1/2 bg-red-600 text-white px-4 py-2 rounded-lg z-50 shadow-lg animate-in fade-in slide-in-from-bottom-4">
-          {ui.errorMessage}
+        <div
+          role="alert"
+          className="fixed bottom-20 left-1/2 z-50 -translate-x-1/2 rounded-lg bg-red-700 px-4 py-2 text-white shadow-lg"
+        >
+          {ui.errorMessage}. Press Escape to cancel, or choose another action.
         </div>
       )}
     </GameLayout>

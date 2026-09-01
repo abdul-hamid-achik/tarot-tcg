@@ -1,14 +1,15 @@
 import path from 'node:path'
-import react from '@vitejs/plugin-react'
 import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
-  plugins: [react()],
+  esbuild: {
+    jsx: 'automatic',
+  },
   test: {
     environment: 'happy-dom',
     setupFiles: ['./src/test-setup.ts'],
     globals: true,
-    exclude: ['node_modules', 'e2e'],
+    exclude: ['node_modules', 'e2e', '**/.next/**', '**/coverage/**'],
     css: true,
     // Disable watch mode by default
     watch: false,
@@ -19,12 +20,13 @@ export default defineConfig({
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],
+      include: ['src/**/*.{ts,tsx}'],
       exclude: [
-        'node_modules/',
         'src/test-setup.ts',
+        'src/test_setup.ts',
+        'src/test_utils.tsx',
         '**/*.d.ts',
-        '**/*.config.*',
-        'src/app/**', // Next.js app directory
+        'src/app/**',
         '**/__tests__/**',
         '**/*.test.*',
         '**/*.spec.*',
@@ -38,6 +40,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
+      'content-collections': path.resolve(__dirname, './.content-collections/generated'),
     },
   },
 })

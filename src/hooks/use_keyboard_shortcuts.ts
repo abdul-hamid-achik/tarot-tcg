@@ -1,48 +1,67 @@
 import { useCallback, useEffect } from 'react'
-import type { Card, GameState } from '@/schemas/schema'
+import type { GameState } from '@/schemas/schema'
 import { useGameStore } from '@/store/game_store'
 
 interface KeyboardShortcutOptions {
   gameState: GameState
   onEndTurn?: () => void
-  onCardPlay?: (card: Card) => void
   onShowHelp?: () => void
+  helpOpen?: boolean
+  onCloseHelp?: () => void
   enabled: boolean
 }
 
 /**
  * Keyboard shortcuts for the game board:
- * - 1-7: Select card from hand (by position)
- * - Escape: Cancel current selection/attack
+ * - 1-7: Select card from hand (same as click — then click a slot to play)
+ * - Escape: Close help, cancel attack, or clear selection
  * - E: End turn
  * - Space: Show detail of selected card
- * - ?: Show help overlay (future)
+ * - ?: Toggle keyboard shortcuts help
  */
 export function useKeyboardShortcuts({
   gameState,
   onEndTurn,
-  onCardPlay,
   onShowHelp,
+  helpOpen = false,
+  onCloseHelp,
   enabled,
 }: KeyboardShortcutOptions) {
-  const { interaction, showCardDetail, clearSelection, cancelAttack } = useGameStore()
+  const {
+    interaction,
+    ui,
+    showCardDetail,
+    hideCardDetail,
+    clearSelection,
+    cancelAttack,
+    selectCard,
+    clearError,
+    clearReading,
+  } = useGameStore()
 
   const handleKeyDown = useCallback(
     (e: KeyboardEvent) => {
       if (!enabled) return
 
-      // Don't capture when typing in inputs
       const target = e.target as HTMLElement
       if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+        return
+      }
+
+      if (helpOpen) {
+        if (e.key === 'Escape' || e.key === '?') {
+          onCloseHelp?.()
+          e.preventDefault()
+        }
         return
       }
 
       const isPlayerTurn = gameState.activePlayer === 'player1'
       const isActionPhase = gameState.phase === 'action'
       const hand = gameState.player1.hand
+      const totalMana = gameState.player1.mana + gameState.player1.spellMana
 
       switch (e.key) {
-        // Number keys 1-7: select card from hand
         case '1':
         case '2':
         case '3':
@@ -51,30 +70,45 @@ export function useKeyboardShortcuts({
         case '6':
         case '7': {
           const index = Number.parseInt(e.key, 10) - 1
-          if (index < hand.length && isPlayerTurn && isActionPhase) {
-            const card = hand[index]
-            if (onCardPlay) {
-              onCardPlay(card)
-            } else {
-              showCardDetail(card)
-            }
+          const card = hand[index]
+          if (!card || !isPlayerTurn || !isActionPhase) {
+            e.preventDefault()
+            break
+          }
+
+          const isSelected = interaction.selectedCard?.id === card.id
+          if (isSelected) {
+            clearSelection()
+          } else if (card.cost <= totalMana) {
+            selectCard(card)
+          } else {
+            showCardDetail(card)
           }
           e.preventDefault()
           break
         }
 
-        // Escape: cancel selection or attack
         case 'Escape': {
-          if (interaction.targetingMode === 'attack') {
+          if (ui.activeOverlay === 'cardDetail') {
+            hideCardDetail()
+          } else if (interaction.targetingMode === 'attack') {
             cancelAttack()
+          } else if (
+            interaction.reading.futureId ||
+            interaction.reading.presentId ||
+            interaction.reading.pastId
+          ) {
+            clearReading()
           } else if (interaction.selectedCard) {
             clearSelection()
           }
+          if (ui.errorMessage) {
+            clearError()
+          }
           e.preventDefault()
           break
         }
 
-        // E: end turn
         case 'e':
         case 'E': {
           if (isPlayerTurn && isActionPhase && onEndTurn) {
@@ -84,7 +118,6 @@ export function useKeyboardShortcuts({
           break
         }
 
-        // Space: show detail of hovered/selected card
         case ' ': {
           if (interaction.selectedCard) {
             showCardDetail(interaction.selectedCard)
@@ -93,7 +126,6 @@ export function useKeyboardShortcuts({
           break
         }
 
-        // ?: Show keyboard shortcuts help
         case '?': {
           onShowHelp?.()
           e.preventDefault()
@@ -103,15 +135,23 @@ export function useKeyboardShortcuts({
     },
     [
       enabled,
+      helpOpen,
+      onCloseHelp,
       gameState,
       interaction.targetingMode,
       interaction.selectedCard,
+      interaction.reading,
+      ui.activeOverlay,
+      ui.errorMessage,
       onEndTurn,
-      onCardPlay,
       onShowHelp,
       showCardDetail,
+      hideCardDetail,
       clearSelection,
       cancelAttack,
+      selectCard,
+      clearError,
+      clearReading,
     ],
   )
 

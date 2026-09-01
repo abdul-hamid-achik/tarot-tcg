@@ -1,10 +1,10 @@
 'use client'
 
-import { Sparkles, Sword, Heart, Shield } from 'lucide-react'
+import { Heart, Shield, Sparkles, Sword } from 'lucide-react'
 import type React from 'react'
 import { Card } from '@/components/ui/card'
-import { cn } from '@/lib/utils'
 import { getCardBackImagePath, getCardImagePath } from '@/lib/card_images'
+import { cn } from '@/lib/utils'
 import type { Card as GameCard } from '@/schemas/schema'
 
 interface TarotCardProps {
@@ -35,10 +35,10 @@ export default function TarotCard({
   rotateIfReversed = false,
 }: TarotCardProps) {
   const sizeClasses = {
-    small: 'w-24 h-36', // Hand cards
-    medium: 'w-32 h-48', // Standard size
-    large: 'w-40 h-60', // Enlarged for detailed view
-    battlefield: 'w-22 h-30', // Slightly larger for better readability
+    small: 'w-14 h-[5.25rem]',
+    medium: 'w-32 h-48',
+    large: 'w-40 h-60',
+    battlefield: 'h-full w-full',
   }
 
   const imagePath = isHidden || !card ? getCardBackImagePath() : getCardImagePath(card)
@@ -54,9 +54,13 @@ export default function TarotCard({
 
     if (card.isReversed) {
       return {
-        attack: Math.max(0, Math.floor(card.attack * 0.7)), // Reversed attack reduction
-        health: card.health + 1, // Reversed health increase
-        description: card.reversedDescription || `Reversed: ${card.description}` || '',
+        attack: card.attack,
+        health: card.health,
+        description:
+          card.reversedDescription ||
+          card.reversedAbilities?.[0]?.description ||
+          card.description ||
+          '',
       }
     }
 
@@ -100,13 +104,13 @@ export default function TarotCard({
   }
 
   // Get display health (current or base)
-  const displayHealth = isDamaged && card?.currentHealth !== undefined
-    ? card.currentHealth
-    : effectiveStats.health
+  const displayHealth =
+    isDamaged && card?.currentHealth !== undefined ? card.currentHealth : effectiveStats.health
   const isLowHealth = card && displayHealth <= Math.floor(card.health / 2)
 
   // Battlefield-specific compact layout
   const isBattlefield = size === 'battlefield'
+  const battlefieldName = card?.name.replace(/^The\s+/i, '') ?? ''
 
   return (
     <Card
@@ -121,7 +125,10 @@ export default function TarotCard({
         // Spell cards - distinctive purple glow
         card?.type === 'spell' && !isSelected && 'border-violet-500 shadow-lg shadow-violet-500/40',
         // Reversed state (only for units, spells handled above)
-        card?.isReversed && card?.type !== 'spell' && !isSelected && 'ring-2 ring-violet-400/60 shadow-lg shadow-violet-400/30 border-violet-500',
+        card?.isReversed &&
+          card?.type !== 'spell' &&
+          !isSelected &&
+          'ring-2 ring-violet-400/60 shadow-lg shadow-violet-400/30 border-violet-500',
         // Default border for units
         !isSelected && card?.type !== 'spell' && !card?.isReversed && 'border-slate-600',
         // Hover
@@ -144,7 +151,7 @@ export default function TarotCard({
           className="w-full h-full object-cover"
           onError={e => {
             // Fallback if image fails to load
-            ; (e.target as HTMLImageElement).src = getCardBackImagePath()
+            ;(e.target as HTMLImageElement).src = getCardBackImagePath()
           }}
         />
       </div>
@@ -155,82 +162,82 @@ export default function TarotCard({
           {/* Top overlay with cost */}
           <div className="absolute top-1 left-1 right-1 flex justify-between items-start z-10">
             {/* Mana Cost - Blue for units, Purple for spells */}
-            <div className={cn(
-              'rounded-full flex items-center justify-center shadow-md',
-              isBattlefield ? 'w-6 h-6' : 'w-8 h-8',
-              card.type === 'spell'
-                ? 'bg-gradient-to-br from-violet-500 to-purple-700 border border-violet-400'
-                : 'bg-gradient-to-br from-blue-600 to-blue-800 border border-blue-400',
-            )}>
-              <span className={cn(
-                'text-white font-bold',
-                isBattlefield ? 'text-xs' : 'text-sm',
-              )}>
+            <div
+              className={cn(
+                'rounded-full flex items-center justify-center shadow-md',
+                isBattlefield ? 'w-6 h-6' : 'w-8 h-8',
+                card.type === 'spell'
+                  ? 'bg-gradient-to-br from-violet-500 to-purple-700 border border-violet-400'
+                  : 'bg-gradient-to-br from-blue-600 to-blue-800 border border-blue-400',
+              )}
+            >
+              <span className={cn('text-white font-bold', isBattlefield ? 'text-xs' : 'text-sm')}>
                 {card.cost}
               </span>
             </div>
 
             {/* Rarity Badge */}
-            <div className={cn(
-              'rounded-full shadow-sm',
-              isBattlefield ? 'w-2 h-2' : 'w-3 h-3',
-              getRarityColor(card),
-            )} />
+            <div
+              className={cn(
+                'rounded-full shadow-sm',
+                isBattlefield ? 'w-2 h-2' : 'w-3 h-3',
+                getRarityColor(card),
+              )}
+            />
           </div>
 
           {/* Bottom overlay with stats and type - Improved for battlefield */}
           <div className="absolute bottom-0 left-0 right-0 z-10">
-            <div className={cn(
-              'bg-gradient-to-t from-black/95 via-black/80 to-transparent',
-              isBattlefield ? 'p-1 pt-3' : 'p-1.5 pt-4',
-            )}>
+            <div
+              className={cn(
+                'bg-gradient-to-t from-black/95 via-black/80 to-transparent',
+                isBattlefield ? 'p-1 pt-3' : 'p-1.5 pt-4',
+              )}
+            >
               {/* Card Name - Truncated for battlefield */}
-              <div className={cn(
-                'font-semibold truncate flex items-center gap-1',
-                isBattlefield ? 'text-[10px] mb-0.5' : 'text-xs mb-1',
-                card.isReversed ? 'text-violet-300' : 'text-white',
-              )}>
-                {!isBattlefield && getTypeIcon(card.type)}
-                <span className="truncate">
-                  {isBattlefield ? card.name.split(' ')[0] : card.name}
-                </span>
-                {card.isReversed && (
-                  <span className="text-violet-400 flex-shrink-0">↺</span>
+              <div
+                className={cn(
+                  'font-semibold truncate flex items-center gap-1',
+                  isBattlefield ? 'text-[10px] mb-0.5' : 'text-xs mb-1',
+                  card.isReversed ? 'text-violet-300' : 'text-white',
                 )}
+              >
+                {!isBattlefield && getTypeIcon(card.type)}
+                <span className="truncate" title={card.name}>
+                  {isBattlefield ? battlefieldName : card.name}
+                </span>
+                {card.isReversed && <span className="text-violet-400 flex-shrink-0">↺</span>}
               </div>
 
               {/* Stats for units - More prominent for battlefield */}
               {card.type === 'unit' && (
                 <div className="flex justify-between items-center">
                   {/* Attack */}
-                  <div className={cn(
-                    'flex items-center gap-0.5 px-1.5 py-0.5 rounded-md',
-                    'bg-amber-600/90',
-                    isBattlefield ? 'text-[10px]' : 'text-xs',
-                  )}>
-                    <Sword className={cn(
-                      isBattlefield ? 'w-2.5 h-2.5' : 'w-3 h-3',
-                      'text-amber-200',
-                    )} />
-                    <span className="font-bold text-white">
-                      {effectiveStats.attack}
-                    </span>
+                  <div
+                    className={cn(
+                      'flex items-center gap-0.5 px-1.5 py-0.5 rounded-md',
+                      'bg-amber-600/90',
+                      isBattlefield ? 'text-[10px]' : 'text-xs',
+                    )}
+                  >
+                    <Sword
+                      className={cn(isBattlefield ? 'w-2.5 h-2.5' : 'w-3 h-3', 'text-amber-200')}
+                    />
+                    <span className="font-bold text-white">{effectiveStats.attack}</span>
                   </div>
 
                   {/* Health */}
-                  <div className={cn(
-                    'flex items-center gap-0.5 px-1.5 py-0.5 rounded-md',
-                    isLowHealth ? 'bg-red-600/90 animate-pulse' : 'bg-red-500/90',
-                    isBattlefield ? 'text-[10px]' : 'text-xs',
-                  )}>
-                    <Heart className={cn(
-                      isBattlefield ? 'w-2.5 h-2.5' : 'w-3 h-3',
-                      'text-red-200',
-                    )} />
-                    <span className={cn(
-                      'font-bold',
-                      isLowHealth ? 'text-red-100' : 'text-white',
-                    )}>
+                  <div
+                    className={cn(
+                      'flex items-center gap-0.5 px-1.5 py-0.5 rounded-md',
+                      isLowHealth ? 'bg-red-600/90 animate-pulse' : 'bg-red-500/90',
+                      isBattlefield ? 'text-[10px]' : 'text-xs',
+                    )}
+                  >
+                    <Heart
+                      className={cn(isBattlefield ? 'w-2.5 h-2.5' : 'w-3 h-3', 'text-red-200')}
+                    />
+                    <span className={cn('font-bold', isLowHealth ? 'text-red-100' : 'text-white')}>
                       {displayHealth}
                     </span>
                   </div>
@@ -239,31 +246,26 @@ export default function TarotCard({
 
               {/* Spell indicator - More prominent */}
               {card.type === 'spell' && (
-                <div className={cn(
-                  'flex items-center justify-center gap-1 px-2 py-1 rounded-md',
-                  'bg-gradient-to-r from-violet-600 to-purple-600',
-                  'border border-violet-400/50',
-                  'shadow-inner shadow-violet-400/20',
-                  isBattlefield ? 'text-[10px]' : 'text-xs',
-                )}>
-                  <Sparkles className={cn(
-                    isBattlefield ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5',
-                    'text-violet-200 animate-pulse',
-                  )} />
+                <div
+                  className={cn(
+                    'flex items-center justify-center gap-1 px-2 py-1 rounded-md',
+                    'bg-gradient-to-r from-violet-600 to-purple-600',
+                    'border border-violet-400/50',
+                    'shadow-inner shadow-violet-400/20',
+                    isBattlefield ? 'text-[10px]' : 'text-xs',
+                  )}
+                >
+                  <Sparkles
+                    className={cn(
+                      isBattlefield ? 'w-2.5 h-2.5' : 'w-3.5 h-3.5',
+                      'text-violet-200 animate-pulse',
+                    )}
+                  />
                   <span className="font-bold text-white tracking-wide">SPELL</span>
                 </div>
               )}
             </div>
           </div>
-
-          {/* Status indicators for battlefield */}
-          {isBattlefield && card.hasSummoningSickness && (
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-20">
-              <div className="bg-slate-900/80 rounded-full p-1">
-                <span className="text-slate-400 text-[10px]">💤</span>
-              </div>
-            </div>
-          )}
 
           {/* Divine Shield indicator */}
           {card.divineShield && (

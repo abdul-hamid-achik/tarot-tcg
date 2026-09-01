@@ -47,12 +47,12 @@
         }
     },
     "context": {
-        "framework": "Next.js 15",
+        "framework": "Next.js 16",
         "language": "TypeScript",
         "testing": "Vitest with Testing Library",
         "styling": "Tailwind CSS",
         "linter": "Biome",
-        "contentManagement": "Contentlayer",
+        "contentManagement": "Content Collections",
         "stateManagement": "Zustand"
     },
     "notes": [

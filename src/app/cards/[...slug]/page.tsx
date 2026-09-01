@@ -1,10 +1,15 @@
-import { allCards } from 'contentlayer/generated'
+import { MDXContent } from '@content-collections/mdx/react'
+import { allCards } from 'content-collections'
+import type { Metadata } from 'next'
+import Image from 'next/image'
 import { notFound } from 'next/navigation'
-import { getMDXComponent } from 'next-contentlayer2/hooks'
+import { DualFaceAbilities } from '@/components/dual_face_abilities'
 import { Badge } from '@/components/ui/badge'
 import { Breadcrumb } from '@/components/ui/breadcrumb'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { CardNavigation } from '@/components/ui/card_navigation'
+import { getCardImagePath } from '@/lib/card_images'
+import { mergeOrientedSources, summarizeAbilities } from '@/lib/card_orientation'
 
 interface PageProps {
   params: Promise<{
@@ -14,19 +19,36 @@ interface PageProps {
 
 export async function generateStaticParams() {
   return allCards.map(card => ({
-    slug: card._raw.flattenedPath.replace('cards/', '').split('/'),
+    slug: card.slug.split('/'),
   }))
+}
+
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug: slugArray } = await params
+  const slug = slugArray.join('/')
+  const card = allCards.find(item => item.slug === slug)
+  if (!card) return { title: 'Card' }
+
+  const oriented = mergeOrientedSources(card.abilities, card.effects)
+  const reversed = summarizeAbilities(oriented.reversed)
+
+  return {
+    title: card.name,
+    description: reversed
+      ? `${card.name}: upright and reversed game text for Tarot TCG.`
+      : `${card.name} in Tarot TCG.`,
+  }
 }
 
 export default async function CardPage({ params }: PageProps) {
   const { slug: slugArray } = await params
   const slug = slugArray.join('/')
-  const card = allCards.find(card => card._raw.flattenedPath === `cards/${slug}`)
+  const card = allCards.find(item => item.slug === slug)
 
   if (!card) notFound()
 
   // Find previous and next cards
-  const currentIndex = allCards.findIndex(c => c._raw.flattenedPath === `cards/${slug}`)
+  const currentIndex = allCards.findIndex(item => item.slug === slug)
   const previousCard = currentIndex > 0 ? allCards[currentIndex - 1] : undefined
   const nextCard = currentIndex < allCards.length - 1 ? allCards[currentIndex + 1] : undefined
 
@@ -47,142 +69,76 @@ export default async function CardPage({ params }: PageProps) {
     { label: card.name, isCurrentPage: true },
   ]
 
-  const MDXContent = getMDXComponent(card.body.code)
+  const oriented = mergeOrientedSources(card.abilities, card.effects)
+  const imagePath = getCardImagePath({
+    id: card.id,
+    name: card.name,
+  })
 
   return (
-    <div className="min-h-screen bg-white dark:bg-gray-900 transition-colors">
-      <div className="container mx-auto py-8 max-w-4xl">
+    <div className="min-h-screen bg-background text-foreground">
+      <div className="container mx-auto py-8 max-w-4xl px-4">
         {/* Breadcrumb */}
         <Breadcrumb items={breadcrumbItems} className="mb-6" />
 
         {/* Card Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-4 mb-4">
-            <h1 className="text-4xl font-bold text-black dark:text-white transition-colors">
-              {card.name}
-            </h1>
-            <span className="text-3xl">{card.tarotSymbol}</span>
-          </div>
-
-          {/* Card Stats */}
-          <Card className="mb-6 rounded-sm bg-white dark:bg-gray-900 transition-colors border-gray-300">
-            <CardHeader>
-              <CardTitle>Card Stats</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div>
-                  <span className="font-semibold">Type:</span> {card.cardType}
-                </div>
-                <div>
-                  <span className="font-semibold">Cost:</span> {card.cost}
-                </div>
-                {card.isUnit && (
-                  <>
-                    <div>
-                      <span className="font-semibold">Attack:</span> {card.attack}
-                    </div>
-                    <div>
-                      <span className="font-semibold">Health:</span> {card.health}
-                    </div>
-                  </>
-                )}
-                {card.isSpell && card.spellType && (
-                  <div>
-                    <span className="font-semibold">Spell Type:</span> {card.spellType}
-                  </div>
-                )}
+          <div className="flex flex-col sm:flex-row gap-6 mb-8">
+            <Image
+              src={imagePath}
+              alt=""
+              width={160}
+              height={240}
+              className="w-40 h-60 object-cover rounded-md border border-border shadow-sm"
+            />
+            <div className="min-w-0">
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-4xl font-bold">{card.name}</h1>
+                <span className="text-3xl" aria-hidden>
+                  {card.tarotSymbol}
+                </span>
               </div>
-
-              <div className="mt-4 flex flex-wrap gap-2">
+              <p className="text-muted-foreground mb-4">
+                {card.cardType}
+                {card.spellType ? ` · ${card.spellType}` : ''}
+                {` · ${card.cost} mana`}
+                {card.isUnit ? ` · ${card.attack}/${card.health}` : ''}
+              </p>
+              <div className="flex flex-wrap gap-2">
                 <Badge variant="secondary">{card.zodiacClass}</Badge>
                 <Badge variant="outline">{card.element}</Badge>
-                <div
-                  className={`w-4 h-4 rounded-full ${
-                    card.rarity === 'common'
-                      ? 'bg-gray-500'
-                      : card.rarity === 'uncommon'
-                        ? 'bg-green-500'
-                        : card.rarity === 'rare'
-                          ? 'bg-blue-500'
-                          : card.rarity === 'legendary'
-                            ? 'bg-purple-500'
-                            : 'bg-gray-500'
-                  }`}
-                />
+                <Badge variant="outline">{card.rarity}</Badge>
               </div>
-
               {card.keywords && card.keywords.length > 0 && (
-                <div className="mt-4">
-                  <span className="font-semibold mb-2 block">Keywords:</span>
-                  <div className="flex flex-wrap gap-2">
-                    {card.keywords.map(keyword => (
-                      <Badge key={keyword} variant="outline">
-                        {keyword}
-                      </Badge>
-                    ))}
-                  </div>
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {card.keywords.map(keyword => (
+                    <Badge key={keyword} variant="outline">
+                      {keyword}
+                    </Badge>
+                  ))}
                 </div>
               )}
+            </div>
+          </div>
+
+          <Card className="mb-6">
+            <CardHeader>
+              <CardTitle>Upright and reversed</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <DualFaceAbilities upright={oriented.upright} reversed={oriented.reversed} />
             </CardContent>
           </Card>
-
-          {/* Abilities */}
-          {card.abilities && (
-            <Card className="mb-6 rounded-sm bg-white dark:bg-gray-900 transition-colors border-gray-300">
-              <CardHeader>
-                <CardTitle>Abilities</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {card.abilities.upright && (
-                  <div className="mb-4">
-                    <h4 className="font-semibold text-green-700 mb-2">Upright</h4>
-                    {card.abilities.upright.map(
-                      (ability: { name: string; description: string }) => (
-                        <div key={`${ability.name}-${ability.description}`} className="mb-2">
-                          <strong>{ability.name}:</strong> {ability.description}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-                {card.abilities.reversed && (
-                  <div>
-                    <h4 className="font-semibold text-red-700 mb-2">Reversed</h4>
-                    {card.abilities.reversed.map(
-                      (ability: { name: string; description: string }) => (
-                        <div key={`${ability.name}-${ability.description}`} className="mb-2">
-                          <strong>{ability.name}:</strong> {ability.description}
-                        </div>
-                      ),
-                    )}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Effects (for spells) */}
-          {card.effects && (
-            <Card className="mb-6 rounded-sm bg-white dark:bg-gray-900 transition-colors border-gray-300">
-              <CardHeader>
-                <CardTitle>Effects</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <pre className="whitespace-pre-wrap">{JSON.stringify(card.effects, null, 2)}</pre>
-              </CardContent>
-            </Card>
-          )}
         </div>
 
         {/* MDX Content */}
-        <Card className="rounded-sm bg-white dark:bg-gray-900 transition-colors border-gray-300">
+        <Card>
           <CardHeader>
-            <CardTitle>Lore & Strategy</CardTitle>
+            <CardTitle>Lore</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="prose max-w-none">
-              <MDXContent />
+            <div className="prose dark:prose-invert max-w-none">
+              <MDXContent code={card.mdx} />
             </div>
           </CardContent>
         </Card>
@@ -193,7 +149,7 @@ export default async function CardPage({ params }: PageProps) {
             previousCard
               ? {
                   name: previousCard.name,
-                  slug: previousCard._raw.flattenedPath.replace('cards/', ''),
+                  slug: previousCard.slug,
                 }
               : undefined
           }
@@ -201,7 +157,7 @@ export default async function CardPage({ params }: PageProps) {
             nextCard
               ? {
                   name: nextCard.name,
-                  slug: nextCard._raw.flattenedPath.replace('cards/', ''),
+                  slug: nextCard.slug,
                 }
               : undefined
           }

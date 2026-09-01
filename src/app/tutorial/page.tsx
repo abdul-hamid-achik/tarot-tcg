@@ -1,225 +1,105 @@
 'use client'
 
 import { produce } from 'immer'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { GameBoardErrorBoundary } from '@/components/error_boundary'
 import TarotGameBoard from '@/components/game_board'
+import { GameSummary } from '@/components/game_summary'
 import { Button } from '@/components/ui/button'
 import { useAIController } from '@/hooks/use_ai_controller'
+import { useGameTracker } from '@/hooks/use_game_tracker'
 import { GameLogger } from '@/lib/game_logger'
-import {
-  checkGameOutcome,
-  completeMulligan,
-  createInitialGameState,
-  endTurn,
-  initializeCards,
-  playCard,
-} from '@/lib/game_logic'
-import type { Card, GameState } from '@/schemas/schema'
+import { checkGameOutcome, createInitialGameState, initializeCards } from '@/lib/game_logic'
+import type { GameState } from '@/schemas/schema'
 import { soundService } from '@/services/sound_service'
+import { useGameStore } from '@/store/game_store'
+
+function createTutorialSeed(): GameState {
+  initializeCards()
+  return produce(createInitialGameState(), draft => {
+    draft.player1.mana = 3
+    draft.player1.maxMana = 3
+    draft.player2.mana = 3
+    draft.player2.maxMana = 3
+  })
+}
 
 export default function Tutorial() {
-  const [gameState, setGameState] = useState<GameState | null>(null)
-  const [_message, setMessage] = useState('🎴 Welcome to the Tarot TCG!')
+  const router = useRouter()
+  const [seedState, setSeedState] = useState<GameState | null>(() => createTutorialSeed())
+  const [matchId, setMatchId] = useState(1)
   const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>(
     'ongoing',
   )
-  const [_showTutorialTips, _setShowTutorialTips] = useState(false)
+  const liveState = useGameStore(state => state.gameState)
 
-  const { executeAI } = useAIController({
-    enabled: true,
+  useAIController({
+    enabled: seedState !== null && gameOutcome === 'ongoing',
     autoPlay: true,
-    difficulty: 'easy',
+    difficulty: 'tutorial',
   })
 
-  // Initialize tutorial game
-  useEffect(() => {
-    initializeCards()
-    const initialState = createInitialGameState()
-
-    // Boost starting mana for tutorial/sandbox experience using produce
-    const tutorialState = produce(initialState, draft => {
-      draft.player1.mana = 3
-      draft.player1.maxMana = 3
-      draft.player2.mana = 3
-      draft.player2.maxMana = 3
-    })
-
-    setGameState(tutorialState)
-    setMessage('🃏 Tutorial started! Complete your mulligan or click "Keep All" to begin.')
-    GameLogger.state('Tutorial initialized')
-  }, [])
-
-  // Check for game outcome
-  useEffect(() => {
-    if (gameState) {
-      const outcome = checkGameOutcome(gameState)
-      setGameOutcome(outcome)
-
-      if (outcome !== 'ongoing') {
-        const winner = outcome === 'player1_wins' ? 'You' : 'AI'
-        setMessage(`🎊 Game Over! ${winner} wins!`)
-        soundService.play(outcome === 'player1_wins' ? 'game_win' : 'game_lose')
-      }
-    }
-  }, [gameState])
-
-  // Auto-execute AI turn
-  useEffect(() => {
-    if (
-      gameState?.activePlayer === 'player2' &&
-      gameState?.phase === 'action' &&
-      gameOutcome === 'ongoing'
-    ) {
-      const timer = setTimeout(() => {
-        executeAI()
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [
-    gameState?.activePlayer,
-    gameState?.phase,
+  const { newAchievements, gameRecord } = useGameTracker(
+    liveState,
     gameOutcome,
-    executeAI,
-  ])
+    'tutorial',
+    'Tutorial',
+    matchId,
+  )
 
-  const handleCardPlay = async (card: Card) => {
-    if (!gameState) return
-
-    // Basic validation
-    const totalMana = gameState.player1.mana + gameState.player1.spellMana
-    if (card.cost > totalMana) {
-      setMessage(`⚠️ Not enough mana! Need ${card.cost}, have ${totalMana}`)
-      return
-    }
-
-    if (card.type === 'unit') {
-      const playerUnits = gameState.battlefield.playerUnits.filter(u => u !== null)
-      if (playerUnits.length >= 7) {
-        setMessage('⚠️ Battlefield is full! Maximum 7 units allowed.')
-        return
-      }
-    }
-
-    try {
-      const newState = await playCard(gameState, card)
-      setGameState(newState)
-      setMessage(
-        `✅ Played ${card.name} (${newState.battlefield.playerUnits.filter(u => u !== null).length}/7 units on battlefield)`,
-      )
-    } catch (error) {
-      console.error('Error playing card:', error)
-      setMessage('❌ Failed to play card. Please try again.')
-    }
-  }
-
-  const handleMulligan = async (selectedCards: string[]) => {
-    if (!gameState) return
-
-    try {
-      // Set selected cards for mulligan using produce for immutable updates
-      const preparedState = produce(gameState, draft => {
-        draft.player1.selectedForMulligan = selectedCards
-        // In tutorial, automatically complete AI mulligan BEFORE calling completeMulligan
-        draft.player2.mulliganComplete = true
-        draft.player2.selectedForMulligan = []
-      })
-
-      let mulliganedState = completeMulligan(preparedState)
-
-      // Force phase transition in tutorial if needed
-      if (
-        mulliganedState.player1.mulliganComplete &&
-        mulliganedState.player2.mulliganComplete &&
-        mulliganedState.phase !== 'action'
-      ) {
-        console.log('Forcing phase transition to action in tutorial')
-        mulliganedState = produce(mulliganedState, draft => {
-          draft.phase = 'action'
-          draft.waitingForAction = true
-        })
-      }
-
-      setGameState(mulliganedState)
-
-      if (selectedCards.length === 0) {
-        setMessage('✨ All cards kept! Game begins.')
-      } else {
-        setMessage(`🔄 Replaced ${selectedCards.length} cards. Game begins!`)
-      }
-    } catch (error) {
-      console.error('Error in mulligan:', error)
-      setMessage('❌ Mulligan failed. Please try again.')
-    }
-  }
-
-  const handleEndTurn = async () => {
-    if (!gameState) return
-
-    try {
-      const newState = await endTurn(gameState)
-      setGameState(newState)
-      setMessage(`🔄 Turn passed to ${newState.activePlayer === 'player1' ? 'you' : 'AI'}`)
-    } catch (error) {
-      console.error('Error ending turn:', error)
-      setMessage('❌ Failed to end turn. Please try again.')
-    }
-  }
-
-  const resetGame = () => {
-    const newState = createInitialGameState()
-    setGameState(newState)
+  const startMatch = () => {
+    setSeedState(createTutorialSeed())
+    setMatchId(id => id + 1)
     setGameOutcome('ongoing')
-    setMessage('🔄 Game reset! Complete your mulligan to begin.')
-    GameLogger.state('Tutorial reset')
+    GameLogger.state('Tutorial initialized')
+  }
+
+  useEffect(() => {
+    if (!liveState) return
+    const outcome = checkGameOutcome(liveState)
+    if (outcome !== 'ongoing' && gameOutcome === 'ongoing') {
+      soundService.play(outcome === 'player1_wins' ? 'game_win' : 'game_lose')
+    }
+    setGameOutcome(outcome)
+  }, [liveState, gameOutcome])
+
+  if (gameOutcome !== 'ongoing') {
+    return (
+      <div className="relative flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
+        <GameSummary
+          outcome={gameOutcome}
+          gameRecord={gameRecord}
+          newAchievements={newAchievements}
+          onPlayAgain={startMatch}
+          onReturnHome={() => router.push('/')}
+        />
+      </div>
+    )
   }
 
   return (
-    <div className="h-screen w-screen bg-background text-foreground overflow-hidden relative transition-colors">
-      {/* Floating Settings Cog */}
-      <div className="fixed top-4 right-4 z-50">
+    <div className="relative flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
+      <header className="flex shrink-0 items-center justify-end border-b border-border px-3 py-2">
         <Button
-          onClick={resetGame}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full w-12 h-12 p-0 shadow-lg"
-          title="Game Settings & Reset"
+          type="button"
+          onClick={startMatch}
+          variant="outline"
+          size="sm"
+          title="Reset"
+          aria-label="Reset tutorial"
         >
-          ⚙️
+          Reset
         </Button>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {seedState && (
+          <GameBoardErrorBoundary onReset={startMatch}>
+            <TarotGameBoard key={matchId} gameState={seedState} />
+          </GameBoardErrorBoundary>
+        )}
       </div>
-
-      {/* Game Board - Full Screen */}
-      {gameState && (
-        <GameBoardErrorBoundary onReset={resetGame}>
-          <TarotGameBoard
-            gameState={gameState}
-            onCardPlay={handleCardPlay}
-            onEndTurn={handleEndTurn}
-            onMulligan={handleMulligan}
-          />
-        </GameBoardErrorBoundary>
-      )}
-
-      {/* Game Outcome */}
-      {gameOutcome !== 'ongoing' && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50">
-          <div className="bg-card border border-border rounded-xl p-8 text-center shadow-lg">
-            <h2 className="text-2xl font-bold text-foreground mb-4">
-              {gameOutcome === 'player1_wins' ? '🎉 You Win!' : '💀 AI Wins!'}
-            </h2>
-            <div className="flex gap-4">
-              <Button
-                onClick={resetGame}
-                className="bg-primary text-primary-foreground hover:bg-primary/90"
-              >
-                🔄 Play Again
-              </Button>
-              <Button onClick={() => (window.location.href = '/')} variant="outline">
-                🏠 Main Menu
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

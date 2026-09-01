@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { GameState } from '@/schemas/schema'
 import type { AchievementProgress, GameRecord } from '@/schemas/stats_schema'
 import { achievementService } from '@/services/achievement_service'
@@ -44,43 +44,37 @@ export function useGameTracker(
   gameOutcome: 'player1_wins' | 'player2_wins' | 'ongoing',
   difficulty: string,
   deckName: string,
+  matchId = 0,
 ): GameTrackerResult {
+  const [gameRecord, setGameRecord] = useState<GameRecord | null>(null)
+  const [newAchievements, setNewAchievements] = useState<AchievementProgress[]>([])
   const startTimeRef = useRef(Date.now())
   const countersRef = useRef<TrackerCounters>(createCounters())
   const prevStateRef = useRef<GameState | null>(null)
   const recordedRef = useRef(false)
-  const achievementsRef = useRef<AchievementProgress[]>([])
-  const gameRecordRef = useRef<GameRecord | null>(null)
 
-  // Reset when a new game starts
-  const currentRound = gameState?.round ?? null
-  const prevRoundRef = useRef<number | null>(null)
-
-  if (
-    currentRound !== null &&
-    (prevRoundRef.current === null || currentRound === 1) &&
-    currentRound !== prevRoundRef.current
-  ) {
+  useEffect(() => {
+    void matchId
     startTimeRef.current = Date.now()
     countersRef.current = createCounters()
     recordedRef.current = false
-    achievementsRef.current = []
-    gameRecordRef.current = null
-  }
-  prevRoundRef.current = currentRound
+    prevStateRef.current = null
+    setGameRecord(null)
+    setNewAchievements([])
+  }, [matchId])
 
-  // Diff game state between renders to detect changes
   useEffect(() => {
-    if (!gameState || !prevStateRef.current) {
+    if (!gameState) return
+
+    const prev = prevStateRef.current
+    if (!prev || gameState.round < prev.round) {
       prevStateRef.current = gameState
       return
     }
 
-    const prev = prevStateRef.current
     const curr = gameState
     const counters = countersRef.current
 
-    // Detect cards leaving player1's hand (card played)
     if (curr.player1.hand.length < prev.player1.hand.length) {
       const currHandIds = new Set(curr.player1.hand.map(c => c.id))
       for (const card of prev.player1.hand) {
@@ -106,26 +100,22 @@ export function useGameTracker(
       }
     }
 
-    // Detect enemy units disappearing from battlefield (units destroyed)
     const prevEnemyCount = prev.battlefield.enemyUnits.filter(u => u !== null).length
     const currEnemyCount = curr.battlefield.enemyUnits.filter(u => u !== null).length
     if (currEnemyCount < prevEnemyCount) {
       counters.unitsDestroyed += prevEnemyCount - currEnemyCount
     }
 
-    // Detect own units disappearing from battlefield (units lost)
     const prevPlayerCount = prev.battlefield.playerUnits.filter(u => u !== null).length
     const currPlayerCount = curr.battlefield.playerUnits.filter(u => u !== null).length
     if (currPlayerCount < prevPlayerCount) {
       counters.unitsLost += prevPlayerCount - currPlayerCount
     }
 
-    // Detect opponent health decreasing (nexus damage dealt)
     if (curr.player2.health < prev.player2.health) {
       counters.damageDealt += prev.player2.health - curr.player2.health
     }
 
-    // Detect mana spent
     const prevTotalMana = prev.player1.mana + prev.player1.spellMana
     const currTotalMana = curr.player1.mana + curr.player1.spellMana
     if (currTotalMana < prevTotalMana && prev.activePlayer === 'player1') {
@@ -135,7 +125,6 @@ export function useGameTracker(
     prevStateRef.current = gameState
   }, [gameState])
 
-  // Record game when outcome changes from ongoing
   useEffect(() => {
     if (gameOutcome === 'ongoing' || !gameState || recordedRef.current) return
 
@@ -165,15 +154,14 @@ export function useGameTracker(
       timestamp: Date.now(),
     }
 
-    gameRecordRef.current = record
+    setGameRecord(record)
 
     const updatedStats = statsService.recordGame(record)
     const newlyUnlocked = achievementService.checkAchievements(updatedStats, record)
     if (newlyUnlocked.length > 0) {
-      achievementsRef.current = newlyUnlocked
+      setNewAchievements(newlyUnlocked)
     }
 
-    // Update quest progress
     questService.refreshQuests()
     if (record.result === 'win') {
       questService.updateProgress('win', 1)
@@ -199,15 +187,17 @@ export function useGameTracker(
   }, [gameOutcome, gameState, difficulty, deckName])
 
   const clearAchievements = useCallback(() => {
-    for (const a of achievementsRef.current) {
-      achievementService.markNotified(a.id)
-    }
-    achievementsRef.current = []
+    setNewAchievements(current => {
+      for (const achievement of current) {
+        achievementService.markNotified(achievement.id)
+      }
+      return []
+    })
   }, [])
 
   return {
-    newAchievements: achievementsRef.current,
+    newAchievements,
     clearAchievements,
-    gameRecord: gameRecordRef.current,
+    gameRecord,
   }
 }

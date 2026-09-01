@@ -44,6 +44,10 @@ next-env.d.ts
 # Drizzle
 drizzle/
 .contentlayer
+.content-collections
 # vecgrep indexing
 .vecgrep/
 .vecai/
+
+# local QA captures
+.tmp/

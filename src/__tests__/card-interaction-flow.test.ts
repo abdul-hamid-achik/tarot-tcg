@@ -189,7 +189,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
         })
     })
 
-    describe('Attack Flow (Hearthstone-style: Click Attacker, Then Click Target)', () => {
+    describe.skip('Attack Flow (replaced by reading combat)', () => {
         it('should start attack targeting when clicking an attacker unit', async () => {
             const { canAttack } = await import('@/services/combat_service')
             vi.mocked(canAttack).mockReturnValue(true)
@@ -274,7 +274,7 @@ describe('Card Interaction Flow - Integration Tests', () => {
         })
     })
 
-    describe('Combined Card Play and Attack Flow', () => {
+    describe.skip('Combined Card Play and Attack Flow (replaced by reading combat)', () => {
         it('should allow playing a card and then attacking with it in same turn (if no summoning sickness)', async () => {
             const { result: gameActions } = renderHook(() => useGameActions())
             const { result: combatActions } = renderHook(() => useCombatActions())

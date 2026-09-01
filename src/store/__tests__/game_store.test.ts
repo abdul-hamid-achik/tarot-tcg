@@ -17,6 +17,7 @@ describe('Game Store', () => {
         act(() => {
             result.current.setGameState(createTestGameState())
             result.current.clearSelection()
+            result.current.clearReading()
             result.current.clearHighlights()
             result.current.clearValidDropZones()
             result.current.hideCardDetail()
@@ -36,6 +37,25 @@ describe('Game Store', () => {
             expect(['player1', 'player2']).toContain(result.current.gameState.activePlayer)
         })
 
+        it('places a card into Future then Present then Past', () => {
+            const { result } = renderHook(() => useGameStore())
+            const cardA = { id: 'a', name: 'A' } as never
+            const cardB = { id: 'b', name: 'B' } as never
+            const cardC = { id: 'c', name: 'C' } as never
+
+            act(() => {
+                result.current.placeInReading(cardA)
+                result.current.placeInReading(cardB)
+                result.current.placeInReading(cardC)
+            })
+
+            expect(result.current.interaction.reading).toEqual({
+                futureId: 'a',
+                presentId: 'b',
+                pastId: 'c',
+            })
+        })
+
         it('should initialize interaction state', () => {
             const { result } = renderHook(() => useGameStore())
 
@@ -48,6 +68,7 @@ describe('Game Store', () => {
                 attackSource: null,
                 validAttackTargets: new Set(),
                 targetingMode: 'none',
+                reading: { pastId: null, presentId: null, futureId: null },
             })
         })
 
@@ -157,6 +178,41 @@ describe('Game Store', () => {
             })
 
             expect(result.current.interaction.selectedCard).toBeNull()
+        })
+
+        it('highlights empty player slots when a unit is selected', () => {
+            const { result } = renderHook(() => useGameStore())
+            const card = createTestCard({ id: 'test-card', type: 'unit' })
+
+            act(() => {
+                result.current.selectCard(card)
+            })
+
+            expect(result.current.validDropZones.has('player1-0')).toBe(true)
+            expect(result.current.validDropZones.size).toBe(7)
+        })
+
+        it('does not highlight slots for a selected spell', () => {
+            const { result } = renderHook(() => useGameStore())
+            const card = createTestCard({ id: 'spell-1', type: 'spell' })
+
+            act(() => {
+                result.current.selectCard(card)
+            })
+
+            expect(result.current.validDropZones.size).toBe(0)
+        })
+
+        it('clears drop zones when selection is cleared', () => {
+            const { result } = renderHook(() => useGameStore())
+            const card = createTestCard({ id: 'test-card', type: 'unit' })
+
+            act(() => {
+                result.current.selectCard(card)
+                result.current.clearSelection()
+            })
+
+            expect(result.current.validDropZones.size).toBe(0)
         })
 
         it('should clear attack state when clearing selection', () => {

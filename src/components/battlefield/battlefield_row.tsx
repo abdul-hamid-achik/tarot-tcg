@@ -1,9 +1,9 @@
 'use client'
 
-import { GameLogger } from '@/lib/game_logger'
 import type React from 'react'
 import { useCallback } from 'react'
 import { useGameActions } from '@/hooks/use_game_actions'
+import { GameLogger } from '@/lib/game_logger'
 import { cn } from '@/lib/utils'
 import type { Card, PlayerId } from '@/schemas/schema'
 import type { BattlefieldPosition } from '@/services/battlefield_service'
@@ -42,11 +42,7 @@ export function BattlefieldRow({
       if (interaction.draggedCard && canInteract) {
         const emptySlotIndex = units.indexOf(null)
         if (emptySlotIndex !== -1) {
-          const position: BattlefieldPosition = {
-            player,
-            slot: emptySlotIndex,
-          }
-          GameLogger.debug('Auto-placing card in slot:', position)
+          const position: BattlefieldPosition = { player, slot: emptySlotIndex }
           try {
             await playCard(interaction.draggedCard, position)
           } catch (error) {
@@ -64,23 +60,12 @@ export function BattlefieldRow({
   const hasSelectedCard = interaction.selectedCard !== null || interaction.draggedCard !== null
 
   return (
-    <div
+    <ul
       className={cn(
-        'flex justify-center gap-3 min-h-[140px] p-4 rounded-2xl transition-all duration-300',
-        'border-2',
-        // Distinct visual zones for player vs opponent
-        isPlayerRow
-          ? [
-              'bg-gradient-to-t from-slate-100 to-white',
-              'border-slate-200',
-              hasSelectedCard && 'border-emerald-300 bg-gradient-to-t from-emerald-50 to-white',
-            ]
-          : [
-              'bg-gradient-to-b from-slate-200 to-slate-100',
-              'border-slate-300',
-            ],
+        'grid w-full list-none grid-cols-7 gap-1 rounded-lg border p-1',
+        isPlayerRow ? 'border-border bg-card' : 'border-border/70 bg-muted/40',
+        hasSelectedCard && isPlayerRow && 'border-foreground',
       )}
-      role="list"
       aria-label={isPlayerRow ? 'Your battlefield' : "Opponent's battlefield"}
       onDragOver={handleRowDragOver}
       onDrop={handleRowDrop}
@@ -106,6 +91,6 @@ export function BattlefieldRow({
           />
         )
       })}
-    </div>
+    </ul>
   )
 }

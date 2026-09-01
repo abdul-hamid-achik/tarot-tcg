@@ -7,7 +7,7 @@ import {
   Flame,
   Layers,
   Menu,
-  Play,
+  ScrollText,
   Settings,
   Swords,
   X,
@@ -26,12 +26,14 @@ interface NavigationProps {
 export function Navigation({ className = '' }: NavigationProps) {
   const pathname = usePathname()
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [moreOpen, setMoreOpen] = useState(false)
 
   // Close mobile menu on route change
   const prevPathRef = useRef(pathname)
   if (pathname !== prevPathRef.current) {
     prevPathRef.current = pathname
     if (mobileOpen) setMobileOpen(false)
+    if (moreOpen) setMoreOpen(false)
   }
 
   const isActive = (path: string) => {
@@ -40,11 +42,21 @@ export function Navigation({ className = '' }: NavigationProps) {
   }
 
   const navItems = [
-    { label: 'Game', href: '/', icon: Play, description: 'Play the tarot card game' },
-    { label: 'Cards', href: '/cards', icon: CreditCard, description: 'Browse all tarot cards' },
-    { label: 'Tutorial', href: '/tutorial', icon: BookOpen, description: 'Learn how to play' },
+    {
+      label: 'Cards',
+      href: '/cards',
+      icon: CreditCard,
+      description: 'Browse all 78 cards, upright and reversed',
+    },
+    {
+      label: 'Rules',
+      href: '/rules',
+      icon: ScrollText,
+      description: 'How to play, including table rules',
+    },
     { label: 'Play', href: '/play', icon: Swords, description: 'Play against AI' },
     { label: 'Decks', href: '/deck-builder', icon: Layers, description: 'Build custom decks' },
+    { label: 'Tutorial', href: '/tutorial', icon: BookOpen, description: 'Learn by playing' },
     {
       label: 'Challenges',
       href: '/challenges',
@@ -65,6 +77,8 @@ export function Navigation({ className = '' }: NavigationProps) {
     },
   ]
 
+  const primaryHrefs = ['/cards', '/rules', '/play', '/deck-builder']
+
   return (
     <header
       className={`bg-background border-b border-border shadow-sm transition-colors ${className}`}
@@ -72,14 +86,11 @@ export function Navigation({ className = '' }: NavigationProps) {
       <div className="container mx-auto px-4">
         <div className="flex items-center justify-between h-16">
           {/* Logo/Brand */}
-          <Link href="/" className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <span className="text-primary-foreground font-bold text-sm">⚡</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-foreground">Tarot TCG</h1>
-              <p className="text-xs text-muted-foreground">Strategic Card Game</p>
-            </div>
+          <Link href="/" className="flex items-center gap-2.5">
+            <span className="flex size-8 items-center justify-center rounded-md bg-primary font-mono text-[11px] text-primary-foreground">
+              00
+            </span>
+            <span className="text-lg font-semibold text-foreground">Tarot TCG</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -87,8 +98,13 @@ export function Navigation({ className = '' }: NavigationProps) {
             {navItems.map(item => {
               const Icon = item.icon
               const active = isActive(item.href)
+              const isPrimary = primaryHrefs.includes(item.href)
               return (
-                <Link key={item.href} href={item.href}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={isPrimary ? '' : 'hidden xl:block'}
+                >
                   <Button
                     variant={active ? 'default' : 'ghost'}
                     size="sm"
@@ -109,6 +125,41 @@ export function Navigation({ className = '' }: NavigationProps) {
                 </Link>
               )
             })}
+            <div className="relative xl:hidden">
+              <Button
+                variant="ghost"
+                size="sm"
+                className="text-muted-foreground"
+                onClick={() => setMoreOpen(!moreOpen)}
+                aria-expanded={moreOpen}
+                aria-haspopup="menu"
+              >
+                More
+              </Button>
+              {moreOpen && (
+                <div
+                  role="menu"
+                  className="absolute right-0 top-full z-50 mt-1 min-w-44 rounded-md border border-border bg-background p-1 shadow-lg"
+                >
+                  {navItems
+                    .filter(item => !primaryHrefs.includes(item.href))
+                    .map(item => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        role="menuitem"
+                        className={`block rounded px-3 py-2 text-sm ${
+                          isActive(item.href)
+                            ? 'bg-primary text-primary-foreground'
+                            : 'text-foreground hover:bg-muted'
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                </div>
+              )}
+            </div>
             <div className="ml-3">
               <ThemeToggle />
             </div>

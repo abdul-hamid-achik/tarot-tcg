@@ -1,6 +1,15 @@
-import { describe, it, expect, vi } from 'vitest'
-vi.unmock("@/lib/game_logger")
-import { getAllCards, getCardById, createRandomDeck, isValidDeck } from '../card_loader'
+import { describe, expect, it, vi } from 'vitest'
+
+vi.unmock('@/lib/card_loader')
+vi.unmock('@/lib/game_logger')
+
+import {
+  createRandomDeck,
+  getAllCards,
+  getCardById,
+  isValidDeck,
+  validateAllContent,
+} from '../card_loader'
 
 describe('Card Loader - Basic Functionality', () => {
     it('should return all cards', () => {
@@ -8,7 +17,36 @@ describe('Card Loader - Basic Functionality', () => {
 
         expect(cards).toBeDefined()
         expect(Array.isArray(cards)).toBe(true)
-        expect(cards.length).toBeGreaterThan(0)
+        expect(cards).toHaveLength(78)
+        expect(new Set(cards.map(card => card.id)).size).toBe(78)
+    })
+
+    it('preserves major/minor category and suit on runtime cards', () => {
+        const magician = getAllCards().find(card => card.name === 'The Magician')
+        const ace = getAllCards().find(card => card.name === 'Ace of Cups')
+
+        expect(magician?.category).toBe('major')
+        expect(magician?.suit).toBeUndefined()
+        expect(ace?.category).toBe('minor')
+        expect(ace?.suit).toBe('cups')
+    })
+
+    it('keeps The Fool upright and reversed faces after loading', () => {
+        const fool = getAllCards().find(card => card.name === 'The Fool')
+
+        expect(fool?.slug).toBe('major-arcana/00-the-fool')
+        expect(fool?.uprightAbilities?.some(ability => ability.name === 'Leap of Faith')).toBe(true)
+        expect(fool?.reversedAbilities?.some(ability => ability.name === 'Reckless Abandon')).toBe(true)
+        expect(fool?.abilities?.some(ability => ability.name === 'Reckless Abandon')).toBe(false)
+    })
+
+    it('validates the generated collection against the game schema', () => {
+        const summary = validateAllContent()
+
+        expect(summary.complete).toBe(true)
+        expect(summary.invalidDetails).toEqual([])
+        expect(summary.missingReversed).toEqual([])
+        expect(summary.duplicateIds).toEqual([])
     })
 
     it('should return cards with required properties', () => {

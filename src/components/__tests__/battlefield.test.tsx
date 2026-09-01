@@ -329,10 +329,10 @@ describe('Battlefield', () => {
 
         const playerRow = battlefieldRowCalls.find(call => call.player === 'player1')
 
-        expect(playerRow?.canInteract).toBe(
-          testCase.expectedCanInteract,
-          `Failed for activePlayer=${testCase.activePlayer}, phase=${testCase.phase}`
-        )
+        expect(
+          playerRow?.canInteract,
+          `Failed for activePlayer=${testCase.activePlayer}, phase=${testCase.phase}`,
+        ).toBe(testCase.expectedCanInteract)
       }
     })
   })

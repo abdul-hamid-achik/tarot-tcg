@@ -6,6 +6,7 @@ import ReactMarkdown from 'react-markdown'
 import TarotCard from '@/components/tarot_card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { abilitiesForFace } from '@/lib/card_orientation'
 import type { Card as GameCard } from '@/schemas/schema'
 
 interface CardDetailOverlayProps {
@@ -32,6 +33,8 @@ export default function CardDetailOverlay({
   }, [isOpen])
 
   if (!isOpen) return null
+
+  const faceAbilities = abilitiesForFace(card)
 
   return (
     <div
@@ -126,12 +129,11 @@ export default function CardDetailOverlay({
                 </div>
               )}
 
-              {/* Abilities */}
-              {card.abilities && card.abilities.length > 0 && (
+              {faceAbilities.length > 0 && (
                 <div className="space-y-2">
                   <h4 className="text-sm font-semibold text-foreground">Abilities</h4>
                   <div className="space-y-2">
-                    {card.abilities.map(ability => (
+                    {faceAbilities.map(ability => (
                       <div
                         key={`${ability.name}-${ability.description}`}
                         className="bg-muted border border-border rounded p-3"

@@ -1,5 +1,5 @@
+import { withContentCollections } from '@content-collections/next'
 import type { NextConfig } from 'next'
-import { withContentlayer } from 'next-contentlayer2'
 
 const securityHeaders = [
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
@@ -9,10 +9,6 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
-  eslint: {
-    // Disable ESLint since we're using Biome
-    ignoreDuringBuilds: true,
-  },
   async headers() {
     return [
       {
@@ -23,4 +19,4 @@ const nextConfig: NextConfig = {
   },
 }
 
-export default withContentlayer(nextConfig)
+export default withContentCollections(nextConfig)

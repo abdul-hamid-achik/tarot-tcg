@@ -9,18 +9,16 @@ interface AttackArrowProps {
 
 export function AttackArrow({ className }: AttackArrowProps) {
   const { interaction } = useGameStore()
-  const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 })
+  const [pointerPosition, setPointerPosition] = useState({ x: 0, y: 0 })
   const [sourcePosition, setSourcePosition] = useState({ x: 0, y: 0 })
 
-  // Update mouse position when in targeting mode
   useEffect(() => {
     if (!interaction.attackSource) return
 
-    const handleMouseMove = (e: MouseEvent) => {
-      setMousePosition({ x: e.clientX, y: e.clientY })
+    const handlePointerMove = (event: PointerEvent) => {
+      setPointerPosition({ x: event.clientX, y: event.clientY })
     }
 
-    // Find source element position
     const sourceEl = document.getElementById(`unit-${interaction.attackSource}`)
     if (sourceEl) {
       const rect = sourceEl.getBoundingClientRect()
@@ -30,74 +28,37 @@ export function AttackArrow({ className }: AttackArrowProps) {
       })
     }
 
-    document.addEventListener('mousemove', handleMouseMove)
-    return () => document.removeEventListener('mousemove', handleMouseMove)
+    document.addEventListener('pointermove', handlePointerMove)
+    return () => document.removeEventListener('pointermove', handlePointerMove)
   }, [interaction.attackSource])
 
-  // Don't render if not attacking
   if (!interaction.attackSource || interaction.targetingMode !== 'attack') {
     return null
   }
 
-  const deltaX = mousePosition.x - sourcePosition.x
-  const deltaY = mousePosition.y - sourcePosition.y
+  const deltaX = pointerPosition.x - sourcePosition.x
+  const deltaY = pointerPosition.y - sourcePosition.y
   const angle = Math.atan2(deltaY, deltaX) * (180 / Math.PI)
-  const _length = Math.sqrt(deltaX * deltaX + deltaY * deltaY)
 
   return (
-    <div
-      className={`fixed inset-0 pointer-events-none z-50 ${className}`}
-      style={{
-        left: 0,
-        top: 0,
-        width: '100vw',
-        height: '100vh',
-      }}
-    >
-      <svg className="absolute inset-0 w-full h-full" style={{ overflow: 'visible' }}>
-        {/* Arrow Line */}
+    <div className={`pointer-events-none fixed inset-0 z-50 ${className ?? ''}`} aria-hidden="true">
+      <svg className="absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
         <line
           x1={sourcePosition.x}
           y1={sourcePosition.y}
-          x2={mousePosition.x}
-          y2={mousePosition.y}
-          stroke="rgba(239, 68, 68, 0.8)" // red-500 with opacity
+          x2={pointerPosition.x}
+          y2={pointerPosition.y}
+          stroke="rgb(185 28 28)"
           strokeWidth="3"
           strokeDasharray="8,4"
-          className="animate-pulse"
+          className="motion-reduce:stroke-solid"
         />
-
-        {/* Arrow Head */}
         <polygon
-          points={`${mousePosition.x},${mousePosition.y} ${mousePosition.x - 12},${mousePosition.y - 6} ${mousePosition.x - 12},${mousePosition.y + 6}`}
-          fill="rgba(239, 68, 68, 0.9)"
-          transform={`rotate(${angle}, ${mousePosition.x}, ${mousePosition.y})`}
-        />
-
-        {/* Glow Effect */}
-        <line
-          x1={sourcePosition.x}
-          y1={sourcePosition.y}
-          x2={mousePosition.x}
-          y2={mousePosition.y}
-          stroke="rgba(239, 68, 68, 0.3)"
-          strokeWidth="8"
-          strokeDasharray="8,4"
-          className="animate-pulse"
-          filter="blur(2px)"
+          points={`${pointerPosition.x},${pointerPosition.y} ${pointerPosition.x - 12},${pointerPosition.y - 6} ${pointerPosition.x - 12},${pointerPosition.y + 6}`}
+          fill="rgb(185 28 28)"
+          transform={`rotate(${angle}, ${pointerPosition.x}, ${pointerPosition.y})`}
         />
       </svg>
-
-      {/* Attack Value Display */}
-      <div
-        className="absolute bg-red-600/90 text-white px-2 py-1 rounded-md text-sm font-bold shadow-lg"
-        style={{
-          left: sourcePosition.x + deltaX * 0.3 - 15,
-          top: sourcePosition.y + deltaY * 0.3 - 15,
-        }}
-      >
-        ⚔️ Attack
-      </div>
     </div>
   )
 }

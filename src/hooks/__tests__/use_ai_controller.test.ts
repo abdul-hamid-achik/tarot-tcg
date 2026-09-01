@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
-import { renderHook, act, waitFor } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import { useAIController } from '../use_ai_controller'
 import { createTestGameState } from '@/test_utils'
 import type { GameState } from '@/schemas/schema'
@@ -9,13 +9,11 @@ vi.mock('@/store/game_store', () => ({
     useGameStore: vi.fn(),
 }))
 
-vi.mock('../use_game_actions', () => ({
-    useGameActions: vi.fn(),
-}))
-
 vi.mock('@/services/ai_controller_service', () => ({
     aiController: {
         executeAITurn: vi.fn(),
+        setDifficulty: vi.fn(),
+        reset: vi.fn(),
     },
 }))
 
@@ -30,8 +28,9 @@ vi.mock('@/lib/game_logger', () => ({
 describe('useAIController', () => {
     let mockGameState: GameState
     let mockSetGameState: ReturnType<typeof vi.fn>
-    let mockEndTurn: ReturnType<typeof vi.fn>
-    let mockExecuteAITurn: any
+    let mockExecuteAITurn: ReturnType<typeof vi.fn>
+    let mockSetDifficulty: ReturnType<typeof vi.fn>
+    let mockReset: ReturnType<typeof vi.fn>
 
     beforeEach(async () => {
         vi.clearAllMocks()
@@ -43,7 +42,6 @@ describe('useAIController', () => {
         })
 
         mockSetGameState = vi.fn()
-        mockEndTurn = vi.fn()
 
         const { useGameStore } = await import('@/store/game_store')
         vi.mocked(useGameStore).mockReturnValue({
@@ -51,14 +49,11 @@ describe('useAIController', () => {
             setGameState: mockSetGameState,
         } as any)
 
-        const { useGameActions } = await import('../use_game_actions')
-        vi.mocked(useGameActions).mockReturnValue({
-            endTurn: mockEndTurn,
-        } as any)
-
         const { aiController } = await import('@/services/ai_controller_service')
         mockExecuteAITurn = vi.mocked(aiController.executeAITurn)
         mockExecuteAITurn.mockResolvedValue(mockGameState)
+        mockSetDifficulty = vi.mocked(aiController.setDifficulty)
+        mockReset = vi.mocked(aiController.reset)
     })
 
     afterEach(() => {
@@ -82,6 +77,13 @@ describe('useAIController', () => {
 
             const info = result.current.getAIInfo()
             expect(info.difficulty).toBe('hard')
+            expect(mockSetDifficulty).toHaveBeenCalledWith('hard')
+        })
+
+        it('applies tutorial difficulty to the AI controller', () => {
+            renderHook(() => useAIController({ difficulty: 'tutorial' }))
+
+            expect(mockSetDifficulty).toHaveBeenCalledWith('tutorial')
         })
 
         it('should accept enabled option', () => {
@@ -293,10 +295,10 @@ describe('useAIController', () => {
 
             const info = result.current.getAIInfo()
 
-            expect(info.name).toBe('AI Opponent')
+            expect(info.name).toBe('Apprentice Reader')
             expect(info.difficulty).toBe('normal')
-            expect(info.aggression).toBe(0.5)
-            expect(info.icon).toBe('🤖')
+            expect(info.aggression).toBe(0.8)
+            expect(info.icon).toBe('🔮')
         })
 
         it('should return AI info with custom difficulty', () => {
@@ -307,6 +309,7 @@ describe('useAIController', () => {
             const info = result.current.getAIInfo()
 
             expect(info.difficulty).toBe('hard')
+            expect(info.name).toBe('Master Diviner')
         })
 
         it('should return AI info with easy difficulty', () => {
@@ -317,6 +320,19 @@ describe('useAIController', () => {
             const info = result.current.getAIInfo()
 
             expect(info.difficulty).toBe('easy')
+            expect(info.name).toBe('Novice Mystic')
+        })
+
+        it('should return training dummy info for tutorial difficulty', () => {
+            const { result } = renderHook(() =>
+                useAIController({ difficulty: 'tutorial' })
+            )
+
+            const info = result.current.getAIInfo()
+
+            expect(info.difficulty).toBe('tutorial')
+            expect(info.name).toBe('Training Dummy')
+            expect(info.icon).toBe('🎯')
         })
     })
 
@@ -327,6 +343,8 @@ describe('useAIController', () => {
             expect(() => {
                 result.current.resetAI()
             }).not.toThrow()
+            expect(mockReset).toHaveBeenCalled()
+            expect(mockSetDifficulty).toHaveBeenCalledWith('normal')
         })
 
         it('should work multiple times', () => {

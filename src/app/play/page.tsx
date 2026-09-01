@@ -15,17 +15,11 @@ import { useAIController } from '@/hooks/use_ai_controller'
 import { useGameTracker } from '@/hooks/use_game_tracker'
 import { getAllCards } from '@/lib/card_loader'
 import { GameLogger } from '@/lib/game_logger'
-import {
-  checkGameOutcome,
-  completeMulligan,
-  createInitialGameState,
-  endTurn,
-  initializeCards,
-  playCard,
-} from '@/lib/game_logic'
+import { checkGameOutcome, createInitialGameState, initializeCards } from '@/lib/game_logic'
 import type { Card, GameState } from '@/schemas/schema'
 import type { AILevel } from '@/services/ai_service'
 import { soundService } from '@/services/sound_service'
+import { useGameStore } from '@/store/game_store'
 
 type GameScreen = 'setup' | 'playing'
 
@@ -37,23 +31,26 @@ function PlayContent() {
   const [screen, setScreen] = useState<GameScreen>('setup')
   const [difficulty, setDifficulty] = useState<AILevel>('easy')
   const [selectedDeckName, setSelectedDeckName] = useState<string>(deckParam || '')
-  const [gameState, setGameState] = useState<GameState | null>(null)
+  const [seedState, setSeedState] = useState<GameState | null>(null)
+  const [matchId, setMatchId] = useState(0)
   const [gameOutcome, setGameOutcome] = useState<'player1_wins' | 'player2_wins' | 'ongoing'>(
     'ongoing',
   )
   const [savedDecks, setSavedDecks] = useState<{ name: string; cards: string[] }[]>([])
+  const liveState = useGameStore(state => state.gameState)
 
-  const { executeAI } = useAIController({
-    enabled: screen === 'playing',
+  useAIController({
+    enabled: screen === 'playing' && gameOutcome === 'ongoing',
     autoPlay: true,
     difficulty,
   })
 
   const { newAchievements, clearAchievements, gameRecord } = useGameTracker(
-    gameState,
+    screen === 'playing' ? liveState : seedState,
     gameOutcome,
     difficulty,
-    selectedDeckName,
+    selectedDeckName || 'Random',
+    matchId,
   )
 
   // Load saved decks
@@ -68,35 +65,14 @@ function PlayContent() {
     }
   }, [])
 
-  // Check for game outcome
   useEffect(() => {
-    if (gameState) {
-      const outcome = checkGameOutcome(gameState)
-      if (outcome !== 'ongoing' && gameOutcome === 'ongoing') {
-        soundService.play(outcome === 'player1_wins' ? 'game_win' : 'game_lose')
-      }
-      setGameOutcome(outcome)
+    if (screen !== 'playing' || !liveState) return
+    const outcome = checkGameOutcome(liveState)
+    if (outcome !== 'ongoing' && gameOutcome === 'ongoing') {
+      soundService.play(outcome === 'player1_wins' ? 'game_win' : 'game_lose')
     }
-  }, [gameState, gameOutcome])
-
-  // Auto-execute AI turn
-  useEffect(() => {
-    if (
-      gameState?.activePlayer === 'player2' &&
-      gameState?.phase === 'action' &&
-      gameOutcome === 'ongoing'
-    ) {
-      const timer = setTimeout(() => {
-        executeAI()
-      }, 1000)
-      return () => clearTimeout(timer)
-    }
-  }, [
-    gameState?.activePlayer,
-    gameState?.phase,
-    gameOutcome,
-    executeAI,
-  ])
+    setGameOutcome(outcome)
+  }, [screen, liveState, gameOutcome])
 
   const startGame = () => {
     initializeCards()
@@ -131,73 +107,16 @@ function PlayContent() {
       initialState = createInitialGameState()
     }
 
-    setGameState(initialState)
+    setSeedState(initialState)
+    setMatchId(id => id + 1)
     setGameOutcome('ongoing')
     setScreen('playing')
     GameLogger.state('Game started', { difficulty, deck: selectedDeckName || 'random' })
   }
 
-  const handleCardPlay = async (card: Card) => {
-    if (!gameState) return
-
-    const totalMana = gameState.player1.mana + gameState.player1.spellMana
-    if (card.cost > totalMana) return
-
-    if (card.type === 'unit') {
-      const playerUnits = gameState.battlefield.playerUnits.filter(u => u !== null)
-      if (playerUnits.length >= 7) return
-    }
-
-    try {
-      const newState = await playCard(gameState, card)
-      setGameState(newState)
-    } catch (error) {
-      console.error('Error playing card:', error)
-    }
-  }
-
-  const handleMulligan = async (selectedCards: string[]) => {
-    if (!gameState) return
-
-    try {
-      const preparedState = produce(gameState, draft => {
-        draft.player1.selectedForMulligan = selectedCards
-        draft.player2.mulliganComplete = true
-        draft.player2.selectedForMulligan = []
-      })
-
-      let mulliganedState = completeMulligan(preparedState)
-
-      if (
-        mulliganedState.player1.mulliganComplete &&
-        mulliganedState.player2.mulliganComplete &&
-        mulliganedState.phase !== 'action'
-      ) {
-        mulliganedState = produce(mulliganedState, draft => {
-          draft.phase = 'action'
-          draft.waitingForAction = true
-        })
-      }
-
-      setGameState(mulliganedState)
-    } catch (error) {
-      console.error('Error in mulligan:', error)
-    }
-  }
-
-  const handleEndTurn = async () => {
-    if (!gameState) return
-    try {
-      const newState = await endTurn(gameState)
-      setGameState(newState)
-    } catch (error) {
-      console.error('Error ending turn:', error)
-    }
-  }
-
   const resetGame = () => {
     setScreen('setup')
-    setGameState(null)
+    setSeedState(null)
     setGameOutcome('ongoing')
   }
 
@@ -224,6 +143,7 @@ function PlayContent() {
             <div className="grid grid-cols-1 sm:grid-cols-5 gap-2">
               {difficulties.map(d => (
                 <button
+                  type="button"
                   key={d.level}
                   onClick={() => setDifficulty(d.level)}
                   className={`p-3 rounded-lg border-2 transition-all text-center ${
@@ -245,6 +165,7 @@ function PlayContent() {
             <h2 className="text-lg font-semibold">Deck</h2>
             <div className="space-y-2">
               <button
+                type="button"
                 onClick={() => setSelectedDeckName('')}
                 className={`w-full p-3 rounded-lg border-2 transition-all text-left flex items-center gap-3 ${
                   !selectedDeckName
@@ -261,6 +182,7 @@ function PlayContent() {
 
               {savedDecks.map(d => (
                 <button
+                  type="button"
                   key={d.name}
                   onClick={() => setSelectedDeckName(d.name)}
                   className={`w-full p-3 rounded-lg border-2 transition-all text-left flex items-center justify-between ${
@@ -314,53 +236,9 @@ function PlayContent() {
     )
   }
 
-  // Playing screen
-  return (
-    <div className="h-screen w-screen bg-background text-foreground overflow-hidden relative transition-colors">
-      {/* Back button */}
-      <div className="fixed top-2 left-2 md:top-4 md:left-4 z-50">
-        <Button
-          onClick={resetGame}
-          variant="outline"
-          className="rounded-full w-8 h-8 md:w-10 md:h-10 p-0 shadow-lg"
-          title="Back to setup"
-        >
-          <ArrowLeft className="w-4 h-4" />
-        </Button>
-      </div>
-
-      {/* Reset button */}
-      <div className="fixed top-2 right-2 md:top-4 md:right-4 z-50">
-        <Button
-          onClick={() => {
-            startGame()
-          }}
-          className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-full w-10 h-10 md:w-12 md:h-12 p-0 shadow-lg"
-          title="Restart Game"
-        >
-          <RotateCcw className="w-5 h-5" />
-        </Button>
-      </div>
-
-      {/* Game Board */}
-      {gameState && (
-        <GameBoardErrorBoundary onReset={resetGame}>
-          <TarotGameBoard
-            gameState={gameState}
-            onCardPlay={handleCardPlay}
-            onEndTurn={handleEndTurn}
-            onMulligan={handleMulligan}
-          />
-        </GameBoardErrorBoundary>
-      )}
-
-      {/* Achievement Toast (only shown during gameplay, not after game ends) */}
-      {newAchievements.length > 0 && gameOutcome === 'ongoing' && (
-        <AchievementToast achievements={newAchievements} onDismiss={clearAchievements} />
-      )}
-
-      {/* Game Summary */}
-      {gameOutcome !== 'ongoing' && (
+  if (gameOutcome !== 'ongoing') {
+    return (
+      <div className="relative flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
         <GameSummary
           outcome={gameOutcome}
           gameRecord={gameRecord}
@@ -368,6 +246,45 @@ function PlayContent() {
           onPlayAgain={() => startGame()}
           onReturnHome={() => router.push('/')}
         />
+      </div>
+    )
+  }
+
+  return (
+    <div className="relative flex h-dvh max-h-dvh w-full flex-col overflow-hidden bg-background text-foreground">
+      <header className="flex shrink-0 items-center justify-between border-b border-border px-3 py-2">
+        <Button
+          type="button"
+          onClick={resetGame}
+          variant="outline"
+          size="sm"
+          aria-label="Back to setup"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+          Setup
+        </Button>
+        <Button
+          type="button"
+          onClick={startGame}
+          variant="outline"
+          size="sm"
+          aria-label="Restart match"
+        >
+          <RotateCcw className="mr-2 h-4 w-4" aria-hidden="true" />
+          Restart
+        </Button>
+      </header>
+
+      <div className="min-h-0 flex-1 overflow-hidden">
+        {seedState && (
+          <GameBoardErrorBoundary onReset={resetGame}>
+            <TarotGameBoard key={matchId} gameState={seedState} />
+          </GameBoardErrorBoundary>
+        )}
+      </div>
+
+      {newAchievements.length > 0 && (
+        <AchievementToast achievements={newAchievements} onDismiss={clearAchievements} />
       )}
     </div>
   )

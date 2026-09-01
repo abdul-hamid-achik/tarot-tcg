@@ -23,6 +23,20 @@ test.describe('Card Catalog', () => {
     expect(count).toBeGreaterThanOrEqual(0) // Relaxed - page may use different selectors
   })
 
+  test('shows upright and reversed faces in the catalog', async ({ page }) => {
+    await page.goto('/cards')
+    await expect(page.getByRole('heading', { name: 'All 78 cards' })).toBeVisible()
+    await expect(page.getByText('Upright').first()).toBeVisible()
+    await expect(page.getByText('Reversed').first()).toBeVisible()
+  })
+
+  test('opens a card page with reversed abilities', async ({ page }) => {
+    await page.goto('/cards/major-arcana/00-the-fool')
+    await expect(page.getByRole('heading', { name: 'The Fool' })).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Upright and reversed' })).toBeVisible()
+    await expect(page.getByText('Reckless Abandon')).toBeVisible()
+  })
+
   test('should have search/filter functionality', async ({ page }) => {
     await page.goto('/cards')
     await page.waitForTimeout(1000)

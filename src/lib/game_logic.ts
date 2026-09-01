@@ -1,6 +1,6 @@
-import { produce, enableMapSet } from 'immer'
+import { enableMapSet, produce } from 'immer'
 import { createRandomDeck, createZodiacDeck, getAllCards } from '@/lib/card_loader'
-import { declareAttack } from '@/services/combat_service'
+import { abilitiesForFace } from '@/lib/card_orientation'
 import { GameLogger } from '@/lib/game_logger'
 import type {
   Battlefield,
@@ -13,6 +13,7 @@ import type {
   TriggeredAbility,
 } from '@/schemas/schema'
 import { cardEffectSystem } from '@/services/card_effect_system'
+import { declareAttack } from '@/services/combat_service'
 import { effectStackService } from '@/services/effect_stack_service'
 import { createEventHelpers, eventManager } from '@/services/event_manager'
 import { phaseManagerService } from '@/services/phase_manager_service'
@@ -104,16 +105,16 @@ const GAME_CONFIG = {
   STARTING_HAND_SIZE: 4,
 } as const
 
-// Get real cards from contentlayer
+// Get real cards from content collections
 let TAROT_CARDS: Card[] = []
 
-// Initialize cards - this will be called when contentlayer is ready
+// Initialize cards - this will be called when generated content is ready
 export function initializeCards() {
   try {
     TAROT_CARDS = getAllCards()
   } catch {
-    GameLogger.warn('Contentlayer not ready, using default cards')
-    // Fallback cards if contentlayer isn't ready
+    GameLogger.warn('Card content is not ready, using default cards')
+    // Fallback cards if generated content isn't ready
     TAROT_CARDS = [
       {
         id: 'default-1',
@@ -190,6 +191,7 @@ export function createInitialGameState(
     selectedForMulligan: [],
     hasPassed: false,
     actionsThisTurn: 0,
+    hasReadThisTurn: false,
   }
 
   const player2: Player = {
@@ -206,6 +208,7 @@ export function createInitialGameState(
     selectedForMulligan: [],
     hasPassed: false,
     actionsThisTurn: 0,
+    hasReadThisTurn: false,
   }
 
   // Initialize win condition system for this game
@@ -245,10 +248,10 @@ export function createInitialGameState(
 
 export function canPlayCard(state: GameState, card: Card): boolean {
   const player = state[state.activePlayer]
-  const totalMana = player.mana + player.spellMana
+  const available = card.type === 'spell' ? player.mana + player.spellMana : player.mana
 
-  // Check mana
-  if (card.cost > totalMana) return false
+  // Check mana — spell mana pays for spells only
+  if (card.cost > available) return false
 
   // Check battlefield space for units
   if (card.type === 'unit') {
@@ -298,11 +301,13 @@ export async function playCard(
   const hasZodiacBuff = checkZodiacAlignment(card.zodiacClass, currentMonth)
 
   // Calculate mana usage
-  const manaCost = payManaCost(player, card.cost)
+  const manaCost = payManaCost(player, card.cost, card.type)
 
   if (!manaCost) {
     throw new Error(
-      `Not enough mana to play ${card.name}. Required: ${card.cost}, Available: ${player.mana + player.spellMana}`,
+      `Not enough mana to play ${card.name}. Required: ${card.cost}, Available: ${
+        card.type === 'spell' ? player.mana + player.spellMana : player.mana
+      }`,
     )
   }
 
@@ -316,18 +321,21 @@ export async function playCard(
   }
 
   // Create unit data before state mutation (for units)
-  const unit: Card | null = card.type === 'unit' ? {
-    ...card,
-    currentHealth: card.health,
-    isReversed,
-    hasSummoningSickness: true,
-    hasAttackedThisTurn: false,
-    owner: state.activePlayer,
-    // Apply zodiac buff to stats
-    attack: card.attack + (hasZodiacBuff ? 1 : 0),
-    health: card.health + (hasZodiacBuff ? 1 : 0),
-    astrologyBonus: hasZodiacBuff ? 1 : 0,
-  } : null
+  const unit: Card | null =
+    card.type === 'unit'
+      ? {
+          ...card,
+          currentHealth: card.health,
+          isReversed,
+          hasSummoningSickness: true,
+          hasAttackedThisTurn: false,
+          owner: state.activePlayer,
+          // Apply zodiac buff to stats
+          attack: card.attack + (hasZodiacBuff ? 1 : 0),
+          health: card.health + (hasZodiacBuff ? 1 : 0),
+          astrologyBonus: hasZodiacBuff ? 1 : 0,
+        }
+      : null
 
   // Use Immer for deep immutable state updates - do all mutations inside produce
   let newState = produce(state, draft => {
@@ -340,9 +348,10 @@ export async function playCard(
 
     if (unit && finalTargetSlot !== undefined) {
       // Place unit on battlefield
-      const units = state.activePlayer === 'player1'
-        ? draft.battlefield.playerUnits
-        : draft.battlefield.enemyUnits
+      const units =
+        state.activePlayer === 'player1'
+          ? draft.battlefield.playerUnits
+          : draft.battlefield.enemyUnits
       units[finalTargetSlot] = unit
     }
   })
@@ -366,10 +375,7 @@ export async function playCard(
     // Emit unit summoned event
     await eventHelpers.unitSummoned(card.id, card.name, unit.attack, unit.health)
 
-    // Select abilities based on orientation
-    const orientedAbilities = isReversed
-      ? (card.reversedAbilities && card.reversedAbilities.length > 0 ? card.reversedAbilities : card.abilities)
-      : (card.uprightAbilities && card.uprightAbilities.length > 0 ? card.uprightAbilities : card.abilities)
+    const orientedAbilities = abilitiesForFace(card)
 
     // Execute battlecry abilities (on_play triggers) through the effect system
     if (orientedAbilities && orientedAbilities.length > 0) {
@@ -398,10 +404,7 @@ export async function playCard(
       cardEffectSystem.registerCardAbilities(unit, triggeredAbilities)
     }
   } else if (card.type === 'spell') {
-    // Select spell abilities based on orientation
-    const spellAbilities = isReversed
-      ? (card.reversedAbilities && card.reversedAbilities.length > 0 ? card.reversedAbilities : [])
-      : (card.uprightAbilities && card.uprightAbilities.length > 0 ? card.uprightAbilities : [])
+    const spellAbilities = abilitiesForFace(card)
 
     // Execute spell abilities through the effect system
     if (spellAbilities.length > 0) {
@@ -424,8 +427,7 @@ export async function playCard(
           }
         }
       }
-    } else if (card.effects && card.effects.length > 0) {
-      // Fallback to old effects array for cards without oriented abilities
+    } else if (!isReversed && card.effects && card.effects.length > 0) {
       await queueSpellEffectsOnStack(newState, card.effects, state.activePlayer, card)
     }
   }
@@ -437,18 +439,22 @@ export async function playCard(
 }
 
 // Helper functions for new playCard system
-function payManaCost(
+export function payManaCost(
   player: Player,
   cost: number,
+  cardType: Card['type'] = 'spell',
 ): { manaUsed: number; spellManaUsed: number } | null {
+  if (cardType !== 'spell') {
+    if (player.mana < cost) return null
+    return { manaUsed: cost, spellManaUsed: 0 }
+  }
+
   const manaToUse = Math.min(player.mana, cost)
   const remainingCost = cost - manaToUse
   const spellManaToUse = Math.min(player.spellMana, remainingCost)
 
-  // Validate we have enough total mana
-  const totalAvailable = player.mana + player.spellMana
-  if (totalAvailable < cost) {
-    return null // Not enough mana
+  if (manaToUse + spellManaToUse < cost) {
+    return null
   }
 
   return { manaUsed: manaToUse, spellManaUsed: spellManaToUse }
@@ -487,7 +493,9 @@ async function _applyReversedEffect(state: GameState, unit: Card): Promise<void>
         isReversed: Math.random() < GAME_CONFIG.ORIENTATION_CHANCE,
       }
       player.hand.push(cardWithOrientation)
-      GameLogger.action(`${unit.name} reversed effect: draw card${cardWithOrientation.isReversed ? ' (reversed)' : ''}`)
+      GameLogger.action(
+        `${unit.name} reversed effect: draw card${cardWithOrientation.isReversed ? ' (reversed)' : ''}`,
+      )
     }
   }
 }
@@ -507,7 +515,9 @@ async function _applyReversedEffectImmutable(state: GameState, unit: Card): Prom
           isReversed,
         }
         draftPlayer.hand.push(cardWithOrientation)
-        GameLogger.action(`${unit.name} reversed effect: draw card${isReversed ? ' (reversed)' : ''}`)
+        GameLogger.action(
+          `${unit.name} reversed effect: draw card${isReversed ? ' (reversed)' : ''}`,
+        )
       })
     }
   }
@@ -873,21 +883,21 @@ export async function endTurn(state: GameState): Promise<GameState> {
   // Use Immer for all state mutations
   const newState = produce(updatedState, draft => {
     // Reset attack flags for current player's units (they're ending their turn)
-    const currentPlayerUnits = activePlayer === 'player1'
-      ? draft.battlefield.playerUnits
-      : draft.battlefield.enemyUnits
+    const currentPlayerUnits =
+      activePlayer === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
 
     for (const unit of currentPlayerUnits) {
       if (unit) {
         unit.hasAttackedThisTurn = false
+        unit.exhaustedForReading = false
       }
     }
+    draft[activePlayer].hasReadThisTurn = false
 
     // CRITICAL: Clear summoning sickness for the NEXT player's units
     // This allows units to attack after their first full turn cycle
-    const nextPlayerUnits = nextPlayer === 'player1'
-      ? draft.battlefield.playerUnits
-      : draft.battlefield.enemyUnits
+    const nextPlayerUnits =
+      nextPlayer === 'player1' ? draft.battlefield.playerUnits : draft.battlefield.enemyUnits
 
     for (const unit of nextPlayerUnits) {
       if (unit) {
@@ -1065,7 +1075,9 @@ export function completeMulligan(state: GameState): GameState {
 
     if (player.selectedForMulligan.length > 0) {
       // Shuffle selected cards back into deck
-      const cardsToShuffle = player.hand.filter(card => player.selectedForMulligan.includes(card.id))
+      const cardsToShuffle = player.hand.filter(card =>
+        player.selectedForMulligan.includes(card.id),
+      )
       const keptCards = player.hand.filter(card => !player.selectedForMulligan.includes(card.id))
 
       // Add discarded cards back to deck and shuffle
@@ -1201,6 +1213,6 @@ export function aiMulligan(
 function shuffleDeck(player: Player): void {
   for (let i = player.deck.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1))
-      ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
+    ;[player.deck[i], player.deck[j]] = [player.deck[j], player.deck[i]]
   }
 }

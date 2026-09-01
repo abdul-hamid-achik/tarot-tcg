@@ -1,10 +1,10 @@
 'use client'
 
-import { GameLogger } from '@/lib/game_logger'
 import Image from 'next/image'
 import type React from 'react'
 import { useRef } from 'react'
 import TarotCard from '@/components/tarot_card'
+import { GameLogger } from '@/lib/game_logger'
 import { cn } from '@/lib/utils'
 import type { Card as GameCard } from '@/schemas/schema'
 import { interactionService } from '@/services/interaction_service'
@@ -17,6 +17,7 @@ interface HandFanProps {
   onCardPlay?: (card: GameCard) => void
   onCardDetail?: (card: GameCard) => void
   className?: string
+  embedded?: boolean
 }
 
 export default function HandFan({
@@ -26,6 +27,7 @@ export default function HandFan({
   onCardPlay: _onCardPlay,
   onCardDetail,
   className = '',
+  embedded = false,
 }: HandFanProps) {
   const fanRef = useRef<HTMLDivElement>(null)
   const { interaction, showCardDetail, gameState } = useGameStore()
@@ -38,14 +40,16 @@ export default function HandFan({
   // Position-specific styles - Improved Hearthstone-style (responsive)
   const positionStyles = {
     'bottom-left': {
-      container: 'fixed bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2',
+      container: embedded
+        ? 'relative mx-auto'
+        : 'fixed bottom-4 md:bottom-8 left-1/2 transform -translate-x-1/2',
       transformOrigin: 'center bottom',
-      fanDirection: 1, // Normal fan direction
+      fanDirection: 1,
     },
     'top-right': {
-      container: 'absolute top-2 md:top-4 right-8 md:right-12',
+      container: embedded ? 'relative mx-auto' : 'absolute top-2 md:top-4 right-8 md:right-12',
       transformOrigin: 'center top',
-      fanDirection: -1, // Reverse fan direction for enemy
+      fanDirection: -1,
     },
   }
 
@@ -53,6 +57,9 @@ export default function HandFan({
 
   // Calculate fan positioning for each card - Hearthstone-style curve
   const calculateCardPosition = (index: number, totalCards: number) => {
+    if (embedded) {
+      return { angle: 0, translateY: 0, zIndex: 10, marginLeft: index > 0 ? '4px' : '0' }
+    }
     if (totalCards <= 1) {
       return { angle: 0, translateY: 0, zIndex: 10, marginLeft: '0' }
     }
@@ -91,26 +98,25 @@ export default function HandFan({
     // Skip click if a drag just completed (pointer capture causes click to fire after drag)
     if (interactionService.justCompletedDrag()) return
 
-    const { selectCard, clearSelection, interaction } = useGameStore.getState()
+    const { selectCard, placeInReading, interaction } = useGameStore.getState()
 
-    // Check if card is already selected
     const isSelected = interaction.selectedCard?.id === card.id
 
     if (isSelected) {
-      // Deselect if already selected (Hearthstone-style: click to cancel)
-      clearSelection()
-      GameLogger.debug(`Deselected ${card.name}`)
+      placeInReading(card)
+      GameLogger.debug(`Seated ${card.name} in the reading`)
       return
     }
 
-    // For action phase, select the card for placement (Hearthstone-style)
     const isOurTurn = gameState.activePlayer === 'player1'
     const isAction = gameState.phase === 'action'
-    const totalMana = gameState.player1.mana + gameState.player1.spellMana
-    const canAfford = card.cost <= totalMana
+    const available =
+      card.type === 'spell'
+        ? gameState.player1.mana + gameState.player1.spellMana
+        : gameState.player1.mana
+    const canAfford = card.cost <= available
 
     if (isOurTurn && isAction && canAfford) {
-      // Select the card for click-to-place (Hearthstone-style: click card, then click slot)
       selectCard(card)
       GameLogger.debug(`Selected ${card.name} for placement - click a slot to play`)
       return
@@ -149,7 +155,7 @@ export default function HandFan({
     cardElement: HTMLElement,
     cardPosition: { angle: number; translateY: number; zIndex: number },
   ) => {
-    if (!isCurrentPlayer || interactionService.isDragging()) return
+    if (!isCurrentPlayer || interactionService.isDragging() || embedded) return
 
     const { translateY } = cardPosition
 
@@ -221,12 +227,20 @@ export default function HandFan({
     const canAfford = card.cost <= totalMana
     const canPlay = isCurrentPlayer && isOurTurn && isActionPhase && canAfford
     const isDragging = interaction.draggedCard?.id === card.id
+    const CardShell = isCurrentPlayer ? 'button' : 'div'
 
     return (
-      <div
+      <CardShell
         key={card.id}
+        {...(isCurrentPlayer
+          ? {
+              type: 'button' as const,
+              'aria-label': `${card.name}, cost ${card.cost}${isPlacementSelected ? ', selected' : canPlay ? '' : ', cannot play'}`,
+            }
+          : {})}
         className={cn(
-          'flex-shrink-0 cursor-pointer transition-all duration-300 relative',
+          'relative flex-shrink-0 cursor-pointer border-0 bg-transparent p-0 transition-all duration-300',
+          'focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-foreground',
           position.includes('bottom') ? 'origin-bottom' : 'origin-top',
           // Mulligan selection
           isMulliganSelected && 'ring-2 ring-red-400 ring-opacity-60',
@@ -246,33 +260,37 @@ export default function HandFan({
           zIndex: isPlacementSelected ? 100 : cardPosition.zIndex,
           marginLeft: cardPosition.marginLeft,
         }}
-        onClick={() => handleCardClick(card)}
-        onContextMenu={e => handleCardRightClick(card, e)}
-        onPointerDown={e => {
-          const cardElement = e.currentTarget as HTMLElement
-          handleCardPointerDown(card, index, cardElement, e)
-        }}
-        onPointerMove={e => {
-          // Prevent default to avoid triggering drag on other elements
-          if (interactionService.isDragging()) {
-            e.preventDefault()
-          }
-        }}
-        onPointerUp={e => {
-          // Clean up any hover states when pointer is released
-          if (!interactionService.isDragging()) {
-            const cardElement = e.currentTarget as HTMLElement
-            handleCardMouseLeave(cardElement, cardPosition)
-          }
-        }}
-        onMouseEnter={e => {
-          const cardElement = e.currentTarget as HTMLElement
-          handleCardMouseEnter(cardElement, cardPosition)
-        }}
-        onMouseLeave={e => {
-          const cardElement = e.currentTarget as HTMLElement
-          handleCardMouseLeave(cardElement, cardPosition)
-        }}
+        {...(isCurrentPlayer
+          ? {
+              onClick: () => handleCardClick(card),
+              onKeyDown: (event: React.KeyboardEvent) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault()
+                  handleCardClick(card)
+                }
+              },
+              onContextMenu: (e: React.MouseEvent) => handleCardRightClick(card, e),
+              onPointerDown: (e: React.PointerEvent) => {
+                handleCardPointerDown(card, index, e.currentTarget as HTMLElement, e)
+              },
+              onPointerMove: (e: React.PointerEvent) => {
+                if (interactionService.isDragging()) {
+                  e.preventDefault()
+                }
+              },
+              onPointerUp: (e: React.PointerEvent) => {
+                if (!interactionService.isDragging()) {
+                  handleCardMouseLeave(e.currentTarget as HTMLElement, cardPosition)
+                }
+              },
+              onMouseEnter: (e: React.MouseEvent) => {
+                handleCardMouseEnter(e.currentTarget as HTMLElement, cardPosition)
+              },
+              onMouseLeave: (e: React.MouseEvent) => {
+                handleCardMouseLeave(e.currentTarget as HTMLElement, cardPosition)
+              },
+            }
+          : {})}
       >
         {/* Selection indicator badge */}
         {isPlacementSelected && (
@@ -295,10 +313,7 @@ export default function HandFan({
             size="small"
             isSelected={isPlacementSelected}
             draggable={false} // We handle drag through PointerEvents
-            className={cn(
-              'transition-all duration-200',
-              isDragging && 'opacity-40 scale-95',
-            )}
+            className={cn('transition-all duration-200', isDragging && 'opacity-40 scale-95')}
           />
         ) : (
           /* Enemy card back */
@@ -315,7 +330,7 @@ export default function HandFan({
             />
           </div>
         )}
-      </div>
+      </CardShell>
     )
   }
 
@@ -327,33 +342,30 @@ export default function HandFan({
   return (
     <div ref={fanRef} className={cn(positionConfig.container, 'z-20', className)}>
       {/* Hand container with subtle background */}
-      <div className={cn(
-        'relative flex items-end',
-        isCurrentPlayer && 'pb-2',
-      )}>
+      <div className={cn('relative flex items-end', isCurrentPlayer && 'pb-2')}>
         {/* Card fan */}
-        <div
-          className="flex"
-          style={{ transformOrigin: positionConfig.transformOrigin }}
-        >
+        <div className="flex" style={{ transformOrigin: positionConfig.transformOrigin }}>
           {cards.map((card, index) => renderCard(card, index))}
         </div>
       </div>
 
       {/* Helper text for current player */}
-      {isCurrentPlayer && isOurTurn && isActionPhase && !interaction.selectedCard && cards.length > 0 && (
-        <div className="text-center mt-2 text-xs text-slate-500 font-medium">
-          Click a card to select, then click a slot to play
-        </div>
-      )}
+      {isCurrentPlayer &&
+        isOurTurn &&
+        isActionPhase &&
+        !interaction.selectedCard &&
+        cards.length > 0 &&
+        !embedded && (
+          <div className="mt-2 text-center text-xs font-medium text-muted-foreground">
+            Click a card, then a slot
+          </div>
+        )}
 
       {/* Drag preview placeholder */}
       {interaction.draggedCard && isCurrentPlayer && (
         <div className="fixed bottom-4 left-1/2 -translate-x-1/2 pointer-events-none z-50">
           <div className="bg-emerald-100 border-2 border-emerald-400 rounded-lg px-4 py-2 shadow-lg">
-            <span className="text-emerald-700 text-sm font-medium">
-              Drop on a slot to play
-            </span>
+            <span className="text-emerald-700 text-sm font-medium">Drop on a slot to play</span>
           </div>
         </div>
       )}

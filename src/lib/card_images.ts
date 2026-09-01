@@ -205,7 +205,7 @@ const CARD_IMAGE_MAPPING: { [key: string]: string } = {
  * Maps a card to its image path based on the tarot card structure
  * in public/default/cards/
  */
-export function getCardImagePath(card: Card): string {
+export function getCardImagePath(card: Pick<Card, 'name'> & { id?: string }): string {
   if (!card || !card.name) {
     return getCardBackImagePath()
   }

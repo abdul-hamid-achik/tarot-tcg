@@ -1,8 +1,9 @@
+import { abilitiesForFace } from '@/lib/card_orientation'
 import { GameLogger } from '@/lib/game_logger'
 import { endTurn } from '@/lib/game_logic'
 import type { Card, GameState } from '@/schemas/schema'
-import { parseAbilityDescription } from '@/services/ability_parser'
 import type { ActionType } from '@/services/ability_parser'
+import { parseAbilityDescription } from '@/services/ability_parser'
 import { type AILevel, type AIPersonality, aiService } from './ai_service'
 import { battlefieldService } from './battlefield_service'
 import { eventManager } from './event_manager'
@@ -15,6 +16,7 @@ function getPlayerUnits(gameState: GameState, playerId: 'player1' | 'player2'): 
 }
 
 import { declareAttack } from '@/services/combat_service'
+import { performReading, pickAiReading } from '@/services/reading_service'
 
 // AI Decision weights for different strategies
 interface _DecisionWeights {
@@ -70,20 +72,7 @@ const ACTION_BASE_VALUES: Record<ActionType, number> = {
  * Falls back to generic abilities if orientation-specific ones are not available.
  */
 function getOrientedAbilities(card: Card): { name?: string; description?: string }[] {
-  const isReversed = card.isReversed || false
-
-  if (isReversed) {
-    if (card.reversedAbilities && card.reversedAbilities.length > 0) {
-      return card.reversedAbilities
-    }
-  } else {
-    if (card.uprightAbilities && card.uprightAbilities.length > 0) {
-      return card.uprightAbilities
-    }
-  }
-
-  // Fall back to generic abilities
-  return card.abilities || []
+  return abilitiesForFace(card)
 }
 
 /**
@@ -173,9 +162,7 @@ function evaluateAbilityValueWithContext(
 
   // Check how many friendly units are at full health
   const myUnitsList = getPlayerUnits(gameState, 'player2')
-  const damagedUnits = myUnitsList.filter(
-    u => (u.currentHealth ?? u.health) < u.health,
-  ).length
+  const damagedUnits = myUnitsList.filter(u => (u.currentHealth ?? u.health) < u.health).length
 
   let totalValue = 0
 
@@ -333,11 +320,14 @@ export class AIControllerService {
       // Small delay between actions for visual clarity
       await new Promise(resolve => setTimeout(resolve, 300))
 
-      // Execute attacks using new evaluation system
-      if (currentState[currentState.activePlayer].hasAttackToken) {
-        currentState = await this.makeSmartAttackDecision(currentState)
+      const reading = pickAiReading(currentState)
+      if (reading) {
+        try {
+          currentState = await performReading(currentState, reading)
+        } catch (error) {
+          GameLogger.ai(`AI reading failed: ${error}`)
+        }
       }
-      // The AI will attack via direct unit interactions in future implementation
 
       // End turn if nothing else to do
       GameLogger.ai(`🤖 ${this.currentPersonality.name} ends turn`)
@@ -834,9 +824,7 @@ export class AIControllerService {
 
     // Check for taunt units - if present, we must attack them
     const tauntUnits = enemyUnits.filter(
-      u =>
-        u.keywords?.some(k => k.toLowerCase() === 'taunt') &&
-        (u.currentHealth ?? u.health) > 0,
+      u => u.keywords?.some(k => k.toLowerCase() === 'taunt') && (u.currentHealth ?? u.health) > 0,
     )
     const hasTaunt = tauntUnits.length > 0
 
